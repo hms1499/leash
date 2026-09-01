@@ -37,8 +37,12 @@ funds it can move.
 The pre-commit guard (`scripts/check-secrets.sh`) catches `.env` files and
 common key/mnemonic shapes, but it is a regex safety net, not a guarantee —
 it will not catch a secret split across lines, encoded/embedded in another
-format, or committed with `--no-verify`. Review diffs yourself before
-committing anything sensitive-looking.
+format, or committed with `--no-verify`. It also deliberately lets through a
+64-hex value that is itself immediately labelled as a transaction hash (a
+`tx:`/`hash:` prefix or an explorer `.../tx/` URL), since this project must
+record real proof-tx hashes in its own docs and those are indistinguishable
+from a key by shape alone. Review diffs yourself before committing anything
+sensitive-looking.
 
 ## Design
 

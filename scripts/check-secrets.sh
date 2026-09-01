@@ -9,15 +9,16 @@
 #   - API tokens, session cookies, or other secret shapes that are not a
 #     64-hex string or a 12/15/18/21/24-word mnemonic
 #   - anything committed with `git commit --no-verify`
-#   - a real 0x+64hex private key placed on a line that also looks like a
-#     transaction reference (a tx/txn/hash label, or an explorer .../tx/
-#     URL) and carries no key-ish identifier (KEY/PK/PRIVATE/SECRET/
-#     MNEMONIC/SEED). This project is required to record real proof-tx
-#     hashes in its own docs, and those hashes are indistinguishable from a
-#     private key by shape alone; the exception below lets tx-labelled
-#     0x+64hex lines through so the guard is not routinely bypassed with
-#     --no-verify on exactly its highest-value commits. A key-ish line
-#     never gets this exception (see the rule below).
+#   - a real 0x+64hex private key that is ITSELF immediately preceded by a
+#     tx/txn/hash label or sits inside an explorer .../tx/<value> URL (the
+#     exact shape a real proof-tx hash also has). This project is required
+#     to record real proof-tx hashes in its own docs, and those hashes are
+#     indistinguishable from a private key by shape alone; the exception
+#     below lets a tx-labelled value through so the guard is not routinely
+#     bypassed with --no-verify on exactly its highest-value commits. The
+#     exception is evaluated per VALUE, not per line — a second, unlabelled
+#     64-hex value on the same line gets no exemption. A key-ish line never
+#     gets this exception at all (see the rule below).
 # Treat this as a safety net for the common accident, not a security
 # boundary. Review diffs before committing sensitive-looking changes.
 set -euo pipefail
@@ -42,27 +43,46 @@ added=$(git diff --cached -U0 -- . ':!*.lock' ':!pnpm-lock.yaml' | grep -E '^\+'
 
 # A 0x-prefixed 64-hex string is a private key unless it is all zeros.
 #
-# Exception: a line that both (a) looks like a transaction reference — an
-# explorer tx URL (".../tx/0x...") or a tx/txn/hash label — and (b) carries
-# no key-ish identifier (KEY/PK/PRIVATE/SECRET/MNEMONIC/SEED) is let
-# through. This project's own docs are required to record real proof-tx
-# hashes (spikes/README.md's "Proof tx:" field, docs/deployments.md, a
-# later task's mainnet attribution proof), and a tx hash is 0x+64hex just
-# like a key — without this, the guard would block precisely the
-# highest-value commits in this plan and train routine --no-verify use.
-# The key-ish check keeps this narrow: OWNER_PK=0x... still blocks even if
-# the word "tx" appears elsewhere on the same line.
-tx_marked=$(printf '%s\n' "$added" \
-  | grep -E '0x[0-9a-fA-F]{64}' \
-  | grep -vE '0x0{64}' \
-  | grep -iE '(https?://[^[:space:]]*/tx/|\b(tx|txn|hash)\b)' \
-  | grep -viE '(KEY|PK|PRIVATE|SECRET|MNEMONIC|SEED)[A-Za-z0-9_]*[[:space:]]*[:=]' \
-  || true)
-unmarked_hex=$(printf '%s\n' "$added" \
-  | grep -E '0x[0-9a-fA-F]{64}' \
-  | grep -vE '0x0{64}' \
-  || true)
-if [ -n "$unmarked_hex" ] && [ "$unmarked_hex" != "$tx_marked" ]; then
+# Exception, evaluated per VALUE (not per line): a value is exempt only
+# when it is itself immediately preceded by a tx/txn/hash label (allowing
+# up to 10 chars of whitespace/colon/equals between the label and the
+# value — e.g. "Proof tx: 0x...", "hash=0x...") or sits directly after
+# "/tx/" in an explorer URL (".../tx/0x..."). A second 64-hex value
+# elsewhere on the same line — labelled or not — gets no exemption from
+# this, because the check re-extracts the value out of each exempt match
+# and only what is captured that way counts as exempt. Also: this project
+# is required to record real proof-tx hashes in its own docs
+# (spikes/README.md's "Proof tx:" field, docs/deployments.md, a later
+# task's mainnet attribution proof), and a tx hash is 0x+64hex just like a
+# key — without this, the guard would block precisely the highest-value
+# commits in this plan and train routine --no-verify use.
+#
+# Count every non-zero 0x+64hex value present, then count how many of
+# those same values appear as the tail of an exempt (label- or
+# URL-adjacent) match. If any value isn't accounted for by the exempt set,
+# something un-exempted is staged — block. (Key-ish lines, e.g.
+# OWNER_PK=0x..., are also blocked here whenever the value isn't itself
+# tx-labelled, which it structurally can't be when a label like "tx" only
+# appears after the value — see case (e) in the report. The bare-hex rule
+# below additionally, independently blocks any key-ish line regardless.)
+# Each pipeline below ends with `|| true`: under `set -o pipefail`, an
+# early grep in the chain finding zero matches (the normal case — no hex
+# at all, or no exempt hex at all) makes the whole pipeline exit non-zero,
+# which `set -e` would otherwise treat as a script error and abort before
+# reaching the comparison below. `|| true` neutralises that while leaving
+# the piped-through stdout (and so the counts) untouched.
+total_hex_count=$( (printf '%s\n' "$added" \
+  | grep -oE '0x[0-9a-fA-F]{64}' \
+  | grep -vE '^0x0{64}$' \
+  | wc -l | tr -d ' ') || true)
+exempt_hex_count=$( (printf '%s\n' "$added" \
+  | grep -oiE '(https?://[^[:space:]]*/tx/0x[0-9a-fA-F]{64}|\b(tx|txn|hash)\b[[:space:]:=]{0,10}0x[0-9a-fA-F]{64})' \
+  | grep -oE '0x[0-9a-fA-F]{64}' \
+  | grep -vE '^0x0{64}$' \
+  | wc -l | tr -d ' ') || true)
+[ -z "$total_hex_count" ] && total_hex_count=0
+[ -z "$exempt_hex_count" ] && exempt_hex_count=0
+if [ "$total_hex_count" -ne "$exempt_hex_count" ]; then
   echo "BLOCKED: a 0x-prefixed 64-hex value that looks like a private key is staged." >&2
   echo "If it is a transaction hash or a real constant, commit with --no-verify." >&2
   fail=1
