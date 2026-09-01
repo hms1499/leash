@@ -43,5 +43,50 @@ contract SpendPolicyAccount {
         emit PausedSet(_paused);
     }
 
+    error TokenNotConfigured(address token);
+    error PerTxCapExceeded(uint256 amount, uint256 cap);
+    error DailyCapExceeded(uint256 spentToday, uint256 amount, uint256 cap);
+
+    event PolicyChanged(address indexed token, uint256 perTx, uint256 daily);
+
+    struct Limit {
+        uint256 perTx;
+        uint256 daily;
+        uint256 spentToday;
+        uint64 day;
+    }
+
+    mapping(address => Limit) public limits;
+
+    function setPolicy(address token, uint256 perTx, uint256 daily) external onlyOwner {
+        Limit storage l = limits[token];
+        l.perTx = perTx;
+        l.daily = daily;
+        emit PolicyChanged(token, perTx, daily);
+    }
+
+    function _today() internal view returns (uint64) {
+        return uint64(block.timestamp / 1 days);
+    }
+
+    function remainingToday(address token) public view returns (uint256) {
+        Limit storage l = limits[token];
+        uint256 spent = l.day == _today() ? l.spentToday : 0;
+        return l.daily > spent ? l.daily - spent : 0;
+    }
+
+    function _consume(address token, uint256 amount) internal {
+        Limit storage l = limits[token];
+        if (l.daily == 0) revert TokenNotConfigured(token);
+        if (amount > l.perTx) revert PerTxCapExceeded(amount, l.perTx);
+
+        uint64 today = _today();
+        uint256 spent = l.day == today ? l.spentToday : 0;
+        if (spent + amount > l.daily) revert DailyCapExceeded(spent, amount, l.daily);
+
+        l.spentToday = spent + amount;
+        l.day = today;
+    }
+
     receive() external payable {}
 }
