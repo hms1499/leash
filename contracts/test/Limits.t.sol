@@ -87,11 +87,13 @@ contract LimitsTest is Test {
     }
 
     /// @dev Spending can never exceed the daily cap, for any split of amounts.
+    /// With inputs bounded to [0, perTx], most runs accumulate toward the daily cap,
+    /// and many will hit DailyCapExceeded rejection.
     function testFuzz_neverExceedsDailyCap(uint96 a, uint96 b, uint96 c) public {
         vm.startPrank(operator);
-        _trySpend(a);
-        _trySpend(b);
-        _trySpend(c);
+        _trySpend(a % (10e6 + 1));
+        _trySpend(b % (10e6 + 1));
+        _trySpend(c % (10e6 + 1));
         vm.stopPrank();
 
         (,, uint256 spentToday,) = account.limits(address(token));
