@@ -34,6 +34,12 @@ or screen share) gets the raw key, and this repo is public, so a leaked key
 is realistically drained within seconds. Treat `.env` as sensitive as the
 funds it can move.
 
+The pre-commit guard (`scripts/check-secrets.sh`) catches `.env` files and
+common key/mnemonic shapes, but it is a regex safety net, not a guarantee —
+it will not catch a secret split across lines, encoded/embedded in another
+format, or committed with `--no-verify`. Review diffs yourself before
+committing anything sensitive-looking.
+
 ## Design
 
 See `docs/superpowers/specs/2026-09-01-leash-design.md`.
