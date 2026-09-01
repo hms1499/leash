@@ -7,7 +7,9 @@ const TAG = 'celo_0123456789ab'
 describe('withAttribution', () => {
   it('produces decodable calldata when there is no base calldata', () => {
     const data = withAttribution(undefined, TAG)
-    expect(fromDataSuffix(data).codes).toContain(TAG)
+    const decoded = fromDataSuffix(data)
+    expect(decoded).not.toBeNull()
+    expect(decoded!.codes).toContain(TAG)
   })
 
   it('preserves the original calldata prefix', () => {
