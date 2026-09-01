@@ -99,6 +99,7 @@ contract SpendPolicyAccount {
     event Spent(address indexed token, address indexed to, uint256 amount, address indexed operator);
     event AllowlistChanged(address indexed payee, bool allowed);
     event AllowlistEnabledSet(bool enabled);
+    event ToppedUp(address indexed token, address indexed operator, uint256 amount);
 
     bool public allowlistEnabled;
     mapping(address => bool) public payeeAllowlist;
@@ -122,6 +123,19 @@ contract SpendPolicyAccount {
         _consume(token, amount);
         if (!IERC20(token).transfer(to, amount)) revert TransferFailed();
         emit Spent(token, to, amount, msg.sender);
+    }
+
+    /// @notice Moves funds to the operator EOA for flows where the agent must
+    ///         sign for itself (x402/EIP-3009). Bounded by the daily cap only —
+    ///         the payee allowlist cannot apply once funds leave this contract.
+    function topUpOperator(address token, uint256 amount)
+        external
+        onlyOperator
+        notPaused
+    {
+        _consume(token, amount);
+        if (!IERC20(token).transfer(msg.sender, amount)) revert TransferFailed();
+        emit ToppedUp(token, msg.sender, amount);
     }
 
     receive() external payable {}
