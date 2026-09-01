@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+interface IERC20 {
+    function transfer(address to, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
+}
+
 /// @notice Holds funds for an AI agent and enforces spend policy on-chain.
 contract SpendPolicyAccount {
     error NotOwner();
@@ -86,6 +91,37 @@ contract SpendPolicyAccount {
 
         l.spentToday = spent + amount;
         l.day = today;
+    }
+
+    error PayeeNotAllowed(address payee);
+    error TransferFailed();
+
+    event Spent(address indexed token, address indexed to, uint256 amount, address indexed operator);
+    event AllowlistChanged(address indexed payee, bool allowed);
+    event AllowlistEnabledSet(bool enabled);
+
+    bool public allowlistEnabled;
+    mapping(address => bool) public payeeAllowlist;
+
+    function setAllowlist(address payee, bool allowed) external onlyOwner {
+        payeeAllowlist[payee] = allowed;
+        emit AllowlistChanged(payee, allowed);
+    }
+
+    function setAllowlistEnabled(bool enabled) external onlyOwner {
+        allowlistEnabled = enabled;
+        emit AllowlistEnabledSet(enabled);
+    }
+
+    function execute(address token, address to, uint256 amount)
+        external
+        onlyOperator
+        notPaused
+    {
+        if (allowlistEnabled && !payeeAllowlist[to]) revert PayeeNotAllowed(to);
+        _consume(token, amount);
+        if (!IERC20(token).transfer(to, amount)) revert TransferFailed();
+        emit Spent(token, to, amount, msg.sender);
     }
 
     receive() external payable {}
