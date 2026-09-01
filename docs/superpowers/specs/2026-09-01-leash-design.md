@@ -55,10 +55,48 @@ x402 settles via EIP-3009 `transferWithAuthorization`: the payer signs
 off-chain and the facilitator submits the transaction. Our funds live in a
 contract, and a contract cannot produce an ECDSA signature.
 
-USDC's `transferWithAuthorization` is believed to use plain `ecrecover` with no
-ERC-1271 support, which would make a smart account unable to pay x402 directly.
-**This is unverified and is spike `T0.2`, scheduled first.** The design absorbs
-either answer through two spend paths:
+**RESOLVED 2026-09-01 by spike `T0.2` — the original assumption was wrong.**
+This section previously assumed USDC's `transferWithAuthorization` used plain
+`ecrecover`, making a smart account unable to pay x402. It does not. Both Celo
+USDC (`0xcebA9300f2b948710d2653dD7B07f33A8B32118C`, Circle `FiatTokenCeloV2_2`)
+and Celo USDT (underlying `0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e`) route
+`transferWithAuthorization` through `SignatureChecker.isValidSignatureNow`,
+which checks `extcodesize(signer)` and falls back to an ERC-1271
+`isValidSignature` staticcall for contract payers. Both expose a
+`bytes memory signature` overload, so the path is reachable externally. Verified
+from raw verifier-stored source and independently reproduced in review; the two
+tokens are genuinely separate deployments (differing implementation bytecode),
+not one codebase counted twice.
+
+**A contract CAN pay x402 directly. Path A can cover x402.**
+
+Two caveats stand between that fact and shipping it:
+
+1. *Necessary but not sufficient.* The token accepting ERC-1271 does not prove
+   the x402 facilitator SDK round-trips a `bytes`-typed signature rather than
+   `(v, r, s)`. Untested.
+2. **A naive ERC-1271 implementation is a total policy bypass.** If
+   `isValidSignature` approves any operator-signed digest, the operator drains
+   the account via `transferWithAuthorization` without ever entering
+   `_consume()` — every cap and the allowlist are bypassed, and the product's
+   entire thesis with them. It cannot be patched by adding checks inside
+   `isValidSignature`: that function receives only a `bytes32` hash and cannot
+   recover `(to, value)` from it, so policy is unenforceable at signature time.
+
+   The only safe shape found is **pre-authorization**: the operator first calls
+   `authorizeX402Payment(to, value, validAfter, validBefore, nonce)`, which runs
+   `_consume()` (enforcing full policy) and stores the resulting EIP-712 digest;
+   `isValidSignature` then does nothing but look that digest up and burn it. No
+   pre-issued digest, no valid signature. Policy moves from signing time to
+   authorization time, where the arguments still exist.
+
+**Decision status: OPEN.** Adopting Path A for x402 requires building the
+pre-authorization subsystem (est. 6-8h against a 4h slack budget). The choice is
+bound to the Task 10 mainnet deploy, because adding ERC-1271 after deployment
+means abandoning the deployed address. Until then the two-path design below
+stands unchanged, and Path B remains the shipping route for x402.
+
+The design absorbs either answer through two spend paths:
 
 | Path | Used for | Enforced by contract |
 |---|---|---|
