@@ -9,6 +9,15 @@
 #   - API tokens, session cookies, or other secret shapes that are not a
 #     64-hex string or a 12/15/18/21/24-word mnemonic
 #   - anything committed with `git commit --no-verify`
+#   - a real 0x+64hex private key placed on a line that also looks like a
+#     transaction reference (a tx/txn/hash label, or an explorer .../tx/
+#     URL) and carries no key-ish identifier (KEY/PK/PRIVATE/SECRET/
+#     MNEMONIC/SEED). This project is required to record real proof-tx
+#     hashes in its own docs, and those hashes are indistinguishable from a
+#     private key by shape alone; the exception below lets tx-labelled
+#     0x+64hex lines through so the guard is not routinely bypassed with
+#     --no-verify on exactly its highest-value commits. A key-ish line
+#     never gets this exception (see the rule below).
 # Treat this as a safety net for the common accident, not a security
 # boundary. Review diffs before committing sensitive-looking changes.
 set -euo pipefail
@@ -32,8 +41,28 @@ done
 added=$(git diff --cached -U0 -- . ':!*.lock' ':!pnpm-lock.yaml' | grep -E '^\+' | grep -vE '^\+\+\+' || true)
 
 # A 0x-prefixed 64-hex string is a private key unless it is all zeros.
-if printf '%s\n' "$added" | grep -E '0x[0-9a-fA-F]{64}' \
-     | grep -vE '0x0{64}' >/dev/null 2>&1; then
+#
+# Exception: a line that both (a) looks like a transaction reference — an
+# explorer tx URL (".../tx/0x...") or a tx/txn/hash label — and (b) carries
+# no key-ish identifier (KEY/PK/PRIVATE/SECRET/MNEMONIC/SEED) is let
+# through. This project's own docs are required to record real proof-tx
+# hashes (spikes/README.md's "Proof tx:" field, docs/deployments.md, a
+# later task's mainnet attribution proof), and a tx hash is 0x+64hex just
+# like a key — without this, the guard would block precisely the
+# highest-value commits in this plan and train routine --no-verify use.
+# The key-ish check keeps this narrow: OWNER_PK=0x... still blocks even if
+# the word "tx" appears elsewhere on the same line.
+tx_marked=$(printf '%s\n' "$added" \
+  | grep -E '0x[0-9a-fA-F]{64}' \
+  | grep -vE '0x0{64}' \
+  | grep -iE '(https?://[^[:space:]]*/tx/|\b(tx|txn|hash)\b)' \
+  | grep -viE '(KEY|PK|PRIVATE|SECRET|MNEMONIC|SEED)[A-Za-z0-9_]*[[:space:]]*[:=]' \
+  || true)
+unmarked_hex=$(printf '%s\n' "$added" \
+  | grep -E '0x[0-9a-fA-F]{64}' \
+  | grep -vE '0x0{64}' \
+  || true)
+if [ -n "$unmarked_hex" ] && [ "$unmarked_hex" != "$tx_marked" ]; then
   echo "BLOCKED: a 0x-prefixed 64-hex value that looks like a private key is staged." >&2
   echo "If it is a transaction hash or a real constant, commit with --no-verify." >&2
   fail=1
