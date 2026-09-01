@@ -9,6 +9,14 @@ Foundry consists of:
 - **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
 - **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
+## Setup
+
+After cloning, initialize submodules with:
+
+```shell
+$ git submodule update --init --recursive
+```
+
 ## Documentation
 
 https://book.getfoundry.sh/
@@ -47,9 +55,7 @@ $ anvil
 
 ### Deploy
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+Deploy script setup arrives in a later task.
 
 ### Cast
 
