@@ -17,31 +17,39 @@ a prompt, so a leaked agent key does not become an unbounded one.
 ## Read these, in order
 
 1. `docs/superpowers/specs/2026-09-01-leash-design.md` — the design. Binding authority.
-2. `docs/superpowers/plans/2026-09-02-leash-x402-mcp.md` — **Plan 2, not started.** Next work.
-3. `docs/registration.md` and `docs/deployments.md` — what is live and what it cost.
+2. `docs/deployments.md` — what is live, what it cost, and the proof for every claim.
+3. `docs/mcp-setup.md` — the product surface, written for a stranger. Read it to
+   see what a user actually receives.
 4. `spikes/README.md` — every chain assumption that was tested, with evidence.
 5. `.superpowers/sdd/2026-09-01-leash-foundation/progress.md` — the ledger.
    **Gitignored, lives only on this machine.** `git clean -fdx` would destroy it.
 
-## State: Plan 1 complete, Plan 2 written and not started
+Plans 1 and 2 in `docs/superpowers/plans/` are both **done**; read them only for
+context on decisions already taken.
+
+## State: Plans 1 and 2 complete. Plan 3 is not written.
 
 | Suite | Status |
 |---|---|
 | `cd contracts && forge test` | 30/30 |
-| `cd sdk && pnpm run test` | 11/11 |
-| `cd sdk && pnpm exec tsc --noEmit` | exit 0 |
-| `cd spikes && pnpm exec tsc --noEmit` | exit 0 |
+| `cd sdk && pnpm run test` | 42/42 |
+| `cd mcp && pnpm run test` | 12/12 |
+| `tsc --noEmit` in `sdk`, `mcp`, `spikes` | exit 0 |
+
+Gate tests are excluded from the ordinary runs. `pnpm -F @leash/sdk test:gate`
+and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
 
 ### Live on Celo mainnet
 
 | | |
 |---|---|
 | `SpendPolicyAccount` | `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` (source-verified) |
-| Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.758 CELO |
-| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 1.030794 USDC |
+| Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.7582 CELO |
+| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.012215 USDC |
 | Attribution tag | `celo_3dec652cd977` |
 | ERC-8004 identity | agentId 9804, owned by the operator |
-| Policy | USDC: perTx 0.50, daily 1.00. Contract holds 1.499999 USDC |
+| Policy | USDC: perTx 0.50, daily 1.00. `paused` false, allowlist off |
+| Contract holds | 2.496567 USDC · `remainingToday` 0.980773 |
 
 ### Proven on mainnet, not asserted
 
@@ -49,69 +57,94 @@ a prompt, so a leaked agent key does not become an unbounded one.
   paying in USDC. `0x1d10d9cb…6595`.
 - **Attribution round-trips.** `0xb91ba357…fca4`, decoded off-chain and again
   straight from raw chain data.
-- **The policy actually gates a spend.** Gate test `0x3fb0324f…1f70`:
-  `remainingToday` fell by exactly the amount spent.
-- **A real x402 purchase.** `0x0ac87832…b46e` — 0.016753 USDC for a Google Cloud
-  `e2-micro` that ran a script and returned its output.
+- **The policy gates an on-chain spend.** `0x3fb0324f…1f70`: `remainingToday`
+  fell by exactly the amount spent.
+- **A real x402 purchase.** `0x0ac87832…b46e` — paid from the operator's own
+  leftovers, never touching the contract.
+- **x402 paid with money drawn through the policy.** Top-up `0xec08a200…33db`,
+  settlement `0xb5dd4d16…1e25`. The daily counter fell by exactly the draw.
+  This is the one that proves Path B; the bullet above does not.
 
-## Next: Plan 2 (x402 + MCP), nine tasks
+## Next: Plan 3 needs writing before any code
 
-`docs/superpowers/plans/2026-09-02-leash-x402-mcp.md`. Tasks 1-5 build a
-Celo-specific x402 client in the SDK and the Path B draw; Tasks 6-8 are the MCP
-server; Task 9 is a mainnet gate plus setup docs.
+Nothing is blocked on chain work. The whole remaining product is the frontend
+plus the two gaps below, and **the plan for it does not exist yet**. Write it
+with `superpowers:writing-plans` before touching `app/`.
 
-**An ordering question was left open when the session ended.** The demo needs an
-agent visibly spending, which needs the MCP server. Two routes:
+What it must cover, at minimum:
 
-- **Plan order** — Tasks 1-9 as written. `leash_fetch` works when it ships.
-- **Demo-first** — build `leash_status` and `leash_pay` before the x402 client.
-  Both need only the deployed contract, so the "agent is refused by the chain"
-  beat becomes filmable immediately, and `leash_fetch` lands after.
+- **W5 from the spec** — Onboard, Live Spend Feed, Policy Editor. `T5.0` (design
+  system) runs before any screen; `T5.2` runs before `T5.3` so there is always
+  something filmable.
+- **`pause()` has no UI.** The contract has a kill switch, tested and deployed,
+  and the frontend design names no stop button. For a product whose whole claim
+  is control, that is a hole.
+- **The app hands nothing to the agent.** After onboarding a user has an account
+  address and no way to connect it. Onboard should emit a ready-filled
+  `.mcp.json` — that is the moment a viewer becomes a user. `docs/mcp-setup.md`
+  is the content; the screen just has to fill in five values.
+- **Two chain-level gaps found 2026-09-02, neither planned:**
+  1. **CELO sent to the contract is locked forever.** `receive()` accepts it and
+     `sweep()` only moves ERC-20 — there is no `call{value:}` anywhere. A user
+     told to "fund your account" who sends CELO instead of USDC loses it. Fix by
+     removing `receive()` (cheapest — the send then reverts) or adding
+     `sweepNative()`. **Both need a redeploy**, so decide alongside 2.1b below,
+     while the live instance is still only a demo.
+  2. **Nothing refills the operator's gas float.** When its stablecoin runs out
+     the agent stops, and it cannot draw more because drawing costs gas. Only
+     the owner can rescue it. Any fix must go through the daily cap, not around it.
+- **`examples/`** — the demo agent that spends and then gets blocked. `T6.1` in
+  the spec; it is both the video script and what another team copies.
 
-## Two gaps found late, neither yet planned
+### Before filming
 
-1. **`pause()` has no UI.** The contract has a kill switch, tested and deployed.
-   The frontend design names three screens and none of them is a stop button.
-   For a product whose whole claim is control, that is a hole.
-2. **The app hands nothing to the agent.** After onboarding, a user has an
-   account address and no way to connect it. The Onboard screen should emit a
-   ready-filled `.mcp.json` — that is the moment a viewer becomes a user.
-
-Both belong in Plan 3, which is not written.
+Top up the operator. It holds 0.012215 USDC, each transaction costs ~0.0028
+and reserves ~0.0046, so that is **two or three transactions**. The demo needs
+at least three consecutive `leash_pay` calls. 0.05 USDC is comfortable.
 
 ## Decisions already made — do not re-litigate
 
 - **ERC-1271 pre-authorization: skipped.** x402 goes via Path B. Reasoning in
   spec 2.1. Changing this means a fresh deployment; the contract is not upgradeable.
 - **Celo's `buy` client: not used.** Leash signs with the operator key it has.
-  Note the reason is independence and Path B integration, **not** fee
-  attribution — the facilitator pays gas whichever client is used.
+  The reason is independence and Path B integration, **not** fee attribution —
+  the facilitator pays gas whichever client is used.
 - **The standard `x402` npm packages cannot be used.** They support fifteen EVM
-  networks and celo is not one. Leash ships its own client.
+  networks and celo is not one. Leash ships its own client in `sdk/src/x402/`.
+- **Task order for Plan 2 was "plan order", 1→9.** The demo-first alternative
+  was dropped once the human partner chose to finish the product before filming.
 
 ## Open decision for Plan 3
 
 Per-user deployment: direct deploy from the frontend, or a factory contract.
-Spec 2.1b lays out the trade. Decide before `T5.3`, not during.
+Spec 2.1b lays out the trade. Decide before `T5.3`, not during — and settle the
+`receive()` question in the same breath, since both decide what gets deployed.
 
-## Hazards this session paid to learn
+## Hazards this project paid to learn
 
+- **A gas estimate is a reserve, not a price** — and with no gas limit set, the
+  reserve is the **block** gas limit. Measured 2026-09-02: `blockGasLimit *
+  gasPrice` = **0.465 USDC** against ~0.0022 actually spent, a 209x demand that
+  leaves a low-balance operator unable to transact at all. **Always send an
+  explicit `gas`** (`GAS_LIMIT` in `sdk/src/policyClient.ts`). An earlier note
+  here said "roughly 3x"; that was wrong, and it mis-sized the x402 draw buffer.
+- **A draw sized to the bare shortfall cannot pay.** The draw spends its own gas
+  out of the balance it just topped up, landing below the amount already signed
+  for. `payForResource` draws a buffer covering that gas *and* a working float.
 - **forno is load-balanced and lies about freshness.** A receipt does not mean
-  the state is readable. Four separate failures came from reading immediately
-  after writing. Wait on the condition, never on the receipt.
+  the state is readable. Wait on the condition, never on the receipt.
 - **forno rejects fee-currency sends non-deterministically.** The same
-  `maxFeePerGas` is refused by one node and accepted by the next. This looked
-  like a threshold until retrying the same values inverted the result. Retry,
+  `maxFeePerGas` is refused by one node and accepted by the next. Retry,
   re-reading the nonce between attempts.
-- **A gas estimate is a reserve, not a price** — and with no gas limit set,
-  the reserve is the **block** gas limit. Measured on mainnet 2026-09-02:
-  `blockGasLimit * gasPrice` = **0.465 USDC** against ~0.0022 actually spent,
-  a 209x demand that makes a low-balance operator unable to transact at all.
-  Always send an explicit `gas`. (An earlier note here said "roughly 3x"; that
-  was wrong, and it is what mis-sized the x402 draw buffer.)
-- **`local x=$(cmd)` swallows the exit status in bash.** `set -e` never fires.
-- **x402 has no refunds.** A `5xx` can mean the payment settled. Never retry.
+- **x402 has no refunds.** A `5xx` can mean the payment settled. Never retry
+  blindly — but *do* read the chain first: on 2026-09-02 a `500` looked fatal
+  and the balances proved nothing had settled, which made the retry safe. The
+  rule is "never retry on a guess", not "never retry".
 - **A poll URL from a purchase is a bearer capability.** Never commit or log one.
+- **`local x=$(cmd)` swallows the exit status in bash.** `set -e` never fires.
+- **The pre-commit guard only recognises a hash labelled `tx:` within 10
+  characters.** Writing `Top-up tx (some clause): 0x…` trips it. Put the label
+  next to the hash or use an explorer URL.
 
 ## Environment
 
@@ -120,16 +153,20 @@ account, celobuilders key, Celoscan key. It is gitignored and holds plaintext
 private keys by the human partner's explicit choice.
 
 A pre-commit guard (`scripts/check-secrets.sh`, wired via
-`git config core.hooksPath .githooks`) blocks keys and mnemonics. It blocked
-three commits this session: twice as a false positive that was fixed at the
-source, once correctly. `core.hooksPath` is local config and is not cloned — a
-fresh clone must set it again.
+`git config core.hooksPath .githooks`) blocks keys and mnemonics.
+`core.hooksPath` is local config and is not cloned — a fresh clone must set it
+again.
 
-Money spent to date: roughly **$0.07** of gas plus **$0.017** of USDC. The owner
-holds 3.758 CELO (about $0.28) and the project holds 2.53 USDC.
+Money spent to date: roughly **$0.075** of gas plus **$0.034** of USDC on two
+x402 purchases. The project holds 2.508783 USDC across its three addresses and
+3.7582 CELO in the owner wallet.
 
-## How this plan is being executed
+## How this project is being executed
 
-Plan 1 ran through `superpowers:subagent-driven-development`. This session ran
-inline via `superpowers:executing-plans`, since the plans carry enough context
-that a fresh agent adds little. Either works. The ledger is the recovery map.
+Plan 1 ran through `superpowers:subagent-driven-development`. Plan 2 ran inline
+via `superpowers:executing-plans`, since the plans carry enough context that a
+fresh agent adds little. Either works.
+
+Plan 2's plan contained three defects that only surfaced against the real chain,
+all found in the pre-flight checks before money moved. Budget for that: the
+verification step before a gate is not ceremony.
