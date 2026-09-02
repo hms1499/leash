@@ -24,7 +24,11 @@ allowlists are enforced on-chain, not by a prompt. Built for the Celo
 
 ## State
 
-**Done and reviewed: Tasks 1, 2, 4, 6, 7, 8, 9, 11, 12, 13, 15.**
+**Done and reviewed: Tasks 1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 13, 15.**
+
+Task 5 closed 2026-09-02: attribution tag `celo_3dec652cd977`, operator EOA
+`0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` registered as `agentWalletAddress`,
+ERC-8004 agentId 9804. See `docs/registration.md`.
 
 | Suite | Status |
 |---|---|
@@ -38,20 +42,19 @@ window, Path A `execute()` with allowlist, Path B `topUpOperator()`), the
 with LLM-readable errors), two resolved architecture spikes, and a pre-commit
 secret guard.
 
-**Not started: Tasks 3, 5, 10, 14.** All four are blocked on things only the
-human partner can supply. None is blocked on code.
+**Not started: Tasks 3, 10, 14.** Task 3 is no longer blocked — the tag exists.
 
 ## What is blocked, and on what
 
 | Task | Needs |
 |---|---|
-| **5** Register with celobuilders | operator EOA address · ERC-8004 identity URL · personal Telegram handle |
-| **3** First tagged mainnet tx | the `attributionTag` that Task 5 returns |
-| **10** Deploy to mainnet | owner EOA + ~1-2 CELO · Celoscan API key · **and the ERC-1271 decision below** |
-| **14** Attribution gate test | everything above |
+| **3** First tagged mainnet tx | nothing — unblocked, the tag exists |
+| **10** Deploy to mainnet | Celoscan API key · **and the ERC-1271 decision below** (owner EOA funded: 3.82 CELO) |
+| **14** Attribution gate test | Task 10 |
 
-Attribution is **not retroactive**: transactions sent before the tag exists are
-permanently uncounted. Task 5 is the cheapest unblock and the most valuable.
+Attribution is **not retroactive** for the data-suffix tag: any transaction
+mined before 2026-09-02T03:22Z can never gain it. x402 settlements attributed
+to `agentWalletAddress` *are* retroactive across the window.
 
 ## The open decision: ERC-1271 pre-authorization
 
@@ -80,7 +83,8 @@ deployment means abandoning the deployed address and redeploying.
 
 ## Environment
 
-Copy `.env.example` to `.env` and fill it in. Per the human partner's explicit
+`.env` exists and is filled in (owner, operator, attribution tag, celobuilders
+key). It is gitignored. Per the human partner's explicit
 choice, private keys live in `.env` in plaintext rather than an encrypted
 keystore — the tradeoff is documented in the README.
 
