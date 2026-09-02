@@ -8,6 +8,7 @@ import { loadConfig } from './config.js'
 import { toolError, toolOk } from './errors.js'
 import { statusTool } from './tools/status.js'
 import { payTool } from './tools/pay.js'
+import { fetchTool } from './tools/fetch.js'
 
 const config = loadConfig(process.env)
 const account = privateKeyToAccount(config.operatorPk)
@@ -58,6 +59,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         additionalProperties: false,
       },
     },
+    {
+      name: 'leash_fetch',
+      description:
+        'Call an HTTP resource that charges per request over x402, paying from the agent wallet. Funds are drawn through the on-chain policy first, so a request the policy refuses never happens. Use quote_only to see the price without paying.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'The 402-gated URL.' },
+          method: { type: 'string', description: 'HTTP method. Defaults to POST.' },
+          body: { type: 'string', description: 'Raw JSON request body as a string. The body sets the price.' },
+          max_amount: { type: 'string', description: 'Ceiling in whole token units, e.g. "0.05". A higher quote is refused.' },
+          quote_only: { type: 'boolean', description: 'Return the price without paying.' },
+        },
+        required: ['url', 'max_amount'],
+        additionalProperties: false,
+      },
+    },
   ],
 }))
 
@@ -71,6 +89,22 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           { leash: leash as never, config, feeBalances: await feeBalances() },
           req.params.arguments as { to: string; amount: string },
         ))
+      case 'leash_fetch': {
+        const { quote, payForResource } = await import('@leash/sdk')
+        return toolOk(await fetchTool(
+          {
+            config,
+            quote: (a) => quote(a),
+            payForResource: async (a) => payForResource({
+              ...a,
+              leash,
+              account,
+              feeBalances: await feeBalances(),
+            }),
+          },
+          req.params.arguments as never,
+        ))
+      }
       default:
         return toolError('unknown_tool', `no tool named ${req.params.name}`)
     }
