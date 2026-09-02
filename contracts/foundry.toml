@@ -9,3 +9,16 @@ optimizer_runs = 200
 [rpc_endpoints]
 celo = "https://forno.celo.org"
 celo_sepolia = "https://forno.celo-sepolia.celo-testnet.org"
+
+# Verification goes through the Etherscan V2 multichain endpoint, pinned here
+# rather than left to foundry's chain registry. Celoscan's own V1 API is
+# retired: it answers every request with
+#   NOTOK "You are using a deprecated V1 endpoint, switch to Etherscan API V2"
+# Checked 2026-09-02 with the project's real key — V1 refused, V2 returned both
+# the owner's balance and FiatTokenProxy's verified source, which is the same
+# module verification itself calls.
+#
+# CELOSCAN_KEY lives in .env and is not loaded automatically; export it first:
+#   set -a && . ./.env && set +a
+[etherscan]
+celo = { key = "${CELOSCAN_KEY}", chain = 42220, url = "https://api.etherscan.io/v2/api?chainid=42220" }
