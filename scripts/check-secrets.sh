@@ -9,6 +9,13 @@
 #   - API tokens, session cookies, or other secret shapes that are not a
 #     64-hex string or a 12/15/18/21/24-word mnemonic
 #   - anything committed with `git commit --no-verify`
+#   - a private key padded into a LONGER unbroken hex run. Both hex rules
+#     below match a run of exactly 64 hex digits, so `0x<key><4 more hex>`
+#     slips past. The alternative — matching any 64-hex substring of a longer
+#     run — makes every committed calldata dump, ABI encoding, signature and
+#     domain separator a false positive, which in a chain repo means the guard
+#     is bypassed as a matter of routine and then protects nothing. Evading it
+#     this way takes deliberate effort; tripping over it did not.
 #   - a real 0x+64hex private key that is ITSELF immediately preceded by a
 #     tx/txn/hash label or sits inside an explorer .../tx/<value> URL (the
 #     exact shape a real proof-tx hash also has). This project is required
@@ -72,12 +79,14 @@ added=$(git diff --cached -U0 -- . ':!*.lock' ':!pnpm-lock.yaml' | grep -E '^\+'
 # reaching the comparison below. `|| true` neutralises that while leaving
 # the piped-through stdout (and so the counts) untouched.
 total_hex_count=$( (printf '%s\n' "$added" \
-  | grep -oE '0x[0-9a-fA-F]{64}' \
+  | grep -oE '0x[0-9a-fA-F]{64,}' \
+  | awk 'length($0) == 66' \
   | grep -vE '^0x0{64}$' \
   | wc -l | tr -d ' ') || true)
 exempt_hex_count=$( (printf '%s\n' "$added" \
-  | grep -oiE '(https?://[^[:space:]]*/tx/0x[0-9a-fA-F]{64}|\b(tx|txn|hash)\b[[:space:]:=]{0,10}0x[0-9a-fA-F]{64})' \
-  | grep -oE '0x[0-9a-fA-F]{64}' \
+  | grep -oiE '(https?://[^[:space:]]*/tx/0x[0-9a-fA-F]{64,}|\b(tx|txn|hash)\b[[:space:]:=]{0,10}0x[0-9a-fA-F]{64,})' \
+  | grep -oE '0x[0-9a-fA-F]{64,}' \
+  | awk 'length($0) == 66' \
   | grep -vE '^0x0{64}$' \
   | wc -l | tr -d ' ') || true)
 [ -z "$total_hex_count" ] && total_hex_count=0
