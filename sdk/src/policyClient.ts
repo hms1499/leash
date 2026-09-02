@@ -89,6 +89,23 @@ export function buildTopUpCalldata(
   )
 }
 
+/**
+ * Explicit gas limit for every transaction this client sends.
+ *
+ * Not an optimisation — it is what makes a low-balance operator able to
+ * transact at all. When a `feeCurrency` transaction carries no gas limit, the
+ * node reserves `blockGasLimit * gasPrice` against the operator's stablecoin
+ * balance before it will even simulate. On Celo mainnet that is 30,000,000 gas,
+ * measured at **0.465 USDC** of reserve against ~0.0022 actually spent: a 209x
+ * demand that makes `topUpOperator` unreachable for exactly the operator that
+ * needs it, since a wallet short of the price is far shorter of the reserve.
+ *
+ * With the limit set, the reserve is `gas * gasPrice` — about 0.003 USDC.
+ * Unused gas is not charged, so an over-estimate costs nothing. `execute` and
+ * `topUpOperator` both measured ~150k; 300k is that with room.
+ */
+const GAS_LIMIT = 300_000n
+
 export class LeashClient {
   readonly #pub: LeashPublicClient
   readonly #wallet: LeashWalletClient
@@ -185,6 +202,7 @@ export class LeashClient {
       to: tx.to,
       data: tx.data,
       feeCurrency: tx.feeCurrency,
+      gas: GAS_LIMIT,
     })
   }
 
