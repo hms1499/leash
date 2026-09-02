@@ -5,7 +5,7 @@ here; the code is not production code.
 
 ## T0.1 — stablecoin gas from a zero-CELO wallet
 
-Result: DISCOVERY COMPLETE — send-test PENDING (human partner, needs a funded zero-CELO wallet)
+Result: PASS (2026-09-02)
 
 FeeCurrencyDirectory: `0x15F344b9E6c3Cb6F0376A36A64928b13F62C6276` (Celo mainnet, chain id 42220)
 
@@ -40,7 +40,47 @@ Cross-checked: this on-chain list matches the "feeCurrency Address" column of th
 [Celo Fee Currencies](https://docs.celo.org/tooling/contracts/fee-currencies) docs table
 address-for-address (20/20), confirming the docs table and the live contract agree.
 
-Proof tx: pending
+Proof tx: 0x1d10d9cb683563e2a34bb5a7d44a7f1320806befa58d978b6fe2a39f92146595
+(https://celoscan.io/tx/0x1d10d9cb683563e2a34bb5a7d44a7f1320806befa58d978b6fe2a39f92146595)
+
+A wallet holding **exactly zero CELO** sent a transaction on Celo mainnet and
+paid for it in USDC. Reproduce with `spikes/zero-celo-send.ts`.
+
+Getting there took two transactions, because the claim is about a wallet that
+holds nothing, and the operator still held 0.128 CELO left over from the
+ERC-8004 mint. A CELO-paid sweep can never reach zero — the node reserves
+`gasLimit * maxFeePerGas` regardless — so the sweep itself paid gas in USDC:
+
+| step | tx | result |
+|---|---|---|
+| sweep 0.1282678 CELO to the owner, gas in USDC | hash 0x8f4766f5156c101033e7b32063c57593f83b7add9e5b57b2e266d995f6cd95e2 | operator CELO → 0 |
+| tagged send from the emptied wallet, gas in USDC | hash 0x1d10d9cb683563e2a34bb5a7d44a7f1320806befa58d978b6fe2a39f92146595 | success, 149548 gas |
+
+Verified from the chain rather than from the script's own output: the operator's
+CELO balance reads 0 before and after the send, the transaction envelope is type
+`0x7b` (CIP-64) carrying `feeCurrency` `0x2F25deB3…602B`, the owner's balance
+rose by the swept amount, and the raw `input` decodes through `fromDataSuffix`
+to `{"codes":["celo_3dec652cd977"],"schemaId":0}`.
+
+Cost: 2228000000000000 adapter units = **$0.00223** of USDC for the tagged send.
+An earlier fee-currency send from the same wallet while it still held CELO left
+that CELO balance byte-for-byte unchanged, which is the same fact from the other
+direction — CELO is not touched even when it is there to be touched.
+
+### forno rejects fee-currency sends non-deterministically
+
+Measured while doing the above, and it will bite anything that sends with a fee
+currency. Backends behind `forno.celo.org` disagree about the fee-currency gas
+price. The same `maxFeePerGas` is rejected by one node with `-32000: max fee per
+gas less than block base fee` and accepted by the next; consecutive reads of
+`eth_gasPrice` with a fee currency returned 14957340930 and 14956718850. A
+sweep of candidate values looked at first like a threshold — 14.957 gwei passed
+while 17.9, 20, 25, 30, 35.67 and 40 all failed — until the same values were
+retried and the result inverted. There is no threshold. It is flakiness.
+
+The failure happens inside gas estimation, before anything is signed, so a retry
+is safe. `spikes/zero-celo-send.ts` retries up to 8 times and re-reads the nonce
+before every attempt, aborting rather than re-sending if it ever moved.
 
 ### Adapters report balances rescaled to 18 decimals
 
