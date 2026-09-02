@@ -16,6 +16,18 @@ export type PayForResourceResult = {
 }
 
 /**
+ * Extra drawn on top of the shortfall, in the payment token's atomic units.
+ *
+ * The draw is a transaction the operator sends, and on Celo it pays its own gas
+ * in the same stablecoin it is drawing. Drawing exactly `price - held` therefore
+ * lands the operator on `price` and then spends the gas out of that, leaving it
+ * short of the amount it just signed an authorization for — the settlement then
+ * fails for insufficient balance. T0.1 measured a tagged send at ~2228 atomic
+ * units; 5000 is that with room, and still $0.005.
+ */
+const DEFAULT_GAS_BUFFER = 5_000n
+
+/**
  * Buys a 402-gated resource with money drawn through the on-chain policy.
  *
  * The order matters and is the product:
@@ -39,6 +51,8 @@ export async function payForResource(args: {
   feeBalances: ReadonlyMap<`0x${string}`, bigint>
   /** The caller's ceiling in atomic units. A quote above this is refused. */
   maxAmount: bigint
+  /** Overrides `DEFAULT_GAS_BUFFER`. Only applies when a draw actually happens. */
+  gasBuffer?: bigint
   fetchImpl?: typeof fetch
 }): Promise<PayForResourceResult> {
   const q = await quote({
@@ -60,7 +74,10 @@ export async function payForResource(args: {
   let topUpTx: `0x${string}` | undefined
 
   if (held < price) {
-    toppedUp = price - held
+    // The buffer is deliberately inside the draw, so it is consumed against the
+    // daily cap like any other spend: gas is a real cost of this payment, and
+    // hiding it from the policy would let an agent spend past its cap in gas.
+    toppedUp = price - held + (args.gasBuffer ?? DEFAULT_GAS_BUFFER)
     const check = await args.leash.preCheckTopUp(q.terms.asset, toppedUp)
     if (!check.ok) {
       const e = new X402PaymentError(

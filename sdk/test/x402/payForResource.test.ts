@@ -47,14 +47,39 @@ describe('payForResource', () => {
     expect(out.result.settlement?.transaction).toBe('0xpaid')
   })
 
-  it('draws exactly the shortfall through the contract, not the whole price', async () => {
+  it('draws the shortfall through the contract, not the whole price', async () => {
+    const leash = fakeLeash({ balance: 6_753n })
+    const out = await payForResource({
+      leash, account, url: URL_, body: BODY, feeBalances: fees,
+      maxAmount: 20_000n, gasBuffer: 0n, fetchImpl: okFetch() as never,
+    })
+    // 16753 - 6753, with the gas buffer switched off to isolate the shortfall.
+    expect(out.toppedUp).toBe(10_000n)
+    expect(out.topUpTx).toBe('0xtopup')
+  })
+
+  // The draw pays its own gas out of the balance it just topped up. Drawing the
+  // bare shortfall lands the operator on exactly `price`, gas then takes it
+  // below, and the EIP-3009 authorization it already signed for `price` fails
+  // for insufficient balance. The buffer is what keeps the settlement solvent.
+  it('draws more than the shortfall, so gas cannot leave it short of the price', async () => {
     const leash = fakeLeash({ balance: 6_753n })
     const out = await payForResource({
       leash, account, url: URL_, body: BODY, feeBalances: fees,
       maxAmount: 20_000n, fetchImpl: okFetch() as never,
     })
-    expect(out.toppedUp).toBe(10_000n)
-    expect(out.topUpTx).toBe('0xtopup')
+    expect(out.toppedUp).toBeGreaterThan(10_000n)
+    // What lands in the operator wallet must clear the price with room to spare.
+    expect(6_753n + out.toppedUp).toBeGreaterThan(16_753n)
+  })
+
+  it('does not add a gas buffer when no draw is needed', async () => {
+    const leash = fakeLeash({ balance: 1_000_000n })
+    const out = await payForResource({
+      leash, account, url: URL_, body: BODY, feeBalances: fees,
+      maxAmount: 20_000n, fetchImpl: okFetch() as never,
+    })
+    expect(out.toppedUp).toBe(0n)
   })
 
   // The caller's cap is checked against the quote before any money moves.
