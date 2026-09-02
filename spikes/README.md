@@ -42,6 +42,23 @@ address-for-address (20/20), confirming the docs table and the live contract agr
 
 Proof tx: pending
 
+### Adapters report balances rescaled to 18 decimals
+
+Measured 2026-09-02, and it decides how a fee-currency balance map must be
+built. `balanceOf` works on an adapter even where `symbol()`, `decimals()` and
+`getAdaptedToken()` all revert (the USDC adapter is such a case), and the figure
+it returns is rescaled to 18 decimals:
+
+| holder `0xcd437749e43a154c07f3553504c68fbfd56b8778` | value |
+|---|---|
+| `balanceOf` on the USDC token `0xceb...118C` (6 dp) | 58553610 |
+| `balanceOf` on the USDC adapter `0x2F25...602B` | 58553610000000000000 |
+
+Same money, two scales. `pickFeeAdapter` compares balances across adapters, so
+the map it is given must be read from the ADAPTER addresses. Building it from
+the underlying tokens would compare a 6-decimal figure against an 18-decimal one
+and pick the wrong currency — silently, and only for non-18-decimal tokens.
+
 ### What was skipped
 
 Step 4 (send a real `cast send ... --fee-currency ...` transaction from a funded
@@ -135,3 +152,38 @@ parameter (as opposed to hardcoding a `(v,r,s)` 65-byte split that happens to
 still work here since ERC-1271 checks accept an arbitrary-length `bytes`
 signature, including a 65-byte one) — worth a follow-up check against the
 actual facilitator client library before finalizing Path A.
+
+## T0.3 — attribution tag round-trip
+
+Result: PASS
+
+Tag: `celo_3dec652cd977`
+
+Proof tx: 0xb91ba35708c21b9fb1454eac7d5ff2dc5e8f8bfdb5ec00eac8f079e5d2e9fca4
+(https://celoscan.io/tx/0xb91ba35708c21b9fb1454eac7d5ff2dc5e8f8bfdb5ec00eac8f079e5d2e9fca4)
+Celo mainnet, block-confirmed, status success, 22370 gas. Sender and recipient
+are both the operator EOA `0xd44daF6D`, value 0 — the transaction exists only to
+carry the suffix.
+
+verifyTx output: `{"codes":["celo_3dec652cd977"],"schemaId":0}`
+
+Suffix written: `0x63656c6f5f336465633635326364393737110080218021802180218021802180218021`
+
+Verified twice, and the second time without the spike's help: the raw `input`
+was pulled back off the chain with `cast tx` and decoded through
+`fromDataSuffix` in a separate process. It yields the same single code, the code
+matches the tag registered with celobuilders, and the ERC-8021 marker
+`0x80218021...8021` terminates the calldata.
+
+### What this does and does not establish
+
+Established: a tag written with `toDataSuffix` survives a real mainnet
+transaction and reads back through `verifyTx`. The call pattern is the one the
+SDK already uses in `sdk/src/attribution.ts`.
+
+NOT established: that gas can be paid in a stablecoin from a zero-CELO wallet.
+That is T0.1's question and it remains open. This transaction paid gas in CELO,
+because neither the operator nor the owner EOA holds any of the 20 whitelisted
+fee currencies — checked directly, all zero. The spike selects a funded adapter
+automatically and falls back to CELO only when it finds none, so re-running it
+once the operator holds USDC proves both legs at once.
