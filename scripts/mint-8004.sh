@@ -79,7 +79,23 @@ else
   TOPUP=$(python3 -c "print($NEED - $BAL)")
   echo "    topping up $(cast from-wei "$TOPUP") CELO from owner"
   check_ok "$(send_and_wait "$OPERATOR" --value "$TOPUP" --private-key "$OWNER_PK" --rpc-url "$R")"
-  echo "    operator now $(cast from-wei "$(cast balance "$OPERATOR" --rpc-url "$R")") CELO"
+  # A receipt does not mean the balance is visible. forno is load-balanced, so
+  # the node answering the next read may not have applied the block yet, and a
+  # mint estimated against that stale view fails the EVM's balance check and
+  # comes back as a bare "execution reverted". Wait for the credit to actually
+  # appear rather than trusting the receipt.
+  echo -n "    waiting for the credit to be visible"
+  for _ in $(seq 1 30); do
+    BAL=$(cast balance "$OPERATOR" --rpc-url "$R")
+    [ "$(echo "$BAL >= $NEED" | bc)" -eq 1 ] && break
+    echo -n "."; sleep 2
+  done
+  echo " $(cast from-wei "$BAL") CELO"
+  if [ "$(echo "$BAL >= $NEED" | bc)" -ne 1 ]; then
+    echo "    ABORT: operator still below the reserve after 60s." >&2
+    echo "    The top-up tx above succeeded; just re-run this script." >&2
+    exit 1
+  fi
 fi
 
 echo
@@ -90,8 +106,19 @@ if [ "$OWNED" != "0" ]; then
   echo "    Nothing minted. Find the id on https://8004scan.io and use it."
   exit 1
 fi
+# Prove the call succeeds before paying for it, and capture the id it will
+# return. eth_call costs nothing and turns a would-be wasted mint into a clean
+# abort.
+EXPECT_ID=$(cast call "$REGISTRY" "register(string)(uint256)" "$TOKEN_URI" --from "$OPERATOR" --rpc-url "$R")
+echo "    eth_call succeeds, expects agentId $EXPECT_ID"
+
+# Pass an explicit gas limit so cast does not run its own estimate. That
+# estimate is the step that failed against a stale node last run; we already
+# have a good figure and a pre-flight call proving the tx is sound.
+GAS_LIMIT=$(python3 -c "print(int($(cast estimate "$REGISTRY" "register(string)" "$TOKEN_URI" --from "$OPERATOR" --rpc-url "$R") * 1.5))")
+echo "    gas limit $GAS_LIMIT"
 RECEIPT=$(send_and_wait "$REGISTRY" "register(string)" "$TOKEN_URI" \
-  --private-key "$OPERATOR_PK" --rpc-url "$R")
+  --gas-limit "$GAS_LIMIT" --private-key "$OPERATOR_PK" --rpc-url "$R")
 check_ok "$RECEIPT"
 
 # ERC-721 Transfer(address,address,uint256): tokenId is the 4th topic. The
