@@ -135,12 +135,25 @@ known, when the spec was first written.
   by our relayer do not"*. Routing through `buy` would forfeit precisely the
   contribution this project exists to demonstrate. Leash pays its own fees
   through the fee-currency path already proven in `T0.1`.
-- **Direct integration is undocumented publicly.** The organisers' answers route
-  every integration question back to `buy`. The standard protocol packages
-  (`x402`, `x402-fetch`, `x402-axios`, all maintained into 2026) exist, but
-  whether Celo's facilitator speaks that protocol version and accepts a Celo
-  chain id is unverified. **`T3.0` resolves this before any x402 code is
-  written.**
+- **Direct integration works, and the standard client cannot do it.**
+  `T3.0` settled a real payment on 2026-09-02 (tx `0x0ac87832`, 0.016753 USDC
+  for a Google Cloud `e2-micro` that ran our script and returned its output).
+  But `x402@1.2.0` supports fifteen EVM networks and **celo is not one of them**;
+  its signer and its `encodePayment` both gate on that list, so `x402-fetch` and
+  `x402-axios` reject the gateway's challenge outright. Leash therefore ships
+  **its own Celo x402 client** — about a hundred lines, since the 402 challenge
+  publishes the token's EIP-712 domain, which is available nowhere else. See
+  `T3.0` in `spikes/README.md`.
+- **The facilitator pays the gas, whichever client is used.** The settlement
+  arrives as a plain type `0x2` transaction from a facilitator address with
+  `feeCurrency` null; our operator's CELO balance is zero before and after. An
+  earlier reading of the rules — that hand-rolling the client would preserve a
+  fee contribution `buy` would forfeit — was wrong. The client does not decide
+  who pays gas. This project's fee contribution is `T0.1`: its **own**
+  transactions, paying gas in a stablecoin from a zero-CELO wallet.
+- **An x402 settlement does not carry the attribution tag.** The facilitator
+  builds that calldata. x402 activity is credited through the registered
+  `agentWalletAddress`, which the settlement response names as the payer.
 
 **Bounty, not a third track.** *Best Stablecoin Adoption* (\$750) is judged among
 projects whose value settles over the x402 facilitator, and awards the most to
@@ -440,7 +453,7 @@ between attempts so a transaction that did broadcast is never sent twice.
 
 | ID | Task | Est | Priority |
 |---|---|---|---|
-| `T3.0` | **Spike: can we settle one real x402 payment on Celo mainnet from our own code, paying our own fee?** Resolves the unknown in 2.1a. Blocks everything below it | 3h | P0 |
+| `T3.0` | ~~Spike: can we settle one real x402 payment on Celo mainnet from our own code?~~ **DONE 2026-09-02 — PASS.** Standard client does not support celo; we ship our own | 3h | ✅ |
 | `T3.1` | x402 buyer: call a 402-gated URL and settle | 6h | P0 |
 | `T3.2` | Wire into Path B — top-up bounded by daily cap | 4h | P0 |
 | `T3.3` | LLM-readable structured JSON errors | 2h | P0 |
