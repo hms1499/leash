@@ -7,6 +7,7 @@ import { LeashClient } from '@leash/sdk'
 import { loadConfig } from './config.js'
 import { toolError, toolOk } from './errors.js'
 import { statusTool } from './tools/status.js'
+import { payTool } from './tools/pay.js'
 
 const config = loadConfig(process.env)
 const account = privateKeyToAccount(config.operatorPk)
@@ -43,6 +44,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         'Report the agent wallet: remaining daily allowance, caps, balances, and when the allowance resets. Call this before spending.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     },
+    {
+      name: 'leash_pay',
+      description:
+        'Pay a Celo address from the agent wallet. The on-chain policy enforces a per-transaction cap, a daily cap and, when enabled, a payee allowlist. A refusal returns the numbers needed to retry correctly.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          to: { type: 'string', description: 'Recipient Celo address, 0x-prefixed.' },
+          amount: { type: 'string', description: 'Amount in whole token units, e.g. "0.25".' },
+        },
+        required: ['to', 'amount'],
+        additionalProperties: false,
+      },
+    },
   ],
 }))
 
@@ -51,6 +66,11 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     switch (req.params.name) {
       case 'leash_status':
         return toolOk(await statusTool({ leash: leash as never, config }))
+      case 'leash_pay':
+        return toolOk(await payTool(
+          { leash: leash as never, config, feeBalances: await feeBalances() },
+          req.params.arguments as { to: string; amount: string },
+        ))
       default:
         return toolError('unknown_tool', `no tool named ${req.params.name}`)
     }
