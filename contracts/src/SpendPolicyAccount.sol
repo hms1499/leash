@@ -138,5 +138,18 @@ contract SpendPolicyAccount {
         emit ToppedUp(token, msg.sender, amount);
     }
 
+    event Swept(address indexed token, address indexed to, uint256 amount);
+
+    /// @notice Owner escape hatch. Deliberately bypasses policy, the payee
+    ///         allowlist and the pause: policy exists to constrain the
+    ///         operator, never the owner. Without it, funds held against an
+    ///         unconfigured token would be unreachable, and pausing a
+    ///         compromised operator would also lock the owner out of the money
+    ///         it is trying to protect.
+    function sweep(address token, address to, uint256 amount) external onlyOwner {
+        if (!IERC20(token).transfer(to, amount)) revert TransferFailed();
+        emit Swept(token, to, amount);
+    }
+
     receive() external payable {}
 }
