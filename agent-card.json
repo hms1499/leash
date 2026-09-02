@@ -3,10 +3,21 @@
   "name": "Leash",
   "description": "An AI agent wallet with on-chain spend limits. Leash holds funds in a SpendPolicyAccount contract that enforces per-transaction caps, UTC-daily caps and a payee allowlist in Solidity, so an agent's spending authority is bounded by the chain rather than by a prompt. The agent's operator key holds zero CELO and pays gas in a stablecoin through Celo's fee-currency abstraction. Built for the Celo Agents at Work hackathon.",
   "services": [
-    { "name": "github", "endpoint": "https://github.com/hms1499/leash" },
-    { "name": "wallet", "endpoint": "0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6" }
+    {
+      "name": "github",
+      "endpoint": "https://github.com/hms1499/leash"
+    },
+    {
+      "name": "wallet",
+      "endpoint": "0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6"
+    }
   ],
   "x402Support": false,
   "active": true,
-  "registrations": []
+  "registrations": [
+    {
+      "agentId": 9804,
+      "agentRegistry": "eip155:42220:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+    }
+  ]
 }
