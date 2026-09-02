@@ -1,7 +1,9 @@
 # Leash — Design Spec
 
 **Date:** 2026-09-01
-**Status:** Approved for planning
+**Status:** Approved. Plan 1 (foundation) shipped 2026-09-02 — contract live and
+verified on Celo mainnet, SDK built, attribution proven end to end. Plans 2 (W3+W4)
+and 3 (W5) not yet written.
 **Hackathon:** Celo "Agents at Work" (2026-08-28 → 2026-09-14 09:00 GMT)
 **Primary track:** `judges-favorite` · **Secondary:** `askbots-growth`
 
@@ -90,11 +92,20 @@ Two caveats stand between that fact and shipping it:
    pre-issued digest, no valid signature. Policy moves from signing time to
    authorization time, where the arguments still exist.
 
-**Decision status: OPEN.** Adopting Path A for x402 requires building the
-pre-authorization subsystem (est. 6-8h against a 4h slack budget). The choice is
-bound to the Task 10 mainnet deploy, because adding ERC-1271 after deployment
-means abandoning the deployed address. Until then the two-path design below
-stands unchanged, and Path B remains the shipping route for x402.
+**Decision status: RESOLVED 2026-09-02 — pre-authorization NOT built. x402 ships
+on Path B.**
+
+The reasoning, recorded so it can be re-argued rather than re-discovered: the
+primary track is decided by a 90-second demo, and the decisive beat in that demo
+— an agent wallet holding zero CELO paying gas in a stablecoin — was already
+proven on mainnet before this decision was taken. Path A with pre-authorization
+would upgrade the claim from *"the agent can only ever reach $X/day"* to
+*"even x402 is policed per payment"*: truer, and a distinction 90 seconds cannot
+carry. The 6-8h was judged better spent on the product surface.
+
+Revisiting this means a **new deployment**. `SpendPolicyAccount` is not
+upgradeable and the live instance has no `isValidSignature`, so adding one later
+abandons the deployed address.
 
 The design absorbs either answer through two spend paths:
 
@@ -107,6 +118,58 @@ Path B is a weaker guarantee but still a real leash: the agent is hard-capped on
 how much it can ever reach. Stating this limitation openly in the demo is an
 asset — the judges are actively auditing for projects that overstate their
 guarantees.
+
+### 2.1a The Celo x402 facilitator — what is actually on offer
+
+Established 2026-09-02 by asking the organisers directly. This was assumed, not
+known, when the spec was first written.
+
+- The facilitator is real, live on mainnet from kick-off, and charges **0.3% plus
+  gas** on settlements. It currently settles **USDC, USDT and USAT**.
+- **Every GitHub account gets 20 free mainnet settlements.** That is enough to
+  develop and demo on, and few enough that they must not be burned on trial and
+  error — which is why W3 opens with a spike rather than an implementation.
+- **`buy` (previously cPay) is the wrong client for this project.** It is Celo's
+  own x402 buyer, it exposes MCP, and its gateway sponsors the gas. The rules
+  say fees you pay yourself count in your favour while *"settlements sponsored
+  by our relayer do not"*. Routing through `buy` would forfeit precisely the
+  contribution this project exists to demonstrate. Leash pays its own fees
+  through the fee-currency path already proven in `T0.1`.
+- **Direct integration is undocumented publicly.** The organisers' answers route
+  every integration question back to `buy`. The standard protocol packages
+  (`x402`, `x402-fetch`, `x402-axios`, all maintained into 2026) exist, but
+  whether Celo's facilitator speaks that protocol version and accepts a Celo
+  chain id is unverified. **`T3.0` resolves this before any x402 code is
+  written.**
+
+**Bounty, not a third track.** *Best Stablecoin Adoption* (\$750) is judged among
+projects whose value settles over the x402 facilitator, and awards the most to
+**USAT over x402**. Since `bountyIds` is separate from `trackIds`, entering it
+costs no additional build — only a choice of settlement token — and does not
+violate the two-track discipline in section 1.
+
+**Rule that constrains the design:** value-moved counting excludes *"transfers to
+or from your own contracts"*, and is gated on distinct signers. Spending from a
+Leash account to a wallet the project controls is not adoption and will not
+count. Nothing in this design should assume otherwise.
+
+### 2.1b Per-user deployment — OPEN
+
+`T5.3` promises "connect → deploy account → fund", but no mechanism is
+specified. The live instance at `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` is
+*this project's own* account, not a shared product instance. A real product
+gives each team their own.
+
+Two shapes, to be decided in Plan 3:
+
+| | Direct deploy from the frontend | Factory contract |
+|---|---|---|
+| Work | none beyond wagmi `deployContract` | a new contract, tested and deployed |
+| Cost per user | full deployment (~\$0.013) | cheaper via minimal-proxy clones |
+| Discovery | none — the user must keep their address | on-chain registry of every account |
+
+Direct deploy is the smaller path and is sufficient for v1. A factory is the
+better product. Decide before `T5.3`, not during.
 
 ### 2.2 Contract
 
@@ -331,9 +394,27 @@ spent holding them open).
 | `T0.5` | Public repo + pnpm monorepo skeleton | 1h | — |
 | `T0.6` | Register on celobuilders → **receive `attributionTag`** | 1h | `T0.4` `T0.5` |
 
-`T0.2` is the fork in the road: **yes** means Path A also covers x402; **no**
-(likely) makes Path B primary. Both are already designed, so this is early
-knowledge, not risk.
+**W0 COMPLETE 2026-09-02.** Outcomes, with evidence in `spikes/README.md`:
+
+| ID | Outcome |
+|---|---|
+| `T0.1` | **PASS** — a wallet holding exactly zero CELO sent a mainnet transaction paying gas in USDC, for \$0.00223. Also measured: fee adapters answer `balanceOf` where `symbol`/`decimals`/`getAdaptedToken` revert, and rescale to 18 decimals, so a fee-balance map must be read from adapter addresses. |
+| `T0.2` | **ERC-1271 SUPPORTED** — and deliberately not used; see 2.1. |
+| `T0.3` | **PASS** — tag written with `toDataSuffix`, read back with `verifyTx`, verified again by decoding raw chain data in a separate process. |
+| `T0.4` | ERC-8004 `agentId` 9804, owned by the operator EOA. |
+| `T0.5` | Public repo, pnpm workspace. |
+| `T0.6` | Registered. `attributionTag` = `celo_3dec652cd977`. |
+
+`T0.2` was the fork in the road. It answered **yes** — a contract can pay x402 —
+and 2.1 records why Path B ships anyway.
+
+**Operational hazard discovered in W0, and it constrains every later
+workstream:** forno rejects fee-currency sends non-deterministically. Backends
+disagree about the fee-currency gas price, so an identical transaction is
+refused by one node and accepted by the next. It first looked like a
+`maxFeePerGas` threshold and was not — retrying the same values inverted the
+result. Anything that sends with `feeCurrency` must retry, re-reading the nonce
+between attempts so a transaction that did broadcast is never sent twice.
 
 ### W1 — Contract · 20h P0 (+4h cut) · depends on `T0.1`
 
@@ -355,10 +436,11 @@ knowledge, not risk.
 | `T2.3` | Policy client: read state + `staticcall` pre-check | 3h | P0 |
 | `T2.4` | **Gate test**: `verifyTx` asserts the tag is present | 2h | P0 |
 
-### W3 — x402 · 12h · depends on W2, `T0.2`
+### W3 — x402 · 15h · depends on W2, `T0.2`
 
 | ID | Task | Est | Priority |
 |---|---|---|---|
+| `T3.0` | **Spike: can we settle one real x402 payment on Celo mainnet from our own code, paying our own fee?** Resolves the unknown in 2.1a. Blocks everything below it | 3h | P0 |
 | `T3.1` | x402 buyer: call a 402-gated URL and settle | 6h | P0 |
 | `T3.2` | Wire into Path B — top-up bounded by daily cap | 4h | P0 |
 | `T3.3` | LLM-readable structured JSON errors | 2h | P0 |
