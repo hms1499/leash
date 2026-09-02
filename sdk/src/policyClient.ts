@@ -201,6 +201,30 @@ export class LeashClient {
     })
   }
 
+  /** How much of `token` the Leash account itself holds. */
+  async accountBalance(token: `0x${string}`): Promise<bigint> {
+    return this.#pub.readContract({
+      address: token,
+      abi: [{
+        name: 'balanceOf', type: 'function', stateMutability: 'view',
+        inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }],
+      }] as const,
+      functionName: 'balanceOf',
+      args: [this.#address],
+    })
+  }
+
+  /** The configured policy for `token`, straight off the contract. */
+  async limits(token: `0x${string}`): Promise<{ perTx: bigint; daily: bigint; spentToday: bigint }> {
+    const [perTx, daily, spentToday] = await this.#pub.readContract({
+      address: this.#address,
+      abi: spendPolicyAccountAbi,
+      functionName: 'limits',
+      args: [token],
+    }) as readonly [bigint, bigint, bigint, bigint]
+    return { perTx, daily, spentToday }
+  }
+
   /** Simulates a top-up so a rejected draw costs no gas. */
   async preCheckTopUp(token: `0x${string}`, amount: bigint): Promise<PreCheckResult> {
     try {
