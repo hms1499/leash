@@ -1,0 +1,30 @@
+{
+  "x402Version": 1,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "celo",
+      "maxAmountRequired": "16753",
+      "resource": "https://usebuy.ai/gcloud/vm",
+      "description": "e2-micro VM, 1h, runs your script",
+      "mimeType": "application/json",
+      "payTo": "0x20faAca5F980E29639A0FCC6dcA6988E18ed333B",
+      "maxTimeoutSeconds": 300,
+      "asset": "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
+      "extra": { "name": "USDC", "version": "2" }
+    },
+    {
+      "scheme": "exact",
+      "network": "celo",
+      "maxAmountRequired": "16753",
+      "resource": "https://usebuy.ai/gcloud/vm",
+      "description": "e2-micro VM, 1h, runs your script",
+      "mimeType": "application/json",
+      "payTo": "0x20faAca5F980E29639A0FCC6dcA6988E18ed333B",
+      "maxTimeoutSeconds": 300,
+      "asset": "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
+      "extra": { "name": "Tether USD", "version": "1" }
+    }
+  ],
+  "error": ""
+}
