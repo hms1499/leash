@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
-  "scripts": { "test": "vitest run" },
+  "scripts": {
+    "test": "vitest run --exclude '**/*.gate.test.ts'",
+    "test:gate": "vitest run mainnet.gate"
+  },
   "dependencies": {
     "@celo/attribution-tags": "0.3.0",
     "viem": "^2.21.0"
