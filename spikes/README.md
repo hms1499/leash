@@ -227,3 +227,99 @@ because neither the operator nor the owner EOA holds any of the 20 whitelisted
 fee currencies — checked directly, all zero. The spike selects a funded adapter
 automatically and falls back to CELO only when it finds none, so re-running it
 once the operator holds USDC proves both legs at once.
+
+## T3.0 — settling a real x402 payment on Celo from our own code
+
+Result: **PASS**
+
+Settlement tx: 0x0ac87832e1da72bbf4a76d30d1e696b236ee13b7a172cb5eb87352ce7682b46e
+(https://celoscan.io/tx/0x0ac87832e1da72bbf4a76d30d1e696b236ee13b7a172cb5eb87352ce7682b46e)
+
+Paid 0.016753 USDC for an `e2-micro` Google Cloud VM through the gateway at
+`usebuy.ai`, and got the work back:
+
+```
+Linux cpay-0ac87832e1da 6.1.0-52-cloud-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.180-1 x86_64
+2
+```
+
+That is `uname -a; nproc` run on a real machine the agent rented and paid for
+itself. Balances agree exactly: the operator went from 1047547 to 1030794
+atomic USDC, a difference of 16753, and its CELO balance stayed at zero.
+
+Reproduce with `spikes/x402-pay.ts`. `DRY_RUN=1` builds and prints the payment
+without sending it, which costs nothing and spends none of the free settlements.
+
+### The standard x402 client cannot do this
+
+`x402@1.2.0` lists fifteen supported EVM networks — abstract, base, avalanche,
+iotex, sei, polygon, peaq, story, educhain, skale and their testnets — and
+**celo is not among them**. Both the signer and `encodePayment` gate on
+`SupportedEVMNetworks.includes(network)`, so `x402-fetch` and `x402-axios`
+reject this gateway's challenge outright. Finding this before writing `T3.1`
+rather than during it is the entire return on this spike.
+
+The protocol itself is reimplementable in about a hundred lines, because the
+challenge publishes everything needed:
+
+| field | value |
+|---|---|
+| `scheme` | `exact` |
+| `network` | `celo` |
+| `asset` | `0xcebA9300f2b948710d2653dD7B07f33A8B32118C` (USDC) or `0x48065fbB…` (USDT) |
+| `payTo` | `0x20faAca5F980E29639A0FCC6dcA6988E18ed333B` |
+| `extra.name` / `extra.version` | the token's EIP-712 domain — published nowhere else |
+
+Sign an EIP-3009 `TransferWithAuthorization` over that domain, base64 the
+`{x402Version, scheme, network, payload:{signature, authorization}}` object, and
+send it as `X-PAYMENT`.
+
+### Who pays the gas — a correction
+
+The gas is paid by the **facilitator**, not by us, and this is true of our own
+client just as much as of Celo's `buy`. The settlement transaction was submitted
+by `0xf8d2cc13…`, is a plain type `0x2` transaction with `feeCurrency` null, and
+our operator's CELO balance was zero before it and zero after.
+
+An earlier reading of the rules — that using `buy` would forfeit our fee
+contribution while a hand-rolled client would preserve it — was wrong. The
+choice of client does not change who pays gas. What a hand-rolled client
+actually buys is independence from a closed-beta tool and control of the payment
+flow, which is what lets x402 be wired to Path B at all.
+
+This project's fee contribution comes from its **own** transactions, where the
+operator pays gas in USDC from a zero-CELO wallet. That evidence is `T0.1` and
+stands on its own.
+
+### The attribution tag is not in an x402 settlement
+
+Confirmed by decoding the settlement's calldata: no ERC-8021 marker. The
+facilitator builds that transaction, so nothing of ours rides in it. x402
+activity is credited through the registered `agentWalletAddress` instead, and
+the settlement response names our operator as `payer`. The two attribution
+mechanisms are described in `docs/registration.md`; this is the one that is
+retroactive.
+
+### The facilitator uses the (v, r, s) overload
+
+Selector `0xe3ee160e` =
+`transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)`,
+not the `bytes` overload `0xcf092995`. This partly answers the caveat left open
+in `T0.2`: the facilitator splits the signature rather than forwarding it as
+`bytes`. It does not by itself rule out an ERC-1271 contract payer, since
+Circle's implementation repacks `(v, r, s)` before the signature check, but it
+does mean any future Path A x402 work must verify that repacking rather than
+assume a `bytes` signature reaches the token untouched.
+
+### Gate details worth keeping
+
+- `e2-micro` costs 0.016753 USDC and has `attestationRequired: false`.
+  `e2-standard-2` and larger **require** Self identity attestation.
+- An unpaid `POST` returns the 402 quote for free. Quote before paying: the
+  request body sets the price.
+- x402 has no refund primitive. A `5xx` can mean the payment already settled, so
+  a failed purchase must never be blindly retried. `x402-pay.ts` makes exactly
+  one attempt.
+- The poll URL returned with a purchase is a **bearer capability** — anyone
+  holding it can read the result and renew the lease at our expense. It is
+  deliberately not recorded here.
