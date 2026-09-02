@@ -68,7 +68,7 @@ export async function fetchTool(
   } catch (err) {
     const e = err as {
       code?: string; message?: string; mayHaveSettled?: boolean
-      spent?: bigint; cap?: bigint
+      spent?: bigint; cap?: bigint; status?: number; body?: unknown
     }
     const mayHaveSettled = e.mayHaveSettled === true
     const base: Record<string, unknown> = {
@@ -81,6 +81,10 @@ export async function fetchTool(
         ? 'DO NOT RETRY. The payment may already have settled. Call leash_status to check the balance, and inspect the resource before spending again.'
         : 'This failed before any money moved. Fix the request and try again.',
     }
+    // The gateway's own words, so an agent reporting this to a person has
+    // something better than a status code to relay.
+    if (e.status !== undefined) base.status = e.status
+    if (e.body !== undefined) base.gateway_response = e.body
     if (typeof e.spent === 'bigint' && typeof e.cap === 'bigint') {
       const remaining = e.cap > e.spent ? e.cap - e.spent : 0n
       base.spent_today = human(e.spent)

@@ -22,12 +22,23 @@ export class X402PaymentError extends Error {
    */
   readonly mayHaveSettled: boolean
   readonly status?: number
-  constructor(code: string, message: string, opts: { mayHaveSettled: boolean; status?: number }) {
+  /**
+   * Whatever the gateway said. Kept because a 5xx is the one failure that
+   * cannot be retried, so the response body is the only evidence available for
+   * deciding whether the fault was ours — discarding it leaves a caller with a
+   * status code and nothing to act on.
+   */
+  readonly body?: unknown
+  constructor(
+    code: string, message: string,
+    opts: { mayHaveSettled: boolean; status?: number; body?: unknown },
+  ) {
     super(message)
     this.name = 'X402PaymentError'
     this.code = code
     this.mayHaveSettled = opts.mayHaveSettled
     this.status = opts.status
+    this.body = opts.body
   }
 }
 
@@ -108,14 +119,14 @@ export async function payAndFetch(args: {
     throw new X402PaymentError(
       'gateway_error',
       `the gateway returned ${res.status} after the payment was sent; it may already have settled`,
-      { mayHaveSettled: true, status: res.status },
+      { mayHaveSettled: true, status: res.status, body },
     )
   }
   if (res.status >= 400) {
     throw new X402PaymentError(
       'payment_refused',
       `the gateway refused the request with ${res.status}`,
-      { mayHaveSettled: false, status: res.status },
+      { mayHaveSettled: false, status: res.status, body },
     )
   }
 

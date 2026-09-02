@@ -80,6 +80,18 @@ describe('payAndFetch', () => {
       .rejects.toMatchObject({ mayHaveSettled: false })
   })
 
+  // A 5xx cannot be retried, so the body is the only evidence left for working
+  // out whether the fault was ours or the gateway's.
+  it('keeps the gateway response body on a 5xx', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(res(500, { error: 'no capacity' }))
+    const q = await quote({
+      url: URL_, body: BODY,
+      fetchImpl: vi.fn().mockResolvedValue(res(402, raw)) as never,
+    })
+    await expect(payAndFetch({ url: URL_, body: BODY, account, quote: q, fetchImpl: fetchImpl as never }))
+      .rejects.toMatchObject({ body: { error: 'no capacity' } })
+  })
+
   it('sends exactly one paid request, whatever happens', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(res(502, {}))
     const q = await quote({
