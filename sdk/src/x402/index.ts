@@ -18,14 +18,26 @@ export type PayForResourceResult = {
 /**
  * Extra drawn on top of the shortfall, in the payment token's atomic units.
  *
- * The draw is a transaction the operator sends, and on Celo it pays its own gas
- * in the same stablecoin it is drawing. Drawing exactly `price - held` therefore
- * lands the operator on `price` and then spends the gas out of that, leaving it
- * short of the amount it just signed an authorization for — the settlement then
- * fails for insufficient balance. T0.1 measured a tagged send at ~2228 atomic
- * units; 5000 is that with room, and still $0.005.
+ * This carries two costs, not one, which is why it is larger than a single
+ * transaction's gas:
+ *
+ * 1. **The draw's own gas.** The draw is a transaction the operator sends, and
+ *    on Celo it pays its gas in the same stablecoin it is drawing. Drawing
+ *    exactly `price - held` lands the operator on `price` and then spends the
+ *    gas out of that, leaving it short of the amount it already signed an
+ *    authorization for; the settlement then fails for insufficient balance.
+ *
+ * 2. **A float, so the wallet still works afterwards.** Whatever this buffer
+ *    does not spend on gas is all the operator has left once the settlement
+ *    takes `price`. A node reserves `gasLimit * maxFeePerGas` up front, roughly
+ *    3x the real cost, so an operator left below about 6700 cannot send
+ *    anything at all — including the very draw that would refill it. It strands
+ *    until the owner rescues it.
+ *
+ * T0.1 measured a tagged send at ~2228 atomic units, so 15000 covers the gas
+ * and leaves ~12772: a few more transactions of headroom, for $0.015.
  */
-const DEFAULT_GAS_BUFFER = 5_000n
+const DEFAULT_GAS_BUFFER = 15_000n
 
 /**
  * Buys a 402-gated resource with money drawn through the on-chain policy.
