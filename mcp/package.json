@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "bin": { "leash-mcp": "./src/index.ts" },
+  "bin": {
+    "leash-mcp": "./src/index.ts"
+  },
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --exclude '**/*.gate.test.ts'",
+    "test:gate": "vitest run mainnet.gate",
     "start": "tsx src/index.ts"
   },
   "dependencies": {

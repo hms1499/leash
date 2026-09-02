@@ -103,8 +103,12 @@ Spec 2.1b lays out the trade. Decide before `T5.3`, not during.
   `maxFeePerGas` is refused by one node and accepted by the next. This looked
   like a threshold until retrying the same values inverted the result. Retry,
   re-reading the nonce between attempts.
-- **A gas estimate is a reserve, not a price.** The node demands
-  `gasLimit * maxFeePerGas` up front, roughly 3x what the transaction costs.
+- **A gas estimate is a reserve, not a price** — and with no gas limit set,
+  the reserve is the **block** gas limit. Measured on mainnet 2026-09-02:
+  `blockGasLimit * gasPrice` = **0.465 USDC** against ~0.0022 actually spent,
+  a 209x demand that makes a low-balance operator unable to transact at all.
+  Always send an explicit `gas`. (An earlier note here said "roughly 3x"; that
+  was wrong, and it is what mis-sized the x402 draw buffer.)
 - **`local x=$(cmd)` swallows the exit status in bash.** `set -e` never fires.
 - **x402 has no refunds.** A `5xx` can mean the payment settled. Never retry.
 - **A poll URL from a purchase is a bearer capability.** Never commit or log one.

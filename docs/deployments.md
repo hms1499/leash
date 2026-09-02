@@ -79,3 +79,67 @@ The payee for the proof spend is the owner EOA — the transfer is 1 unit
 ($0.000001) and exists to prove the tag round-trips through a real policy
 check, not to move value. It is a wallet this project controls and must be
 declared under `otherWallets` at submission.
+
+## x402 proof — payment drawn through the policy
+
+- Resource: `https://usebuy.ai/gcloud/vm`, `e2-micro` (1h VM that runs a script)
+- Top-up, tx: 0xec08a20020983992d18d6faa7cccd91e0bba0f2432e6f22e534616b96f2f33db
+  — contract → operator, under the daily cap
+  (https://celoscan.io/tx/0xec08a20020983992d18d6faa7cccd91e0bba0f2432e6f22e534616b96f2f33db)
+- Settlement, tx: 0xb5dd4d16a7e65453ddcdc70b235384a7bc20c8845a8ce5096084c7f7f2a91e25
+  — operator → gateway, facilitator-submitted
+  (https://celoscan.io/tx/0xb5dd4d16a7e65453ddcdc70b235384a7bc20c8845a8ce5096084c7f7f2a91e25)
+- Operator CELO balance throughout: **0**
+- Drawn from the account: **19226** atomic USDC — the policy's per-tx and daily
+  caps applied to this draw, which is the only route x402 money takes out of
+  the contract.
+
+### It took two runs, and that is the honest record
+
+The first gate run drew through the policy and then hit a `500` from the
+gateway. x402 has no refund primitive, so `payAndFetch` refused to retry and
+raised `may_have_settled: true`. The chain, not the test output, settled the
+question:
+
+| read | value | means |
+|---|---|---|
+| contract USDC | 2515793 → 2496567 | the draw happened, −19226 |
+| `remainingToday` | 999999 → 980773 | −19226, **the daily cap consumed exactly the draw** |
+| operator USDC | 12527 → 28968 | +16441 = 19226 drawn − 2785 gas |
+| operator USDC vs price | 28968 > 16753 | **the settlement had not run; the money was still ours** |
+
+Having *proved* nothing settled, the retry was no longer a gamble, and the
+second run paid. So the two legs are proved by two runs rather than one: the
+first is the only evidence that the daily cap governs an x402 draw, and the
+second is the evidence that the payment itself completes.
+
+Read back off the chain rather than taken from the test's own output:
+
+| checked | value |
+|---|---|
+| settlement receipt | `status 1 (success)` |
+| submitted by | `0xF8d2CC13…6CE3e` — the facilitator, not us |
+| envelope | type `0x2`, `feeCurrency` unset — the facilitator paid this gas |
+| operator USDC | 28968 → 12215, exactly −16753 |
+| gateway USDC | 385317 → 402070, exactly +16753 |
+| operator CELO | `0` before and after |
+
+### Two mainnet findings that came out of this gate
+
+1. **A `feeCurrency` transaction with no gas limit reserves the block gas
+   limit.** The node demands `blockGasLimit * gasPrice` against the operator's
+   stablecoin before it will simulate — measured at **0.465169 USDC** against
+   ~0.0022 actually spent, a 209x demand. Bisection put the operator's largest
+   sendable transfer at 565625 of its 1030794 balance, and `reserve / gasPrice`
+   came to 30,055,356 against a block gas limit of 30,000,000. This made Path B
+   unreachable: `topUpOperator` exists for an operator short of the *price*, and
+   such an operator is far shorter of the *reserve*. `LeashClient` now sends an
+   explicit `GAS_LIMIT`. **This corrects the "roughly 3x what the transaction
+   costs" note in `docs/RESUME.md`.**
+
+2. **A draw sized to the bare shortfall cannot pay.** The draw pays its own gas
+   in the same stablecoin it is drawing, so drawing exactly `price - held` lands
+   the operator on `price` and gas then takes it below the amount it already
+   signed for. `payForResource` draws a buffer on top, sized to cover that gas
+   *and* leave a float — an operator below the reserve cannot send even the draw
+   that would refill it, and strands until the owner rescues it.

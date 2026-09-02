@@ -250,6 +250,22 @@ atomic USDC, a difference of 16753, and its CELO balance stayed at zero.
 Reproduce with `spikes/x402-pay.ts`. `DRY_RUN=1` builds and prints the payment
 without sending it, which costs nothing and spends none of the free settlements.
 
+### Shipped, and proved again through the policy (2026-09-02)
+
+This hand-rolled client is no longer a spike: it lives in `sdk/src/x402/` and is
+what `leash_fetch` calls. It has since bought the same resource with money drawn
+through `topUpOperator`, which this spike did not do — T3.0 paid from the
+operator's own leftovers and never touched the contract.
+
+- Top-up tx: https://celoscan.io/tx/0xec08a20020983992d18d6faa7cccd91e0bba0f2432e6f22e534616b96f2f33db
+- Settlement tx: https://celoscan.io/tx/0xb5dd4d16a7e65453ddcdc70b235384a7bc20c8845a8ce5096084c7f7f2a91e25
+
+Two mainnet facts came out of that run and are written up in
+`docs/deployments.md`: a `feeCurrency` send with no gas limit reserves the
+**block** gas limit (0.465 USDC against 0.0022 spent), and a draw sized to the
+bare shortfall cannot pay, because the draw spends its own gas out of the
+balance it just topped up.
+
 ### The standard x402 client cannot do this
 
 `x402@1.2.0` lists fifteen supported EVM networks — abstract, base, avalanche,

@@ -44,6 +44,12 @@ record real proof-tx hashes in its own docs and those are indistinguishable
 from a key by shape alone. Review diffs yourself before committing anything
 sensitive-looking.
 
+## Use Leash with your agent
+
+`docs/mcp-setup.md` — deploy your own account, paste one block into `.mcp.json`,
+and your agent spends under limits you set. It assumes no knowledge of this
+repository.
+
 ## Design
 
 See `docs/superpowers/specs/2026-09-01-leash-design.md`.
