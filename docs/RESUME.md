@@ -24,7 +24,7 @@ allowlists are enforced on-chain, not by a prompt. Built for the Celo
 
 ## State
 
-**Done and reviewed: Tasks 1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 13, 15.**
+**Done and reviewed: Tasks 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 15.**
 
 Task 5 closed 2026-09-02: attribution tag `celo_3dec652cd977`, operator EOA
 `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` registered as `agentWalletAddress`,
@@ -42,15 +42,22 @@ window, Path A `execute()` with allowlist, Path B `topUpOperator()`), the
 with LLM-readable errors), two resolved architecture spikes, and a pre-commit
 secret guard.
 
-**Not started: Tasks 3, 10, 14.** Task 3 is no longer blocked — the tag exists.
+**Not started: Tasks 10, 14.**
+
+Task 3 closed 2026-09-02: first tagged mainnet tx `0xb91ba357…fca4`, verifyTx
+returns the registered tag. **T0.1 is still open despite Task 2 being marked
+done** — `spikes/README.md` has always said "send-test PENDING". Gas has never
+been paid in a stablecoin from a zero-CELO wallet, because no wallet holds one.
+Re-running `spikes/attribution.ts` once the operator holds USDC closes it.
 
 ## What is blocked, and on what
 
 | Task | Needs |
 |---|---|
-| **3** First tagged mainnet tx | nothing — unblocked, the tag exists |
+| **T0.1** stablecoin gas proof | USDC (or any whitelisted fee currency) in the operator EOA |
 | **10** Deploy to mainnet | Celoscan API key · **and the ERC-1271 decision below** (owner EOA funded: 3.82 CELO) |
 | **14** Attribution gate test | Task 10 |
+| demo's "zero CELO" beat | USDC in the operator, to sweep its 0.13 CELO via `feeCurrency` |
 
 Attribution is **not retroactive** for the data-suffix tag: any transaction
 mined before 2026-09-02T03:22Z can never gain it. x402 settlements attributed
