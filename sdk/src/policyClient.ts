@@ -65,6 +65,30 @@ export function describePreCheckFailure(
   }
 }
 
+/**
+ * Builds tagged `execute` calldata. Exported for testing: the tag is the thing
+ * that must never be missing or doubled, and asserting on bytes is the only
+ * honest way to check that.
+ */
+export function buildSpendCalldata(
+  token: `0x${string}`, to: `0x${string}`, amount: bigint, tag: string,
+): `0x${string}` {
+  return withAttribution(
+    encodeFunctionData({ abi: spendPolicyAccountAbi, functionName: 'execute', args: [token, to, amount] }),
+    tag,
+  )
+}
+
+/** Builds tagged `topUpOperator` calldata. */
+export function buildTopUpCalldata(
+  token: `0x${string}`, amount: bigint, tag: string,
+): `0x${string}` {
+  return withAttribution(
+    encodeFunctionData({ abi: spendPolicyAccountAbi, functionName: 'topUpOperator', args: [token, amount] }),
+    tag,
+  )
+}
+
 export class LeashClient {
   readonly #pub: LeashPublicClient
   readonly #wallet: LeashWalletClient
@@ -143,17 +167,78 @@ export class LeashClient {
     token: `0x${string}`, to: `0x${string}`, amount: bigint,
     feeBalances: ReadonlyMap<`0x${string}`, bigint>,
   ): Promise<`0x${string}`> {
-    const calldata = encodeFunctionData({
-      abi: spendPolicyAccountAbi,
-      functionName: 'execute',
-      args: [token, to, amount],
+    return this.#sendRaw({
+      to: this.#address,
+      data: buildSpendCalldata(token, to, amount, this.#tag),
+      feeCurrency: pickFeeAdapter(feeBalances),
     })
+  }
 
+  /**
+   * One place where a transaction is handed to the wallet, so attribution and
+   * fee currency cannot be bypassed by a new method forgetting to apply them.
+   */
+  async #sendRaw(tx: { to: `0x${string}`; data: `0x${string}`; feeCurrency: `0x${string}` }) {
     return this.#wallet.sendTransaction({
       account: this.#account,
       chain: celo,
+      to: tx.to,
+      data: tx.data,
+      feeCurrency: tx.feeCurrency,
+    })
+  }
+
+  /** How much of `token` the operator EOA itself holds. */
+  async operatorBalance(token: `0x${string}`): Promise<bigint> {
+    return this.#pub.readContract({
+      address: token,
+      abi: [{
+        name: 'balanceOf', type: 'function', stateMutability: 'view',
+        inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }],
+      }] as const,
+      functionName: 'balanceOf',
+      args: [this.#account.address],
+    })
+  }
+
+  /** Simulates a top-up so a rejected draw costs no gas. */
+  async preCheckTopUp(token: `0x${string}`, amount: bigint): Promise<PreCheckResult> {
+    try {
+      await this.#pub.simulateContract({
+        address: this.#address,
+        abi: spendPolicyAccountAbi,
+        functionName: 'topUpOperator',
+        args: [token, amount],
+        account: this.#account,
+      })
+      return { ok: true }
+    } catch (err) {
+      const data = (err as { cause?: { data?: { errorName?: string; args?: readonly unknown[] } } })
+        .cause?.data
+      return describePreCheckFailure({
+        name: data?.errorName ?? 'unknown',
+        args: data?.args ?? [],
+      })
+    }
+  }
+
+  /**
+   * Moves funds from the contract to the operator EOA under policy.
+   *
+   * This is Path B, and it is the only way x402 money can leave the contract:
+   * `_consume` applies the per-tx and daily caps here, at the moment of the
+   * draw. The payee allowlist deliberately does not apply — once funds sit in
+   * the operator's own wallet the contract cannot police where they go, which
+   * is exactly why the daily cap is the guarantee being made.
+   */
+  async topUp(
+    token: `0x${string}`,
+    amount: bigint,
+    feeBalances: ReadonlyMap<`0x${string}`, bigint>,
+  ): Promise<`0x${string}`> {
+    return this.#sendRaw({
       to: this.#address,
-      data: withAttribution(calldata, this.#tag),
+      data: buildTopUpCalldata(token, amount, this.#tag),
       feeCurrency: pickFeeAdapter(feeBalances),
     })
   }
