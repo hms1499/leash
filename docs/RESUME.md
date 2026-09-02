@@ -44,20 +44,20 @@ secret guard.
 
 **Not started: Tasks 10, 14.**
 
-Task 3 closed 2026-09-02: first tagged mainnet tx `0xb91ba357…fca4`, verifyTx
-returns the registered tag. **T0.1 is still open despite Task 2 being marked
-done** — `spikes/README.md` has always said "send-test PENDING". Gas has never
-been paid in a stablecoin from a zero-CELO wallet, because no wallet holds one.
-Re-running `spikes/attribution.ts` once the operator holds USDC closes it.
+Task 3 and T0.1 both closed 2026-09-02. The operator EOA holds **exactly zero
+CELO** and 2.55 USDC, and has sent tagged mainnet transactions paying gas in
+USDC — the demo's closing beat now exists on chain
+(`0x1d10d9cb…6595`). Owner holds 3.947 CELO.
+
+**Watch out:** forno rejects fee-currency sends non-deterministically. Anything
+that sends with `feeCurrency` must retry; see T0.1 in `spikes/README.md`.
 
 ## What is blocked, and on what
 
 | Task | Needs |
 |---|---|
-| **T0.1** stablecoin gas proof | USDC (or any whitelisted fee currency) in the operator EOA |
 | **10** Deploy to mainnet | Celoscan API key · **and the ERC-1271 decision below** (owner EOA funded: 3.82 CELO) |
 | **14** Attribution gate test | Task 10 |
-| demo's "zero CELO" beat | USDC in the operator, to sweep its 0.13 CELO via `feeCurrency` |
 
 Attribution is **not retroactive** for the data-suffix tag: any transaction
 mined before 2026-09-02T03:22Z can never gain it. x402 settlements attributed
