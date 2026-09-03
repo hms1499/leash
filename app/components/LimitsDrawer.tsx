@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 import { formatAmount, validateLimits } from '../lib/policy.js'
+import { pollUntil } from '../lib/confirm.js'
 
 const SET_POLICY_ABI = [
   { type: 'function', name: 'setPolicy', stateMutability: 'nonpayable',
@@ -61,14 +62,12 @@ export default function LimitsDrawer({
         address: account, abi: SET_POLICY_ABI, functionName: 'setPolicy',
         args: [token, nextPerTx, nextDaily], chainId: REQUIRED_CHAIN_ID,
       })
-      let confirmed = false
-      for (let i = 0; i < 20; i++) {
+      const confirmed = await pollUntil(async () => {
         const l = await publicClient.readContract({
           address: account, abi: SET_POLICY_ABI, functionName: 'limits', args: [token],
         }) as readonly [bigint, bigint, bigint, bigint]
-        if (l[0] === nextPerTx && l[1] === nextDaily) { confirmed = true; break }
-        await new Promise((r) => setTimeout(r, 3000))
-      }
+        return l[0] === nextPerTx && l[1] === nextDaily
+      })
       onSaved()
       // Closing the drawer is how this UI says "saved". Only say it if the
       // chain actually agreed; otherwise stay open and explain.

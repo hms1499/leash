@@ -9,6 +9,7 @@ import McpHandoff from '../components/McpHandoff'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 import { isValidAddress } from '../lib/address.js'
 import { parseAmount } from '../lib/policy.js'
+import { pollUntil } from '../lib/confirm.js'
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const USDC_FEE_ADAPTER = '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B' as const
@@ -159,14 +160,11 @@ export default function Onboard() {
       })
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.
-      let confirmed = false
-      for (let i = 0; i < 20; i++) {
-        const enabled = await publicClient.readContract({
+      const confirmed = await pollUntil(async () => Boolean(
+        await publicClient.readContract({
           address: account!, abi: SETUP_ABI, functionName: 'operators', args: [agent],
-        })
-        if (enabled) { confirmed = true; break }
-        await new Promise((r) => setTimeout(r, 3000))
-      }
+        }),
+      ))
       setAgentNote(confirmed
         ? 'Agent added.'
         : 'Sent, but the chain has not confirmed it yet. Reload in a moment.')
@@ -196,14 +194,12 @@ export default function Onboard() {
         address: account!, abi: SETUP_ABI, functionName: 'setPolicy',
         args: [TOKEN, nextPerTx, nextDaily], chainId: REQUIRED_CHAIN_ID,
       })
-      let confirmed = false
-      for (let i = 0; i < 20; i++) {
+      const confirmed = await pollUntil(async () => {
         const l = await publicClient.readContract({
           address: account!, abi: SETUP_ABI, functionName: 'limits', args: [TOKEN],
         }) as readonly [bigint, bigint, bigint, bigint]
-        if (l[0] === nextPerTx && l[1] === nextDaily) { confirmed = true; break }
-        await new Promise((r) => setTimeout(r, 3000))
-      }
+        return l[0] === nextPerTx && l[1] === nextDaily
+      })
       setLimitsNote(confirmed
         ? 'Limits saved.'
         : 'Sent, but the chain has not confirmed it yet. Reload in a moment.')

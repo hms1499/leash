@@ -6,6 +6,7 @@ import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 import { formatAmount, parseAmount } from '../lib/policy.js'
 import { transactionsLeft } from '../lib/gasFloat.js'
 import { truncateAddress } from '../lib/address.js'
+import { pollUntil } from '../lib/confirm.js'
 
 const ERC20_ABI = [
   { type: 'function', name: 'balanceOf', stateMutability: 'view',
@@ -105,23 +106,15 @@ export default function AgentPanel({
       })
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.
-      let confirmed = false
-      for (let i = 0; i < 20; i++) {
-        try {
-          const bal = await publicClient.readContract({
-            address: token, abi: ERC20_ABI, functionName: 'balanceOf', args: [operator],
-          }) as bigint
-          if (bal > before) {
-            lastSeenRef.current = bal
-            setFloat(bal)
-            confirmed = true
-            break
-          }
-        } catch {
-          // One transient RPC failure should not end the poll early.
-        }
-        await new Promise((r) => setTimeout(r, 3000))
-      }
+      const confirmed = await pollUntil(async () => {
+        const bal = await publicClient.readContract({
+          address: token, abi: ERC20_ABI, functionName: 'balanceOf', args: [operator],
+        }) as bigint
+        if (bal <= before) return false
+        lastSeenRef.current = bal
+        setFloat(bal)
+        return true
+      })
       // Never claim the confirmation we did not observe — but a refetch is
       // not a success claim, so run it either way (StopButton.tsx's
       // convention): other account figures may have changed even though

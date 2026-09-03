@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
+import { pollUntil } from '../lib/confirm.js'
 
 const PAUSE_ABI = [
   { type: 'function', name: 'setPaused', stateMutability: 'nonpayable',
@@ -44,14 +45,12 @@ export default function StopButton({
       })
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.
-      let confirmed = false
-      for (let i = 0; i < 20; i++) {
+      const confirmed = await pollUntil(async () => {
         const now = await publicClient.readContract({
           address: account, abi: PAUSE_ABI, functionName: 'paused',
         })
-        if (now === next) { confirmed = true; break }
-        await new Promise((r) => setTimeout(r, 3000))
-      }
+        return now === next
+      })
       // Sixty seconds without the value changing means we stopped waiting,
       // not that it worked. Never report a success we did not observe.
       if (!confirmed) {
