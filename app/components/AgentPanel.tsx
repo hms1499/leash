@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useWriteContract } from 'wagmi'
 import { publicClient } from '../lib/chain.js'
 import { formatAmount, parseAmount } from '../lib/policy.js'
@@ -35,9 +35,19 @@ export default function AgentPanel({
   decimals: number; symbol: string; isOwner: boolean; onRefuelled: () => void
 }) {
   const [float, setFloat] = useState<bigint | null>(null)
+  // Set only when a read has actually failed, distinct from float===null on
+  // the very first render before any read has returned. Lets a persistently
+  // failing RPC say so instead of looking identical to "no operator
+  // configured" — the same silent-vanish shape this branch already fixed
+  // once for the feed (commit 21c9fcc).
+  const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const { writeContractAsync } = useWriteContract()
+  // Tracks the last successfully observed balance across renders, independent
+  // of the `float` state's stale-closure risk inside the 8s interval — used
+  // only to notice a rise and clear a stale timeout note.
+  const lastSeenRef = useRef<bigint | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -46,10 +56,22 @@ export default function AgentPanel({
         const bal = await publicClient.readContract({
           address: token, abi: ERC20_ABI, functionName: 'balanceOf', args: [operator],
         }) as bigint
-        if (!cancelled) setFloat(bal)
+        if (cancelled) return
+        // The float grew since we last looked — most likely a refuel that
+        // landed after this panel gave up waiting on it in refuel()'s own
+        // poll. The stale "not confirmed yet" note no longer describes
+        // reality.
+        if (lastSeenRef.current !== null && bal > lastSeenRef.current) {
+          setNote(null)
+        }
+        lastSeenRef.current = bal
+        setFloat(bal)
+        setFailed(false)
       } catch {
         // A single transient RPC failure should not blank the panel; the
-        // next tick tries again.
+        // next tick tries again. But if it never recovers, we say so below
+        // rather than rendering nothing.
+        if (!cancelled) setFailed(true)
       }
     }
     void read()
@@ -57,7 +79,15 @@ export default function AgentPanel({
     return () => { cancelled = true; clearInterval(t) }
   }, [operator, token])
 
-  if (float === null) return null
+  if (float === null) {
+    return failed ? (
+      <div className="panel p-4">
+        <p className="text-sm" style={{ color: 'var(--bad)' }}>
+          Could not read the agent wallet balance.
+        </p>
+      </div>
+    ) : null
+  }
   const left = transactionsLeft(float)
   const low = left <= 3
 
@@ -79,18 +109,25 @@ export default function AgentPanel({
           const bal = await publicClient.readContract({
             address: token, abi: ERC20_ABI, functionName: 'balanceOf', args: [operator],
           }) as bigint
-          if (bal > before) { setFloat(bal); confirmed = true; break }
+          if (bal > before) {
+            lastSeenRef.current = bal
+            setFloat(bal)
+            confirmed = true
+            break
+          }
         } catch {
           // One transient RPC failure should not end the poll early.
         }
         await new Promise((r) => setTimeout(r, 3000))
       }
-      // Never report a success we did not observe.
-      if (confirmed) {
-        onRefuelled()
-      } else {
+      // Never claim the confirmation we did not observe — but a refetch is
+      // not a success claim, so run it either way (StopButton.tsx's
+      // convention): other account figures may have changed even though
+      // this panel's own float will self-heal from the background poll.
+      if (!confirmed) {
         setNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }
+      onRefuelled()
     } catch {
       // Almost always the owner rejecting in their wallet. Silence here reads
       // as a broken button.

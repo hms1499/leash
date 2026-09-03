@@ -12,6 +12,7 @@ import { useAccountState } from '../../../lib/useAccountState.js'
 import { useFeed } from '../../../lib/useFeed.js'
 import { isValidAddress, truncateAddress } from '../../../lib/address.js'
 import { canEdit } from '../../../lib/policy.js'
+import { publicClient } from '../../../lib/chain.js'
 
 // USDC on Celo mainnet. The token the policy is denominated in; the UI treats
 // stablecoins as 1:1 with the dollar, and that assumption lives here in the UI
@@ -19,6 +20,11 @@ import { canEdit } from '../../../lib/policy.js'
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const DECIMALS = 6
 const SYMBOL = 'USDC'
+
+const OPERATOR_ABI = [
+  { type: 'function', name: 'operators', stateMutability: 'view',
+    inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'bool' }] },
+] as const
 
 export default function DashboardRoute({ params }: { params: Promise<{ address: string }> }) {
   const { address } = use(params)
@@ -42,14 +48,44 @@ function Dashboard({ address }: { address: `0x${string}` }) {
   // Read inside an effect, never during render: this page is server-rendered
   // before it hydrates, and touching window.location in the render body
   // produces a hydration mismatch.
+  //
+  // Neither source is trusted on its own. A feed row only proves an address
+  // *was* an operator when that log was emitted — an owner who has since
+  // revoked it would still see a refuel button for a wallet the contract no
+  // longer trusts. A `?operator=` query parameter is worse: it is
+  // attacker-controllable, so an unverified value here would let a phishing
+  // link show "Send 0.05 USDC for gas" to a wallet the owner never approved.
+  // Both sources are therefore only candidates; `operators()` on the account
+  // itself is what actually gates the panel.
   const [operator, setOperator] = useState<string | null>(null)
+  const [operatorCheckFailed, setOperatorCheckFailed] = useState(false)
   useEffect(() => {
-    const fromFeed = feed.rows.find((r) => r.kind === 'spent' || r.kind === 'toppedUp')
-    setOperator(
-      fromFeed?.operator
-        ?? new URLSearchParams(window.location.search).get('operator'),
-    )
-  }, [feed.rows])
+    let cancelled = false
+    async function resolve() {
+      const fromFeed = feed.rows.find((r) => r.kind === 'spent' || r.kind === 'toppedUp')?.operator
+      const fromQuery = new URLSearchParams(window.location.search).get('operator')
+      const candidate = fromFeed ?? fromQuery
+      if (!candidate || !isValidAddress(candidate)) {
+        if (!cancelled) { setOperator(null); setOperatorCheckFailed(false) }
+        return
+      }
+      try {
+        const isOperator = await publicClient.readContract({
+          address, abi: OPERATOR_ABI, functionName: 'operators', args: [candidate],
+        }) as boolean
+        if (cancelled) return
+        setOperator(isOperator ? candidate : null)
+        setOperatorCheckFailed(false)
+      } catch {
+        // Fail closed: a failed check must never render the panel as if it
+        // had verified the address, since that is exactly the phishing shape
+        // this check exists to prevent.
+        if (!cancelled) { setOperator(null); setOperatorCheckFailed(true) }
+      }
+    }
+    void resolve()
+    return () => { cancelled = true }
+  }, [feed.rows, address])
 
   return (
     <main>
@@ -108,6 +144,11 @@ function Dashboard({ address }: { address: `0x${string}` }) {
             decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
             onRefuelled={state.refetch}
           />
+        )}
+        {!operator && operatorCheckFailed && (
+          <p className="label mt-2" style={{ color: 'var(--bad)' }}>
+            Could not verify the agent wallet. Reload to try again.
+          </p>
         )}
         <Feed
           rows={feed.rows}

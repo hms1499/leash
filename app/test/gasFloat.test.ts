@@ -19,4 +19,15 @@ describe('transactionsLeft', () => {
   it('is zero for an empty wallet', () => {
     expect(transactionsLeft(0n)).toBe(0)
   })
+
+  // These two pin COST_PER_TX exactly, given RESERVE = 4_600n: without them
+  // the cost could be anything from 2_539 to 3_807 and every test above would
+  // still pass.
+  it('has not crossed the second cost step just below the boundary', () => {
+    expect(transactionsLeft(7_399n)).toBe(1)
+  })
+
+  it('crosses the second cost step exactly at the boundary', () => {
+    expect(transactionsLeft(7_400n)).toBe(2)
+  })
 })
