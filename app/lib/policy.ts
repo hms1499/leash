@@ -58,3 +58,61 @@ export function canEdit(
   if (!owner || !connected) return false
   return owner.toLowerCase() === connected.toLowerCase()
 }
+
+export type LimitsValidation =
+  | { ok: true; perTx: bigint; daily: bigint }
+  | { ok: false; error: string }
+
+/**
+ * Validates a limits edit before it becomes a transaction.
+ *
+ * Shared by the onboarding wizard and the dashboard drawer so one operation
+ * does not have two sets of rules. Three of these checks exist because the
+ * chain punishes the mistake rather than rejecting it:
+ *
+ * - `daily == 0` is the contract's TokenNotConfigured sentinel
+ *   (SpendPolicyAccount.sol:85). It does not mean "no daily limit"; it makes
+ *   every operator path revert. An owner who wants to halt spending uses the
+ *   Stop button, which is reversible and says what it did.
+ * - `perTx == 0` refuses every non-zero spend (`amount > l.perTx`), the same
+ *   dead end by another route.
+ * - A no-op save would satisfy the caller's confirmation poll on its first
+ *   iteration, so the UI would report a landed transaction that was never
+ *   sent. Refusing it keeps "confirmed" meaning observed.
+ */
+export function validateLimits(
+  perTxInput: string,
+  dailyInput: string,
+  decimals: number,
+  current?: { perTx: bigint; daily: bigint },
+): LimitsValidation {
+  let perTx: bigint
+  let daily: bigint
+  try {
+    perTx = parseAmount(perTxInput, decimals)
+    daily = parseAmount(dailyInput, decimals)
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+
+  if (daily === 0n) {
+    return {
+      ok: false,
+      error: 'A daily cap of 0 does not remove the limit — it disables the account, and every spend would be refused until you set one again. Use Stop to halt the agent instead.',
+    }
+  }
+  if (perTx === 0n) {
+    return {
+      ok: false,
+      error: 'A per-transaction cap of 0 would refuse every spend. Use Stop to halt the agent instead.',
+    }
+  }
+  if (perTx > daily) {
+    return { ok: false, error: 'The per-transaction cap cannot exceed the daily cap.' }
+  }
+  if (current && perTx === current.perTx && daily === current.daily) {
+    return { ok: false, error: 'Those are already the limits on chain — nothing to save.' }
+  }
+
+  return { ok: true, perTx, daily }
+}

@@ -16,9 +16,10 @@ const PAUSE_ABI = [
  * a live demo, and this is a real transaction either way.
  */
 export default function StopButton({
-  account, paused, isOwner, onChanged,
+  account, paused, isOwner, loading, onChanged,
 }: {
-  account: `0x${string}`; paused: boolean; isOwner: boolean; onChanged: () => void
+  account: `0x${string}`; paused: boolean; isOwner: boolean; loading: boolean
+  onChanged: () => void
 }) {
   const [arming, setArming] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -26,7 +27,9 @@ export default function StopButton({
   const { writeContractAsync } = useWriteContract()
 
   if (!isOwner) {
-    return <span className="label">{paused ? 'Paused' : 'Active'}</span>
+    // `paused` defaults to false before the first read; printing "Active"
+    // then states something nobody has checked.
+    return <span className="label">{loading ? '—' : paused ? 'Paused' : 'Active'}</span>
   }
 
   async function send(next: boolean) {

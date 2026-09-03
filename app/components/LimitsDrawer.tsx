@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useWriteContract } from 'wagmi'
 import { publicClient } from '../lib/chain.js'
-import { formatAmount, parseAmount } from '../lib/policy.js'
+import { formatAmount, validateLimits } from '../lib/policy.js'
 
 const SET_POLICY_ABI = [
   { type: 'function', name: 'setPolicy', stateMutability: 'nonpayable',
@@ -20,33 +20,39 @@ const SET_POLICY_ABI = [
 ] as const
 
 export default function LimitsDrawer({
-  account, token, decimals, symbol, perTx, daily, isOwner, onSaved,
+  account, token, decimals, symbol, perTx, daily, isOwner, loading, onSaved,
 }: {
   account: `0x${string}`; token: `0x${string}`; decimals: number; symbol: string
-  perTx: bigint; daily: bigint; isOwner: boolean; onSaved: () => void
+  perTx: bigint; daily: bigint; isOwner: boolean; loading: boolean
+  onSaved: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const [perTxInput, setPerTx] = useState(formatAmount(perTx, decimals, 2))
-  const [dailyInput, setDaily] = useState(formatAmount(daily, decimals, 2))
+  const [perTxInput, setPerTx] = useState('')
+  const [dailyInput, setDaily] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Whether the owner has typed. Until they have, these inputs mirror the
+  // chain; after they have, their edit is theirs to keep.
+  const [dirty, setDirty] = useState(false)
   const { writeContractAsync } = useWriteContract()
+
+  // The limits arrive one poll AFTER first render, so seeding these inputs
+  // from a useState initialiser froze them at the pre-read 0n/0n — showing
+  // 0.00 next to a meter reading 1.000000, and saving a daily cap of 0, which
+  // is the contract's "unconfigured" sentinel and refuses every later spend.
+  // Props are the source of truth here; state only holds an in-progress edit.
+  useEffect(() => {
+    if (dirty) return
+    setPerTx(formatAmount(perTx, decimals, 2))
+    setDaily(formatAmount(daily, decimals, 2))
+  }, [perTx, daily, decimals, dirty])
 
   async function save() {
     setError(null)
-    let nextPerTx: bigint
-    let nextDaily: bigint
-    try {
-      nextPerTx = parseAmount(perTxInput, decimals)
-      nextDaily = parseAmount(dailyInput, decimals)
-    } catch (e) {
-      setError((e as Error).message)
-      return
-    }
-    if (nextPerTx > nextDaily) {
-      setError('The per-transaction cap cannot exceed the daily cap.')
-      return
-    }
+    const parsed = validateLimits(perTxInput, dailyInput, decimals, { perTx, daily })
+    if (!parsed.ok) { setError(parsed.error); return }
+    const { perTx: nextPerTx, daily: nextDaily } = parsed
+
     setBusy(true)
     try {
       await writeContractAsync({
@@ -64,8 +70,13 @@ export default function LimitsDrawer({
       onSaved()
       // Closing the drawer is how this UI says "saved". Only say it if the
       // chain actually agreed; otherwise stay open and explain.
-      if (confirmed) setOpen(false)
-      else setError('Sent, but the chain has not confirmed it yet. Reload in a moment.')
+      if (confirmed) {
+        // The edit has landed, so the inputs go back to mirroring the chain.
+        setDirty(false)
+        setOpen(false)
+      } else {
+        setError('Sent, but the chain has not confirmed it yet. Reload in a moment.')
+      }
     } catch (e) {
       setError((e as Error).message || 'The transaction was not sent.')
     } finally {
@@ -78,29 +89,37 @@ export default function LimitsDrawer({
       <button className="btn-ghost" onClick={() => setOpen(!open)}>Limits</button>
       {open && (
         <div className="panel p-4 mt-3">
-          <p className="label">Per transaction ({symbol})</p>
-          <input
-            className="num w-full mt-1 mb-3 p-2"
-            style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
-            value={perTxInput}
-            onChange={(e) => setPerTx(e.target.value)}
-            disabled={!isOwner || busy}
-          />
-          <p className="label">Per day ({symbol})</p>
-          <input
-            className="num w-full mt-1 mb-3 p-2"
-            style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
-            value={dailyInput}
-            onChange={(e) => setDaily(e.target.value)}
-            disabled={!isOwner || busy}
-          />
-          {error && <p className="text-sm mb-2" style={{ color: 'var(--bad)' }}>{error}</p>}
-          {isOwner ? (
-            <button className="btn-primary" disabled={busy} onClick={() => void save()}>
-              {busy ? 'Saving…' : 'Save'}
-            </button>
+          {loading ? (
+            // Never print 0.00 as if it were read. An owner cannot tell a
+            // placeholder from a policy that refuses everything.
+            <p className="label">Reading the current limits…</p>
           ) : (
-            <p className="label">Only the owner can change these limits.</p>
+            <>
+              <p className="label">Per transaction ({symbol})</p>
+              <input
+                className="num w-full mt-1 mb-3 p-2"
+                style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
+                value={perTxInput}
+                onChange={(e) => { setDirty(true); setPerTx(e.target.value) }}
+                disabled={!isOwner || busy}
+              />
+              <p className="label">Per day ({symbol})</p>
+              <input
+                className="num w-full mt-1 mb-3 p-2"
+                style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
+                value={dailyInput}
+                onChange={(e) => { setDirty(true); setDaily(e.target.value) }}
+                disabled={!isOwner || busy}
+              />
+              {error && <p className="text-sm mb-2" style={{ color: 'var(--bad)' }}>{error}</p>}
+              {isOwner ? (
+                <button className="btn-primary" disabled={busy} onClick={() => void save()}>
+                  {busy ? 'Saving…' : 'Save'}
+                </button>
+              ) : (
+                <p className="label">Only the owner can change these limits.</p>
+              )}
+            </>
           )}
         </div>
       )}

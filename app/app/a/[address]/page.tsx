@@ -112,6 +112,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
             account={address}
             paused={state.paused}
             isOwner={isOwner}
+            loading={state.isLoading}
             onChanged={state.refetch}
           />
           <ConnectButton />
@@ -125,6 +126,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         decimals={DECIMALS}
         symbol={SYMBOL}
         paused={state.paused}
+        loading={state.isLoading}
       />
 
       <div className="p-4">
@@ -136,6 +138,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           perTx={state.perTx}
           daily={state.daily}
           isOwner={isOwner}
+          loading={state.isLoading}
           onSaved={state.refetch}
         />
         {operator && isValidAddress(operator) && (
@@ -155,7 +158,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           decimals={DECIMALS}
           symbol={SYMBOL}
           isLoading={feed.isLoading}
-          hasPolicy={state.daily > 0n}
+          hasPolicy={state.isLoading ? null : state.daily > 0n}
           error={feed.error}
         />
       </div>

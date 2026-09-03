@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   spentToday, percentUsed, refusalThreshold, formatAmount, parseAmount, canEdit,
+  validateLimits,
 } from '../lib/policy.js'
 
 const USDC = 6
@@ -109,5 +110,54 @@ describe('canEdit', () => {
 
   it('refuses when the owner has not loaded yet', () => {
     expect(canEdit(null, '0xabc0000000000000000000000000000000000001')).toBe(false)
+  })
+})
+
+describe('validateLimits', () => {
+  const current = { perTx: 500_000n, daily: 1_000_000n }
+
+  it('accepts a well-formed change', () => {
+    const r = validateLimits('0.25', '2.00', USDC, current)
+    expect(r).toEqual({ ok: true, perTx: 250_000n, daily: 2_000_000n })
+  })
+
+  it('rejects a per-transaction cap above the daily cap', () => {
+    const r = validateLimits('5.00', '1.00', USDC, current)
+    expect(r.ok).toBe(false)
+  })
+
+  // daily == 0 is the contract's TokenNotConfigured sentinel
+  // (SpendPolicyAccount.sol:85). Saving it does not "set no limit" — it
+  // makes every operator path revert, which is indistinguishable from a
+  // broken agent. The Stop button is how an owner halts spending.
+  it('refuses a daily cap of zero, which would disable the account', () => {
+    const r = validateLimits('0.50', '0', USDC, current)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toMatch(/Stop/)
+  })
+
+  it('refuses a per-transaction cap of zero, which refuses every spend', () => {
+    const r = validateLimits('0', '1.00', USDC, current)
+    expect(r.ok).toBe(false)
+  })
+
+  // Without this, saving the values already on chain "confirms" on the first
+  // poll iteration without any transaction having landed — the UI would
+  // report a success it never observed.
+  it('refuses a save that would change nothing', () => {
+    const r = validateLimits('0.50', '1.00', USDC, current)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toMatch(/already/)
+  })
+
+  it('reports the parse error for a non-numeric amount', () => {
+    const r = validateLimits('half a dollar', '1.00', USDC, current)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toMatch(/positive decimal/)
+  })
+
+  it('validates without a current value, for an account with no policy yet', () => {
+    const r = validateLimits('0.50', '5.00', USDC)
+    expect(r).toEqual({ ok: true, perTx: 500_000n, daily: 5_000_000n })
   })
 })

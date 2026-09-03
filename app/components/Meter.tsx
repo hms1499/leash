@@ -10,6 +10,8 @@ type Props = {
   decimals: number
   symbol: string
   paused: boolean
+  /** True until the first read returns. Zeroes are not observations. */
+  loading: boolean
 }
 
 /**
@@ -20,7 +22,7 @@ type Props = {
  * stays correct when log scanning fails. That is the whole reason this shape
  * was chosen over the impasto variant.
  */
-export default function Meter({ daily, remaining, perTx, decimals, symbol, paused }: Props) {
+export default function Meter({ daily, remaining, perTx, decimals, symbol, paused, loading }: Props) {
   const id = useId().replace(/:/g, '')
   const used = percentUsed(daily, remaining)
   const atCap = daily > 0n && remaining === 0n
@@ -40,14 +42,19 @@ export default function Meter({ daily, remaining, perTx, decimals, symbol, pause
     return () => document.removeEventListener('visibilitychange', onChange)
   }, [])
 
-  const animate = !atCap && visible && period > 0
+  const animate = !loading && !paused && !atCap && visible && period > 0
 
   return (
     <div className="px-4 py-3" style={{ background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
       <div className="flex justify-between items-baseline">
         <span className="label">Remaining today</span>
-        <span className="num text-sm" style={{ color: atCap ? 'var(--bad)' : 'var(--text)' }}>
-          {formatAmount(remaining, decimals)} / {formatAmount(daily, decimals)} {symbol}
+        <span className="num text-sm" style={{ color: atCap && !loading ? 'var(--bad)' : 'var(--text)' }}>
+          {/* Before the first read there is nothing to state. 0.000000 here
+              is indistinguishable from a spent allowance, and that is the
+              first thing a visitor sees. */}
+          {loading
+            ? `— / — ${symbol}`
+            : `${formatAmount(remaining, decimals)} / ${formatAmount(daily, decimals)} ${symbol}`}
         </span>
       </div>
 
@@ -57,7 +64,9 @@ export default function Meter({ daily, remaining, perTx, decimals, symbol, pause
         viewBox="0 0 600 14"
         preserveAspectRatio="none"
         role="img"
-        aria-label={`${used.toFixed(1)} percent of the daily allowance used`}
+        aria-label={loading
+          ? 'Reading the daily allowance'
+          : `${used.toFixed(1)} percent of the daily allowance used`}
       >
         <defs>
           <filter id={`t${id}`}>
@@ -94,7 +103,7 @@ export default function Meter({ daily, remaining, perTx, decimals, symbol, pause
         </defs>
 
         <rect width="600" height="14" fill="var(--well)" />
-        {!paused && (
+        {!paused && !loading && (
           <rect
             width={Math.max(0, Math.min(597, (used / 100) * 597))}
             height="14"
@@ -105,8 +114,10 @@ export default function Meter({ daily, remaining, perTx, decimals, symbol, pause
         <rect x={atCap ? 594 : 597} width={atCap ? 6 : 3} height="14" fill="var(--bad)" />
       </svg>
 
-      <p className="label mt-2" style={{ color: atCap ? 'var(--bad)' : 'var(--dim)' }}>
-        {paused ? (
+      <p className="label mt-2" style={{ color: atCap && !loading ? 'var(--bad)' : 'var(--dim)' }}>
+        {loading ? (
+          'Reading the chain…'
+        ) : paused ? (
           'Paused by the owner — every spend is refused'
         ) : threshold === 0n ? (
           'The allowance is spent — resets at UTC midnight'

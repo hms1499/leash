@@ -7,8 +7,15 @@ export default function Feed({
   rows, decimals, symbol, isLoading, hasPolicy, error,
 }: {
   rows: FeedRow[]; decimals: number; symbol: string
-  isLoading: boolean; hasPolicy: boolean; error: Error | null
+  // null while the account read is still in flight: an unread policy is not
+  // an absent one, and saying "refuses every spend" about an account nobody
+  // has looked at yet is a claim, not a reading.
+  isLoading: boolean; hasPolicy: boolean | null; error: Error | null
 }) {
+  if (hasPolicy === null) {
+    return <div className="panel p-4"><p className="label">Reading the chain…</p></div>
+  }
+
   // A freshly deployed account has no policy, and every operator path reverts
   // TokenNotConfigured until the owner sets one. Saying so beats an empty list.
   if (!hasPolicy) {
