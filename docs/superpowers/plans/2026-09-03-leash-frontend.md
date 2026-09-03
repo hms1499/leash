@@ -1245,7 +1245,7 @@ export function describeLog(log: DecodedLog): FeedRow {
 cd app && pnpm vitest run test/feed.test.ts
 ```
 
-Expected: 5 passed.
+Expected: 4 passed.
 
 - [ ] **Step 5: Write the account-state hook**
 
@@ -1337,7 +1337,6 @@ Create `app/lib/useFeed.ts`:
 'use client'
 
 import { useEffect, useState } from 'react'
-import { spendPolicyAccountAbi } from '@leash/sdk'
 import { publicClient } from './chain.js'
 import { describeLog, type FeedRow } from './feed.js'
 
@@ -1414,8 +1413,11 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
 
     void backfill()
 
+    // EVENT_ABI, not spendPolicyAccountAbi: the SDK's ABI carries functions
+    // and error definitions only — it has no `event` entries, so watching
+    // with it would silently never fire.
     const unwatch = publicClient.watchContractEvent({
-      address: account, abi: spendPolicyAccountAbi, poll: true, pollingInterval: 4000,
+      address: account, abi: EVENT_ABI, poll: true, pollingInterval: 4000,
       onLogs: (logs) => {
         setRows((prev) => [
           ...logs.map((l) => describeLog({
@@ -1514,7 +1516,9 @@ export default function Feed({
 }
 ```
 
-Create `app/app/a/[address]/page.tsx`:
+Create `app/app/a/[address]/page.tsx`. Note the split: the address guard has
+to happen **outside** the component that calls hooks, because a conditional
+`return` before a `useEffect` breaks the Rules of Hooks and React will throw.
 
 ```tsx
 'use client'
@@ -1534,13 +1538,15 @@ const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const DECIMALS = 6
 const SYMBOL = 'USDC'
 
-export default function Dashboard({ params }: { params: Promise<{ address: string }> }) {
+export default function DashboardRoute({ params }: { params: Promise<{ address: string }> }) {
   const { address } = use(params)
-
   if (!isValidAddress(address)) {
     return <main className="p-6"><p>That is not a Celo address.</p></main>
   }
+  return <Dashboard address={address} />
+}
 
+function Dashboard({ address }: { address: `0x${string}` }) {
   const state = useAccountState(address, TOKEN)
   const feed = useFeed(address)
 
@@ -1902,7 +1908,8 @@ import StopButton from '../../../components/StopButton'
 import { canEdit } from '../../../lib/policy.js'
 ```
 
-Inside the component, after `const feed = useFeed(address)`:
+Inside the inner `Dashboard` component (**not** `DashboardRoute` — hooks must
+stay behind the address guard), after `const feed = useFeed(address)`:
 
 ```tsx
   const { address: connected } = useAccount()
@@ -2059,7 +2066,7 @@ export function buildMcpJson(h: McpHandoff): string {
 cd app && pnpm vitest run test/mcpJson.test.ts
 ```
 
-Expected: 5 passed.
+Expected: 4 passed.
 
 - [ ] **Step 5: Build the handoff component**
 
@@ -2544,16 +2551,34 @@ export default function AgentPanel({
 
 - [ ] **Step 6: Wire it into the dashboard**
 
-`AgentPanel` needs the operator address, which the dashboard does not know. Read
-it from the most recent `Spent` or `ToppedUp` row — both carry `operator` — or
-accept it as a `?operator=0x…` query parameter when the feed is empty. In
-`app/app/a/[address]/page.tsx`, add above `<Feed …/>`:
+`AgentPanel` needs the operator address, which the dashboard does not know:
+the contract stores operators in a `mapping(address => bool)`, which cannot be
+enumerated. Read it from the most recent `Spent` or `ToppedUp` row — both carry
+`operator` — falling back to a `?operator=0x…` query parameter when the feed is
+empty.
+
+Read the query parameter inside a `useEffect`, never during render: this page is
+server-rendered before it hydrates, and touching `window.location` in the render
+body produces a hydration mismatch. In the inner `Dashboard` component of
+`app/app/a/[address]/page.tsx`:
 
 ```tsx
-  const operator = new URLSearchParams(
-    typeof window === 'undefined' ? '' : window.location.search,
-  ).get('operator')
+  const [operator, setOperator] = useState<string | null>(null)
+  useEffect(() => {
+    const fromFeed = feed.rows.find((r) => r.kind === 'spent' || r.kind === 'toppedUp')
+    setOperator(
+      fromFeed?.operator
+        ?? new URLSearchParams(window.location.search).get('operator'),
+    )
+  }, [feed.rows])
+```
 
+`FeedRow` does not carry `operator` yet, so add it in `app/lib/feed.ts` — an
+optional field set from `log.args.operator` for the `Spent` and `ToppedUp`
+cases, `undefined` otherwise — and extend `app/test/feed.test.ts` with one case
+asserting a `Spent` row exposes it. Then render, above `<Feed …/>`:
+
+```tsx
   {operator && isValidAddress(operator) && (
     <AgentPanel
       account={address} operator={operator} token={TOKEN}
@@ -2887,8 +2912,9 @@ cd /Users/vanhuy/Desktop/celo
 (cd examples && pnpm exec tsc --noEmit)
 ```
 
-Expected: contracts 32, sdk 42, mcp 12, app 32, every `tsc` exit 0, `next build`
-succeeding. **Paste the real output. Do not claim a suite passed without it.**
+Expected: contracts 32, sdk 42, mcp 12, app 40, every `tsc` exit 0, `next build`
+succeeding. (app 41 = address 6 + policy 22 + feed 5 + mcpJson 4 + gasFloat 4;
+feed gains its fifth test in Task 7. If Task 7 was cut, app is 36.) **Paste the real output. Do not claim a suite passed without it.**
 
 - [ ] **Step 8: Update the README and commit**
 
