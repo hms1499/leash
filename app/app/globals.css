@@ -1,3 +1,85 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Cafe Terrace at Night. Painterly in the chrome, clinical in the data:
+ * the ground and the borders carry the reference, the numerals never do.
+ * Spec 2026-09-03 section 3.
+ */
+:root {
+  --bg: #0E1F2E;
+  --panel: #162D40;
+  --well: #091822;
+  --line: rgba(214, 190, 140, 0.22);
+  --text: #F2E9D8;
+  --dim: #8FA6B5;
+  --amber: #F2B441;
+  /* Celo brand yellow, verified 2026-09-03 by fetching celo.org/brand-kit
+     directly and inspecting the page's own rendered CSS: #fcff52 appears as
+     a repeated CSS custom-property value (used as a background/foreground
+     token) in that first-party page's own stylesheet — not from memory or
+     a third-party aggregator. Source: https://celo.org/brand-kit */
+  --celo: #FCFF52;
+  --ok: #5FA98C;
+  --bad: #D9534F;
+  /* The meter's fill gradient: calm water shading up into --celo at the cap. */
+  --meter-start: #1B4A63;
+  --meter-mid: #3E86A0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Money is always mono and always tabular, so digits do not change width
+   as values update live. */
+.num {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.btn-primary {
+  background: var(--celo);
+  color: var(--bg);
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+}
+
+.btn-ghost {
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+}
+
+.btn-stop {
+  border: 1px solid var(--bad);
+  color: var(--bad);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+}
+
+/* The ground drifts; the data snaps. Someone who has asked the OS to stop
+   animating gets a still meter that is still correct. */
+@media (prefers-reduced-motion: reduce) {
+  .meter-turbulence animate { display: none; }
+}
