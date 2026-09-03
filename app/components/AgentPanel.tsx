@@ -105,7 +105,8 @@ export default function AgentPanel({
       <p className="label">Agent wallet</p>
       <p className="num text-sm mt-1">{truncateAddress(operator)}</p>
       <p className="text-sm mt-2" style={{ color: low ? 'var(--bad)' : 'var(--dim)' }}>
-        {formatAmount(float, decimals)} {symbol} — about {left}{' '}
+        <span className="num">{formatAmount(float, decimals)} {symbol}</span> — about{' '}
+        <span className="num">{left}</span>{' '}
         {left === 1 ? 'transaction' : 'transactions'} of gas left
         {left === 0 && '. The agent has stalled and cannot refuel itself.'}
       </p>
