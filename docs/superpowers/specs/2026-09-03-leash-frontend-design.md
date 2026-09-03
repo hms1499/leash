@@ -191,8 +191,17 @@ only resets it inside `_consume()`. Never read it directly. Derive
 `remainingToday()` does the day comparison itself.
 
 Live updates use `watchContractEvent` in polling mode at roughly 4s against
-Celo's ~5s blocks, re-reading `remainingToday()` on the same tick. No
+Celo's ~1s blocks (measured against forno on 2026-09-03: 10,000
+blocks spanned exactly 10,000 seconds — an earlier version of this document
+said ~5s, and the feed inherited the error, scanning 14.4 hours while telling
+the reader it had covered three days), re-reading `remainingToday()` on the same tick. No
 websockets — forno is not dependable there.
+
+A block count on Celo is therefore a second count, and any history window is
+`(window ÷ 5,000)` sequential `getLogs` calls, because forno refuses a wider
+range than 5,000 blocks — 10,000 returns "Invalid parameters were provided to
+the RPC method". A day of history costs 18 round trips. Whatever window is
+chosen, the empty state must name the span actually scanned.
 
 `fromBlock` for log scanning comes from the deploy receipt, stored alongside the
 address in `localStorage` and carried in the URL. For an address the app has
@@ -367,7 +376,13 @@ functions are extracted and unit-tested with Vitest instead:
   exhausted case where it is zero (§1.3)
 - `.mcp.json` generation, including that `OPERATOR_PK` is never populated
 - address validation and truncation
-- feed row formatting, including each custom error name
+- feed row formatting
+  - ~~including each custom error name~~ — **struck 2026-09-03, unbuildable
+    as specified.** A reverted transaction emits no logs, so `getLogs` can
+    never surface a custom error and `describeLog` correctly has no branch
+    for one. The wall is stated by the meter before money moves, which is
+    §1.3's whole point. Do not add a test for this; there is nothing to
+    format.
 
 **One Playwright smoke test.** It opens `/a/<a live account>` with no wallet and
 asserts the meter renders a number. That is precisely the judge's path, and it

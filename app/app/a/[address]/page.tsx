@@ -38,7 +38,38 @@ export default function DashboardRoute({ params }: { params: Promise<{ address: 
 
 function Dashboard({ address }: { address: `0x${string}` }) {
   const state = useAccountState(address, TOKEN)
-  const feed = useFeed(address)
+
+  // Spec §1.2: the deploy receipt's block is the correct floor for a log
+  // scan, and the wizard has been storing it under `leash.deployBlock` with
+  // nothing reading it. Only honoured when the stored account is the one
+  // being viewed — another account's deploy block would silently hide its
+  // history.
+  //
+  // The spec also says this can be "carried in the URL". It deliberately is
+  // not: a `?fromBlock=` a stranger controls could hide every spend from
+  // whoever opened the link, which is the same attacker-controllable-input
+  // shape the operator check already refuses to trust.
+  //
+  // Read in an effect, not during render: localStorage does not exist on the
+  // server and touching it in the render body is a hydration mismatch.
+  const [deployBlock, setDeployBlock] = useState<bigint | undefined>(undefined)
+  useEffect(() => {
+    try {
+      const savedAccount = localStorage.getItem('leash.account')
+      const savedBlock = localStorage.getItem('leash.deployBlock')
+      if (
+        savedAccount && savedBlock &&
+        savedAccount.toLowerCase() === address.toLowerCase() &&
+        /^\d+$/.test(savedBlock)
+      ) {
+        setDeployBlock(BigInt(savedBlock))
+      }
+    } catch {
+      // A browser with storage blocked simply scans the whole window.
+    }
+  }, [address])
+
+  const feed = useFeed(address, deployBlock)
   const { address: connected } = useAccount()
   const isOwner = canEdit(state.owner, connected)
 

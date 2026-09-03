@@ -66,7 +66,14 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
       try {
         const head = await publicClient.getBlockNumber()
         if (!cancelled) setHead({ block: head, seenAt: Date.now() })
-        const floor = fromBlock ?? (head > WINDOW_BLOCKS ? head - WINDOW_BLOCKS : 0n)
+        // A caller-supplied floor can only NARROW the walk. An account
+        // deployed an hour ago has no logs before its deploy block, so
+        // scanning there is wasted round trips; an account deployed last week
+        // must still not cost 52 of them.
+        const windowFloor = head > WINDOW_BLOCKS ? head - WINDOW_BLOCKS : 0n
+        const floor = fromBlock !== undefined && fromBlock > windowFloor
+          ? fromBlock
+          : windowFloor
         let to = head
         let collected = 0
 

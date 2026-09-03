@@ -21,7 +21,7 @@ export type AccountState = {
 }
 
 /**
- * The authoritative read. Polls every 4 seconds against Celo's ~5s blocks.
+ * The authoritative read. Polls every 4 seconds against Celo's ~1s blocks.
  *
  * `limits().spentToday` is deliberately discarded: it is stale after a UTC day
  * rolls over until the next spend. Callers derive spend from daily and

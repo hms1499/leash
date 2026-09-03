@@ -1299,7 +1299,7 @@ export type AccountState = {
 }
 
 /**
- * The authoritative read. Polls every 4 seconds against Celo's ~5s blocks.
+ * The authoritative read. Polls every 4 seconds against Celo's ~1s blocks.
  *
  * `limits().spentToday` is deliberately discarded: it is stale after a UTC day
  * rolls over until the next spend. Callers derive spend from daily and
@@ -1382,9 +1382,10 @@ const EVENT_ABI = [
     { name: 'paused', type: 'bool', indexed: false }] },
 ] as const
 
-// Celo blocks are ~5s, so three days is roughly this many. forno will not
-// serve that range in one call, hence the chunking below.
-const WINDOW_BLOCKS = 51_840n
+// Celo blocks are ~1s (measured 2026-09-03), so a block count is a second
+// count. forno refuses any getLogs range wider than 5,000 blocks, hence the
+// chunking below — and hence a window is (window / 5,000) round trips.
+const WINDOW_BLOCKS = 86_400n // 24 hours
 const CHUNK = 5_000n
 
 export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
