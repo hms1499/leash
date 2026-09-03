@@ -46,29 +46,40 @@ Two things fall out of this, and both are the reason for the choice:
 The rejected alternative was a wallet-gated SPA: a simpler permission model, but
 a dead link for anyone without a wallet and nothing shareable as evidence.
 
-### 1.3 Blocked spends come from a Celoscan proxy route, marked P1.
+### 1.3 There is no history of blocked spends, and the UI must not invent one.
 
-A spend past a cap **reverts**, and a reverted transaction emits no event.
-`eth_getLogs` can never see it. But "spends *and blocks*" is the second half of
-the product's claim, so the feed needs them.
+"Spends *and blocks*" is the second half of the product's claim, so the first
+draft of this spec gave the feed a Celoscan proxy route to fetch failed
+transactions. **That was built on a false premise.** Checking the code settled
+it: `mcp/src/tools/pay.ts` calls `leash.preCheck`, which is a `staticcall`. When
+the policy refuses, the tool returns a structured refusal and **no transaction is
+ever sent**. A blocked spend does not reach the chain, so there is nothing on
+Celoscan to fetch.
 
-The feed is therefore built in two layers:
+That is a property worth keeping, not a defect — a refused payment costs no gas,
+which is exactly what the `staticcall` pre-check was built to buy
+(`2026-09-01` §2.2, decision 4). But it means an on-chain "blocked history" does
+not exist. Only three things ever land as a revert: one deliberately allowed
+through as evidence, a rare race where state changed between the pre-check and
+the block, and a transaction sent out of band without the SDK.
 
-1. **Without the proxy** (P0): successful `Spent` / `ToppedUp` /
-   `PolicyChanged` / `PausedSet` from logs, plus the meter striking its frame.
-   This layer must stand on its own — it is the filmable fallback.
-2. **With the proxy** (P1): one Next.js route handler queries the Celoscan V2
-   endpoint for the account's failed transactions and decodes the revert reason,
-   so the feed can show `BLOCKED · DailyCapExceeded` as a real historical row.
+So the feed shows on-chain truth only — `Spent`, `ToppedUp`, `PolicyChanged`,
+`PausedSet` — and the wall is expressed **predictively instead of historically**:
+the meter carries a band reading *"next spend over 0.09 will be refused"*,
+derived from `remainingToday()` and `limits().perTx`. No logs, no proxy, correct
+at every moment, and it states the limit **before** money moves rather than
+after.
 
-This is a deliberate, single-file deviation from "no backend, no database"
-(`2026-09-01` §2.3). The intent of that rule was no indexer and no datastore;
-a stateless proxy holding `CELOSCAN_KEY` off the client keeps that intent. The
-key is a rate-limit token, not a fund-bearing secret, but it does not belong in
-a bundle.
+The blocked moment in the demo is therefore the meter striking its frame
+alongside the agent's own terminal printing the refusal JSON — which is more
+legible on video than a table row, and true.
 
-Client-side block scanning was considered and rejected: it needs per-block
-receipt fetches over the window, which forno will not serve at that rate.
+Two consequences: `2026-09-01` §2.3's "no backend, no database" survives intact
+with no deviation, and the 2h earmarked for the proxy is returned to the budget.
+
+Client-side block scanning was considered and rejected independently: it needs
+per-block receipt fetches over the window, which forno will not serve at that
+rate.
 
 ### 1.4 Visual direction: Van Gogh held, palette moved to *Café Terrace at Night*.
 
@@ -110,8 +121,8 @@ Two richer variants were built and rejected:
   that **depends on log scanning**, and logs are the best-effort source. The
   money shot cannot be the fragile component.
 
-The slim current reads only `remainingToday(token)` and `limits(token).daily`.
-It is correct even when the feed is empty.
+The slim current reads only `remainingToday(token)` and `limits(token)`. It is
+correct even when the feed is empty.
 
 ### 1.6 App copy is English.
 
@@ -160,7 +171,6 @@ Deployed on Vercel. Mobile-first, because MiniPay is a phone.
 |---|---|
 | `/` | Onboard: connect → deploy → add agent → set limits → fund → `.mcp.json` |
 | `/a/<address>` | Dashboard: meter, feed, policy editor, stop |
-| `/api/blocked` | P1. Stateless Celoscan proxy for failed transactions (§1.3) |
 
 `/` checks `localStorage` for a previously deployed account and offers to open
 it directly.
@@ -169,9 +179,8 @@ it directly.
 
 | Surface | Source | Character |
 |---|---|---|
-| Allowance meter | `remainingToday(token)`, `limits(token).daily` | **Authoritative.** Two view calls. No log dependency. |
+| Allowance meter + predictive band | `remainingToday(token)`, `limits(token)` | **Authoritative.** Two view calls. No log dependency. |
 | Spend feed | `getLogs` over a bounded block window | Best-effort |
-| Blocked rows (P1) | `/api/blocked` | Best-effort |
 
 The separation is the point: the component the demo rests on must not fail when
 log scanning does.
@@ -244,12 +253,17 @@ back in a drawer.
 network badge · `STOP`. When paused, the entire band turns `--bad` and the meter
 goes flat — a state change large enough to read on video.
 
-**Meter strip.** Pinned below the header. §1.5.
+**Meter strip.** Pinned below the header (§1.5), carrying the predictive band
+from §1.3: *"next spend over 0.09 USDC will be refused"*, the smaller of
+`remainingToday()` and `limits().perTx`. When the daily allowance is exhausted
+it reads *"the allowance is spent — resets at UTC midnight"*, matching the
+wording the MCP server already returns to the agent.
 
 **Feed.** Newest first. Each row: status dot, what happened, amount, relative
-time, and a link to the transaction. Blocked rows are `--bad` with the amount
-struck through and the custom error named (`PerTxCapExceeded`,
-`DailyCapExceeded`, `PayeeNotAllowed`).
+time, and a link to the transaction. Rows are on-chain events only — a refused
+spend never reaches the chain (§1.3), so the feed never shows one. A revert that
+*does* land is rendered `--bad` with the amount struck through and the custom
+error named (`PerTxCapExceeded`, `DailyCapExceeded`, `PayeeNotAllowed`).
 
 **`Limits` drawer.** Per-transaction cap, daily cap, save. Values entered in
 human units and converted using the token's decimals. Owner only; others see the
@@ -349,6 +363,8 @@ functions are extracted and unit-tested with Vitest instead:
 
 - decimal conversion both directions
 - `spent = daily − remaining`, and percentage used
+- the predictive band's threshold: `min(remainingToday, perTx)`, including the
+  exhausted case where it is zero (§1.3)
 - `.mcp.json` generation, including that `OPERATOR_PK` is never populated
 - address validation and truncation
 - feed row formatting, including each custom error name
@@ -371,16 +387,17 @@ asserted.
 | `T1` | App scaffold, workspace wiring, wagmi + MiniPay connector | 2h |
 | `T2` | Design system tokens (incl. verifying the Celo hex from the brand kit) + turbulence meter component | 4h |
 | `T3` | Dashboard read path: meter + feed — **first filmable moment** | 8h |
-| `T4` | Celoscan proxy for blocked spends — **P1** | 2h |
 | `T5` | Limits drawer + `STOP` / `RESUME` | 3h |
 | `T6` | Onboard wizard + `.mcp.json` handoff | 6h |
 | `T7` | Operator float warning + owner refuel — **P1** | 2h |
 | `T8` | `examples/` demo agent | 2h |
 | `T9` | Vercel deploy + smoke test | 2h |
 
-**33h against the 25h `2026-09-01` budgeted for W5 plus `T6.1`.** The overrun is
-stated rather than hidden. `T4` and `T7` are the 4h of declared P1 and are the
-cut line. Order respects the spec's constraint that `T5.0` precedes `T5.2` and
+**31h against the 25h `2026-09-01` budgeted for W5 plus `T6.1`.** The overrun is
+stated rather than hidden. `T7` is the only declared P1 and is the cut line;
+`T4` was dropped entirely when §1.3's premise turned out to be false, returning
+its 2h. Task IDs are left unrenumbered so they keep matching the discussion that
+produced them. Order respects the spec's constraint that `T5.0` precedes `T5.2` and
 `T5.2` precedes `T5.3`: after `T3` there is always something filmable, even if
 everything after it burns.
 
