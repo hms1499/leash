@@ -115,11 +115,15 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         <strong style={{ color: state.paused ? 'var(--text)' : 'var(--celo)', letterSpacing: '.26em' }}>
           LEASH
         </strong>
+        {/* .label's --dim on the paused band's --bad is about 1.6:1 and
+            disappears on video. The state change is meant to read at a glance,
+            and the address is what tells you *which* account stopped. */}
         <a
           className="label"
           href={`https://celoscan.io/address/${address}`}
           target="_blank"
           rel="noreferrer"
+          style={{ color: state.paused ? 'var(--text)' : undefined }}
         >
           {truncateAddress(address)}
         </a>

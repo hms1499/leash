@@ -329,7 +329,10 @@ export default function Onboard() {
             <p className="label">Step 5 — Fund it</p>
             <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
               Send USDC to <span className="num">{account}</span>. Send USDC, not
-              CELO — this contract refuses native value on purpose.
+              CELO: a native CELO send is rejected outright, on purpose. CELO
+              also has an ERC-20 interface, and a transfer through that does
+              arrive — but the policy is denominated in USDC, so the agent
+              could never spend it and only you could sweep it back.
             </p>
             <button className="btn-ghost mt-2" disabled={checkingFunds} onClick={() => void waitForFunding()}>
               {funded ? 'Funded' : checkingFunds ? 'Checking…' : 'Check balance'}
