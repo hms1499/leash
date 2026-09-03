@@ -60,6 +60,21 @@ function Dashboard({ address }: { address: `0x${string}` }) {
   // itself is what actually gates the panel.
   const [operator, setOperator] = useState<string | null>(null)
   const [operatorCheckFailed, setOperatorCheckFailed] = useState(false)
+
+  // The check below depends on feed.rows, so a single failed read used to
+  // stick until a new feed event arrived — while its neighbour, the balance
+  // poll, self-healed every 8 seconds. Given forno's documented flakiness and
+  // that the refuel button is the demo's rescue beat, a failure retries on
+  // the same cadence instead of waiting for a reload.
+  const [retry, setRetry] = useState(0)
+  useEffect(() => {
+    if (!operatorCheckFailed) return
+    const t = setInterval(() => {
+      if (!document.hidden) setRetry((n) => n + 1)
+    }, 8000)
+    return () => clearInterval(t)
+  }, [operatorCheckFailed])
+
   useEffect(() => {
     let cancelled = false
     async function resolve() {
@@ -86,7 +101,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     }
     void resolve()
     return () => { cancelled = true }
-  }, [feed.rows, address])
+  }, [feed.rows, address, retry])
 
   return (
     <main>
@@ -152,7 +167,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         )}
         {!operator && operatorCheckFailed && (
           <p className="label mt-2" style={{ color: 'var(--bad)' }}>
-            Could not verify the agent wallet. Reload to try again.
+            Could not verify the agent wallet — still trying.
           </p>
         )}
         <Feed

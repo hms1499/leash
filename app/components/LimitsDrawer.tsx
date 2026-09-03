@@ -78,8 +78,14 @@ export default function LimitsDrawer({
       } else {
         setError('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }
-    } catch (e) {
-      setError((e as Error).message || 'The transaction was not sent.')
+    } catch {
+      // Almost always the owner rejecting in their wallet. A raw viem error
+      // string does not belong in front of a stranger — it is a multi-line
+      // block with request details and a docs URL, and it would blow out this
+      // drawer's layout the first time anyone hits Reject. The wizard's
+      // setLimits() says exactly this for exactly this reason; two
+      // implementations of one operation should not behave differently.
+      setError('The transaction was not sent.')
     } finally {
       setBusy(false)
     }
