@@ -4,7 +4,16 @@ Leash gives an AI agent a wallet without trusting it. Funds sit in a contract,
 the agent can only ask that contract to spend, and the contract reverts past
 your limits. The limits are code on Celo, not a sentence in a prompt.
 
-This document gets your own agent spending through your own account.
+This document gets your own agent spending through your own account from the
+command line. If you would rather click: run the app (`pnpm --filter @leash/app
+dev`) and open `/`, where a wizard does every step below and hands you the
+finished `.mcp.json` at the end.
+
+**Before anything else:** Node >= 20, pnpm 9.12.0 (the root `package.json`
+pins it), and `pnpm install` from the repo root. The MCP server is run
+straight from source through `tsx`, and it imports `@leash/sdk` as a workspace
+package — without `pnpm install` that import does not resolve and the server
+exits before your agent sees it.
 
 ## 1. Deploy your own account
 
@@ -25,12 +34,24 @@ Then, as the owner, three calls to make it usable:
 
 ```bash
 # 1. let your agent's wallet spend
-cast send $ACCOUNT "setOperator(address,bool)" $AGENT_ADDRESS true ...
+cast send $ACCOUNT "setOperator(address,bool)" $AGENT_ADDRESS true \
+  --rpc-url https://forno.celo.org --private-key $YOUR_OWNER_PK
+
 # 2. set the limits, in the token's atomic units (USDC has 6 decimals,
 #    so 500000 = 0.50 per transaction and 20000000 = 20.00 per day)
-cast send $ACCOUNT "setPolicy(address,uint256,uint256)" $SPEND_TOKEN 500000 20000000 ...
+cast send $ACCOUNT "setPolicy(address,uint256,uint256)" \
+  $SPEND_TOKEN 500000 20000000 \
+  --rpc-url https://forno.celo.org --private-key $YOUR_OWNER_PK
+
 # 3. fund it with a plain ERC-20 transfer to $ACCOUNT
+cast send $SPEND_TOKEN "transfer(address,uint256)" $ACCOUNT 5000000 \
+  --rpc-url https://forno.celo.org --private-key $YOUR_OWNER_PK
 ```
+
+Neither cap may be zero. `daily = 0` is how the contract marks a token as
+unconfigured, so it refuses every spend rather than allowing an unlimited one,
+and `perTx = 0` refuses every non-zero amount. To halt an agent, pause the
+account — that is reversible and says what it did.
 
 The owner is deliberately **not** an operator. It sets policy, pauses, and
 sweeps; it does not spend through the agent's paths. You do not spend *from*

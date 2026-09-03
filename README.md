@@ -62,9 +62,35 @@ A hosted URL will be added here once the app is deployed.
 
 ## Use Leash with your agent
 
-`docs/mcp-setup.md` — deploy your own account, paste one block into `.mcp.json`,
-and your agent spends under limits you set. It assumes no knowledge of this
-repository.
+Two routes to the same place — your own account, and a `.mcp.json` block your
+agent reads.
+
+**In the browser (easier).** Run the app and open `/`. The onboarding wizard
+connects your wallet, deploys your own `SpendPolicyAccount`, adds your agent,
+sets the limits, and ends by handing you the filled-in `.mcp.json`. You paste
+your agent's wallet address once; it assembles every contract call for you.
+
+```bash
+pnpm --filter @leash/app dev
+```
+
+**From the command line.** `docs/mcp-setup.md` does the same thing with
+`forge create` and `cast send`, and explains every value it asks for. It
+assumes no knowledge of this repository.
+
+## See it spend, and get blocked
+
+`examples/demo-agent.ts` is an agent that makes three policy-checked spends on
+Celo mainnet and is then refused a fourth for exceeding the per-transaction
+cap — refused by the contract, in a staticcall, so nothing is signed and no gas
+is spent. It is both the demo script and the thing another team copies to adopt
+Leash. It moves **real money**, so it refuses to run without an explicit gate:
+
+```bash
+LEASH_DEMO_SPEND_REAL_MONEY=yes pnpm --filter @leash/examples demo
+```
+
+`examples/README.md` has the cost breakdown and prerequisites.
 
 ## Design
 
