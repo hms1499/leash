@@ -44,6 +44,22 @@ record real proof-tx hashes in its own docs and those are indistinguishable
 from a key by shape alone. Review diffs yourself before committing anything
 sensitive-looking.
 
+## Try it
+
+The dashboard reads Celo mainnet directly and needs no wallet to look — the
+policy limits, remaining allowance, and activity feed for any account render
+for a stranger with an empty browser. Run it locally against the live
+contract:
+
+```bash
+pnpm --filter @leash/app dev
+```
+
+Then open `/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2` — that is the live
+demo account on Celo mainnet, and the numbers you see are real.
+
+A hosted URL will be added here once the app is deployed.
+
 ## Use Leash with your agent
 
 `docs/mcp-setup.md` — deploy your own account, paste one block into `.mcp.json`,

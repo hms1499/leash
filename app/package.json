@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "wagmi": "^2.14.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

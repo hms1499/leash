@@ -11,3 +11,5 @@ dist/
 *.tsbuildinfo
 next-env.d.ts
 .superpowers/brainstorm/
+test-results/
+playwright-report/
