@@ -47,6 +47,13 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
   const [rows, setRows] = useState<FeedRow[]>([])
   const [isLoading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  // The last block height this hook actually observed, and the wall-clock
+  // moment it did. Together they date every row without a single further RPC
+  // call: Celo blocks are one second apart (measured, see feed.ts), so a row's
+  // age is (head - its block) seconds, plus however long ago that head was
+  // read. Asking the chain for each row's timestamp would be one getBlock per
+  // row for the same answer.
+  const [head, setHead] = useState<{ block: bigint; seenAt: number } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -58,6 +65,7 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
     async function backfill() {
       try {
         const head = await publicClient.getBlockNumber()
+        if (!cancelled) setHead({ block: head, seenAt: Date.now() })
         const floor = fromBlock ?? (head > WINDOW_BLOCKS ? head - WINDOW_BLOCKS : 0n)
         let to = head
         let collected = 0
@@ -119,6 +127,14 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
     const unwatch = publicClient.watchContractEvent({
       address: account, abi: EVENT_ABI, poll: true, pollingInterval: 4000,
       onLogs: (logs) => {
+        // A watched log is proof the chain has reached at least its block, so
+        // the reference point moves forward for free.
+        for (const l of logs) {
+          const b = l.blockNumber as bigint | null
+          if (b !== null) {
+            setHead((prev) => (prev && prev.block >= b ? prev : { block: b, seenAt: Date.now() }))
+          }
+        }
         setRows((prev) => merge(prev, logs.map((l) => describeLog({
           eventName: (l as { eventName: string }).eventName,
           args: (l as { args: Record<string, unknown> }).args,
@@ -132,5 +148,5 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
     return () => { cancelled = true; unwatch() }
   }, [account, fromBlock])
 
-  return { rows, isLoading, error }
+  return { rows, isLoading, error, head }
 }

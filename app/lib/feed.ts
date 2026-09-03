@@ -36,6 +36,25 @@ export const WINDOW_BLOCKS = BigInt(WINDOW_SECONDS)
 export const WINDOW_LABEL = '24 hours'
 
 /**
+ * How long ago, in words.
+ *
+ * Spec §4 asks for a relative time on every feed row and none carried one, so
+ * a reader could not tell a spend from ten seconds ago from one from ten
+ * hours ago — which is most of what a live demo is showing.
+ *
+ * Rounds down: nothing is ever reported as older than it is. A block mined
+ * after the last observed head produces a negative age, which reads as "just
+ * now" rather than "-2s ago".
+ */
+export function relativeAge(seconds: number): string {
+  if (seconds <= 0) return 'just now'
+  if (seconds < 60) return `${Math.floor(seconds)}s ago`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86_400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86_400)}d ago`
+}
+
+/**
  * Identity of one log. A transaction hash alone is not one: a single
  * transaction can emit several events, and the backfill and the live watcher
  * can both deliver the same log.

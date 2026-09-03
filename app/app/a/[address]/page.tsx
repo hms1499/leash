@@ -180,6 +180,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           decimals={DECIMALS}
           symbol={SYMBOL}
           isLoading={feed.isLoading}
+          head={feed.head}
           hasPolicy={state.isLoading ? null : state.daily > 0n}
           error={feed.error}
         />

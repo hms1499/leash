@@ -1,18 +1,30 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { formatAmount } from '../lib/policy.js'
-import { rowKey, WINDOW_LABEL, type FeedRow } from '../lib/feed.js'
+import { relativeAge, rowKey, WINDOW_LABEL, type FeedRow } from '../lib/feed.js'
 
 export default function Feed({
-  account, rows, decimals, symbol, isLoading, hasPolicy, error,
+  account, rows, decimals, symbol, isLoading, hasPolicy, error, head,
 }: {
   account: `0x${string}`
   rows: FeedRow[]; decimals: number; symbol: string
+  /** The last observed block height and when it was observed. Rows are dated
+   * from it rather than from a getBlock call each. */
+  head: { block: bigint; seenAt: number } | null
   // null while the account read is still in flight: an unread policy is not
   // an absent one, and saying "refuses every spend" about an account nobody
   // has looked at yet is a claim, not a reading.
   isLoading: boolean; hasPolicy: boolean | null; error: Error | null
 }) {
+  // Ages are computed, not stored, so they need a reason to re-render. Ten
+  // seconds is finer than the smallest unit that stays visible for long.
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => { if (!document.hidden) tick((n) => n + 1) }, 10_000)
+    return () => clearInterval(t)
+  }, [])
+
   if (hasPolicy === null) {
     return <div className="panel p-4"><p className="label">Reading the chain…</p></div>
   }
@@ -87,6 +99,13 @@ export default function Feed({
             style={{ background: r.kind === 'paused' ? 'var(--bad)' : 'var(--ok)' }}
           />
           <span className="flex-1">{r.text}</span>
+          {head && (
+            <span className="label shrink-0">
+              {relativeAge(
+                Number(head.block - r.blockNumber) + (Date.now() - head.seenAt) / 1000,
+              )}
+            </span>
+          )}
           {r.amount !== null && (
             <span className="num" style={{ color: 'var(--amber)' }}>
               {formatAmount(r.amount, decimals)} {symbol}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  describeLog, rowKey, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
+  describeLog, rowKey, relativeAge, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
 } from '../lib/feed.js'
 
 const TX = ('0x' + 'ab'.repeat(32)) as `0x${string}`
@@ -98,5 +98,32 @@ describe('the feed window', () => {
     expect(Number(WINDOW_BLOCKS)).toBe(WINDOW_SECONDS)
     expect(WINDOW_SECONDS).toBe(24 * 60 * 60)
     expect(WINDOW_LABEL).toBe('24 hours')
+  })
+})
+
+describe('relativeAge', () => {
+  // A judge cannot tell a 10-second-old spend from a 10-hour-old one without
+  // this, and the demo turns on watching a row appear.
+  it('reads in seconds for something that just happened', () => {
+    expect(relativeAge(12)).toBe('12s ago')
+  })
+
+  it('reads in minutes, then hours, then days', () => {
+    expect(relativeAge(5 * 60)).toBe('5m ago')
+    expect(relativeAge(3 * 3600)).toBe('3h ago')
+    expect(relativeAge(2 * 86_400)).toBe('2d ago')
+  })
+
+  it('rounds down, so nothing is ever reported as older than it is', () => {
+    expect(relativeAge(119)).toBe('1m ago')
+    expect(relativeAge(59)).toBe('59s ago')
+  })
+
+  // The age is derived from a block delta plus elapsed wall time, and a
+  // freshly mined block can read a second or two ahead of the last observed
+  // head. A negative age must not render as "-2s ago".
+  it('never renders a negative age', () => {
+    expect(relativeAge(-2)).toBe('just now')
+    expect(relativeAge(0)).toBe('just now')
   })
 })
