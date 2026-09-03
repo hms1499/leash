@@ -112,7 +112,16 @@ try {
     // stale allowance. Waiting for the receipt here also serializes the
     // three sends, which avoids three back-to-back broadcasts contending
     // for the same nonce against load-balanced forno.
-    await publicClient.waitForTransactionReceipt({ hash })
+    const receipt = await publicClient.waitForTransactionReceipt({ hash })
+    // A revert resolves this promise; it does not reject it. Without this
+    // check a reverted spend (fee-adapter drained mid-loop, the contract
+    // paused, a race with another caller) would still print as a landed
+    // 0.01 USDC spend, with `remainingToday` then showing the same
+    // (unchanged) figure as before it — the exact false-success-on-camera
+    // this receipt wait exists to prevent, reached from the other side.
+    if (receipt.status !== 'success') {
+      throw new Error(`spend ${i} reverted on-chain: https://celoscan.io/tx/${hash}`)
+    }
     console.log(`spend ${i}: 0.01 USDC  https://celoscan.io/tx/${hash}`)
     const remaining = await leash.remainingToday(token)
     console.log(`           remaining today: ${formatUnits(remaining, 6)} USDC`)
