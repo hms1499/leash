@@ -1,6 +1,52 @@
 # Deployments
 
-## Celo mainnet (42220)
+## Celo mainnet (42220) — current
+
+- SpendPolicyAccount: `0x7aDa926B021BAef4896F51F237bCA61435E43fd2`
+- Owner: `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57`
+- Operator (= registered `agentWalletAddress`): `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6`
+- Explorer: https://celoscan.io/address/0x7ada926b021baef4896f51f237bca61435e43fd2
+- Verified: yes — `SpendPolicyAccount`, solc `v0.8.24+commit.e11b9ed9`, optimizer on, 200 runs
+- Deploy tx: 0x8a6f4d8cfd9d49d22f3948af384f87ba169533d903e12885aa3296bc0a2fc779
+- `setOperator` tx: 0x3123dafc5aebba73a7ba36f6db168ed9b771e630060d1db2afe8769f1b6390de
+- Deployed: 2026-09-03
+- Cost, deploy through migration: 0.194338 CELO (about $0.015)
+
+Deployed because removing `receive()` changes the bytecode. The previous
+instance accepted native CELO it could never return — `sweep()` moves ERC-20
+only and nothing in the contract can `call{value:}` — so anything sent that way
+was lost. The contract is not upgradeable, so fixing it means a new address.
+
+Checked against the chain rather than taken from the deploy output:
+
+| call | value |
+|---|---|
+| `owner()` | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` |
+| `operators(operator)` | `true` |
+| `operators(owner)` | `false` |
+| `paused()` | `false` |
+| `allowlistEnabled()` | `false` |
+| `remainingToday(USDC)` | `1000000` |
+| USDC balance | `2496567` |
+| code size | 3406 bytes, against the old instance's 3584 |
+
+### Migration from the superseded instance, 2026-09-03
+
+| step | tx |
+|---|---|
+| Sweep 2.496567 USDC out of the old account, tx: 0xaf2153d75d752c1ef9a04166d31d033335091478a89fe9a103ff475b3d2708aa |
+| `setPolicy` 0.50 per tx / 1.00 per day, tx: 0x51126444e08f6bdecd61e7fb826e012810e2cbf46459c09e72a75f448b859714 |
+
+The old account holds 0 USDC after the sweep, read back off the chain.
+
+**The ERC-8004 registration is unaffected.** Only the account contract moved.
+The operator EOA — what is registered as `agentWalletAddress`, and what x402
+attribution keys off — did not change, so agentId 9804 stays valid.
+
+## Celo mainnet (42220) — SUPERSEDED 2026-09-03
+
+**Do not use. Accepted native CELO that could never be recovered.** Kept because
+every proof transaction below happened against it and is still true history.
 
 - SpendPolicyAccount: `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE`
 - Owner: `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57`
