@@ -18,6 +18,13 @@ no model in the loop, so it can be rerun exactly the same way every time.
    gas and leaves no hash. That is the point of the demo — the agent cannot
    talk its way past the limit, and checking the limit is free.
 
+## Prerequisites
+
+Node >= 20 and pnpm 9.12.0 (see the root `package.json`'s `packageManager`
+field). Run `pnpm install` from the repo root before `pnpm -F
+@leash/examples demo` — without it, `tsx` (the script runner the `demo`
+script invokes) is not installed and the command fails immediately.
+
 ## Cost
 
 Running it to completion moves **real USDC on Celo mainnet**: three spends
@@ -64,10 +71,16 @@ shell before running the demo.
 
 - The account address and the agent (operator) address.
 - Up to three lines like `spend 1: 0.01 USDC  https://celoscan.io/tx/<hash>`,
-  each followed by the remaining daily allowance after that spend.
+  each followed by the remaining daily allowance after that spend once the
+  transaction is mined, e.g. `remaining today: 0.99 USDC`. The script waits
+  for a receipt before printing this line, so it reflects a confirmed spend,
+  not a merely-broadcast one.
 - If any of the first three spends is itself refused (for example, because
   the daily allowance was already partly spent by an earlier run today), the
-  loop stops early and says so instead of pretending the spend happened.
+  loop stops early and says so instead of pretending the spend happened. If a
+  spend fails outright (an RPC error, an unfunded fee adapter, a nonce race),
+  the script prints one plain-English line naming the failure and moves on
+  to the refusal beat below rather than crashing.
 - A refusal for a 0.90 USDC request, printed as the structured JSON
   `PreCheckResult` from `@leash/sdk` (for example
   `{ "ok": false, "error": "per_tx_cap_exceeded", "spent": "0", "cap": "500000" }`),
@@ -77,25 +90,32 @@ shell before running the demo.
 ## Same sequence, as MCP tool calls
 
 If you are integrating Leash into an agent rather than running this script,
-the equivalent sequence is the two tools the MCP server (`mcp/`) exposes —
-no raw `LeashClient` calls needed:
+the equivalent sequence is the two tools you need here, out of the three
+the MCP server (`mcp/`) exposes (the third, `leash_fetch`, is for x402
+resource payments and is not part of this demo) — no raw `LeashClient`
+calls needed:
 
 ```
 # 1. Check the allowance before spending (equivalent to remainingToday + limits)
 leash_status()
-# => { remaining_today: "...", daily_cap: "...", per_tx_cap: "...", ... }
+# => { remaining_today: "1.000000", daily_cap: "1.000000", per_tx_cap: "0.500000", ... }
 
 # 2. Three small payments (equivalent to preCheck + spend, three times)
 leash_pay({ to: "<SPEND_PAYEE>", amount: "0.01" })
 leash_pay({ to: "<SPEND_PAYEE>", amount: "0.01" })
 leash_pay({ to: "<SPEND_PAYEE>", amount: "0.01" })
-# each returns { ok: true, transaction: "0x...", explorer: "https://celoscan.io/tx/..." }
+# each returns { ok: true, transaction: "0x...", explorer: "https://celoscan.io/tx/...", paid: "0.010000", ... }
 
 # 3. Ask for more than the per-transaction cap allows
 leash_pay({ to: "<SPEND_PAYEE>", amount: "0.90" })
 # => { error: "per_tx_cap_exceeded", message: "the on-chain policy refused a
-#      payment of 0.90", requested: "0.90", ... }
+#      payment of 0.900000", requested: "0.900000", ... }
 ```
+
+(`leash_status` and `leash_pay` format every amount to six decimals via
+`human()` in `mcp/src/errors.ts` — the input amount you pass, like `"0.01"`,
+is a free-form decimal string, but every amount in a *response* comes back
+padded to six places.)
 
 `leash_pay` runs the same `preCheck`-then-`spend` sequence as this script
 internally, so the refusal is the same on-chain `staticcall` — free, and
