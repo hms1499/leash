@@ -150,6 +150,4 @@ contract SpendPolicyAccount {
         if (!IERC20(token).transfer(to, amount)) revert TransferFailed();
         emit Swept(token, to, amount);
     }
-
-    receive() external payable {}
 }
