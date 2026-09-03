@@ -1,9 +1,12 @@
 # Leash — Design Spec
 
 **Date:** 2026-09-01
-**Status:** Approved. Plan 1 (foundation) shipped 2026-09-02 — contract live and
-verified on Celo mainnet, SDK built, attribution proven end to end. Plans 2 (W3+W4)
-and 3 (W5) not yet written.
+**Status:** Approved, and still the binding authority. Plan 1 (foundation) and
+Plan 2 (W3+W4) both shipped — contract live and verified on Celo mainnet, SDK
+and MCP server built, x402 settled through the policy on mainnet.
+**Amended 2026-09-03** by `2026-09-03-leash-frontend-design.md`, which resolves
+§2.1b and amends §4.1's palette. Where the two disagree on those two points, the
+2026-09-03 document wins; everywhere else this one does.
 **Hackathon:** Celo "Agents at Work" (2026-08-28 → 2026-09-14 09:00 GMT)
 **Primary track:** `judges-favorite` · **Secondary:** `askbots-growth`
 
@@ -166,7 +169,11 @@ or from your own contracts"*, and is gated on distinct signers. Spending from a
 Leash account to a wallet the project controls is not adoption and will not
 count. Nothing in this design should assume otherwise.
 
-### 2.1b Per-user deployment — OPEN
+### 2.1b Per-user deployment — RESOLVED 2026-09-03
+
+**Direct deploy from the frontend.** No factory. Reasoning, and the discovery
+problem a factory would have solved, in `2026-09-03-leash-frontend-design.md`
+§1.1–1.2. The table below is kept as the record of the trade that was weighed.
 
 `T5.3` promises "connect → deploy account → fund", but no mechanism is
 specified. The live instance at `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` is
@@ -182,7 +189,9 @@ Two shapes, to be decided in Plan 3:
 | Discovery | none — the user must keep their address | on-chain registry of every account |
 
 Direct deploy is the smaller path and is sufficient for v1. A factory is the
-better product. Decide before `T5.3`, not during.
+better product. Decided 2026-09-03 in favour of direct deploy, on time: the
+factory is a new contract to write, test and deploy, and that budget buys more
+as UI.
 
 ### 2.2 Contract
 
@@ -315,6 +324,13 @@ Explicitly out of v1: analytics charts, history export, team management,
 settings pages.
 
 ### 4.1 Visual direction: Van Gogh
+
+> **Amended 2026-09-03.** The discipline below stands unchanged, including all
+> three failure modes. The *palette* moved from Starry Night's indigo/chrome
+> yellow to *Café Terrace at Night* — warm teal night, gaslight amber — with
+> verified Celo yellow retained in exactly two places. Tokens and the reasoning:
+> `2026-09-03-leash-frontend-design.md` §1.4 and §3. The signature meter was
+> built and chosen there too (§1.5).
 
 A financial control panel is judged by a human on this track. Sixty projects
 will submit near-identical shadcn dashboards; visual distinctiveness is a real
