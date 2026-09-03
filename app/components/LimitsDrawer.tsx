@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useWriteContract } from 'wagmi'
-import { publicClient } from '../lib/chain.js'
+import { useAccount, useWriteContract } from 'wagmi'
+import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 import { formatAmount, validateLimits } from '../lib/policy.js'
 
 const SET_POLICY_ABI = [
@@ -35,6 +35,7 @@ export default function LimitsDrawer({
   // chain; after they have, their edit is theirs to keep.
   const [dirty, setDirty] = useState(false)
   const { writeContractAsync } = useWriteContract()
+  const { chainId } = useAccount()
 
   // The limits arrive one poll AFTER first render, so seeding these inputs
   // from a useState initialiser froze them at the pre-read 0n/0n — showing
@@ -49,6 +50,7 @@ export default function LimitsDrawer({
 
   async function save() {
     setError(null)
+    if (chainId !== REQUIRED_CHAIN_ID) { setError(WRONG_NETWORK); return }
     const parsed = validateLimits(perTxInput, dailyInput, decimals, { perTx, daily })
     if (!parsed.ok) { setError(parsed.error); return }
     const { perTx: nextPerTx, daily: nextDaily } = parsed
@@ -57,7 +59,7 @@ export default function LimitsDrawer({
     try {
       await writeContractAsync({
         address: account, abi: SET_POLICY_ABI, functionName: 'setPolicy',
-        args: [token, nextPerTx, nextDaily],
+        args: [token, nextPerTx, nextDaily], chainId: REQUIRED_CHAIN_ID,
       })
       let confirmed = false
       for (let i = 0; i < 20; i++) {

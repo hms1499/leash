@@ -35,3 +35,17 @@ export function isMiniPay(): boolean {
   const eth = (window as { ethereum?: { isMiniPay?: boolean } }).ethereum
   return Boolean(eth?.isMiniPay)
 }
+
+/**
+ * Every write in this app is a transaction against a contract on Celo. wagmi
+ * will not assert this for us: writeContract/deployContract call
+ * getConnectorClient with assertChainId:false and pass `chain: null` to viem
+ * unless an explicit chainId is given, so a wallet left on another network
+ * signs and broadcasts there. Passing this to every write turns that into a
+ * clean rejection; the callers check it first so the message can say what to
+ * do about it.
+ */
+export const REQUIRED_CHAIN_ID = celo.id
+
+export const WRONG_NETWORK =
+  'Your wallet is on another network. Switch it to Celo — the badge in the header does it — and try again.'

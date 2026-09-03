@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { useAccount, useDeployContract, useWriteContract } from 'wagmi'
 import { KNOWN_FEE_ADAPTERS, FEE_CURRENCY_DIRECTORY } from '@leash/sdk'
 import ConnectButton from '../components/ConnectButton'
+import NetworkBadge from '../components/NetworkBadge'
 import McpHandoff from '../components/McpHandoff'
-import { publicClient } from '../lib/chain.js'
+import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 import { isValidAddress } from '../lib/address.js'
 import { parseAmount } from '../lib/policy.js'
 
@@ -37,7 +38,7 @@ const SETUP_ABI = [
 ] as const
 
 export default function Onboard() {
-  const { address: connected, isConnected } = useAccount()
+  const { address: connected, isConnected, chainId } = useAccount()
   const [account, setAccount] = useState<`0x${string}` | null>(null)
   const [deploying, setDeploying] = useState(false)
   const [agent, setAgent] = useState('')
@@ -99,6 +100,10 @@ export default function Onboard() {
 
   async function deploy() {
     setError(null)
+    // A deployment signed on another chain spends real gas putting the
+    // contract somewhere this app will never read, and the receipt wait below
+    // — pinned to Celo — would then report it as merely unconfirmed.
+    if (chainId !== REQUIRED_CHAIN_ID) { setError(WRONG_NETWORK); return }
     setDeploying(true)
     try {
       // SpendPolicyAccount's ABI and bytecode are emitted by `forge build`
@@ -106,7 +111,9 @@ export default function Onboard() {
       const { abi, bytecode } = await import('../lib/contract.js')
       let hash: `0x${string}`
       try {
-        hash = await deployContractAsync({ abi, bytecode, args: [connected!] })
+        hash = await deployContractAsync({
+          abi, bytecode, args: [connected!], chainId: REQUIRED_CHAIN_ID,
+        })
       } catch {
         // Almost always the user rejecting in their wallet. Silence here
         // reads as a broken button, and this step spends real gas.
@@ -143,10 +150,12 @@ export default function Onboard() {
     setError(null)
     setAgentNote(null)
     if (!isValidAddress(agent)) { setError('That is not a Celo address.'); return }
+    if (chainId !== REQUIRED_CHAIN_ID) { setAgentNote(WRONG_NETWORK); return }
     setAgentBusy(true)
     try {
       await writeContractAsync({
-        address: account!, abi: SETUP_ABI, functionName: 'setOperator', args: [agent, true],
+        address: account!, abi: SETUP_ABI, functionName: 'setOperator',
+        args: [agent, true], chainId: REQUIRED_CHAIN_ID,
       })
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.
@@ -171,6 +180,7 @@ export default function Onboard() {
   async function setLimits() {
     setError(null)
     setLimitsNote(null)
+    if (chainId !== REQUIRED_CHAIN_ID) { setLimitsNote(WRONG_NETWORK); return }
     let nextPerTx: bigint
     let nextDaily: bigint
     try {
@@ -184,7 +194,7 @@ export default function Onboard() {
     try {
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setPolicy',
-        args: [TOKEN, nextPerTx, nextDaily],
+        args: [TOKEN, nextPerTx, nextDaily], chainId: REQUIRED_CHAIN_ID,
       })
       let confirmed = false
       for (let i = 0; i < 20; i++) {
@@ -247,7 +257,10 @@ export default function Onboard() {
       {error && <p style={{ color: 'var(--bad)' }}>{error}</p>}
 
       <section className="panel p-4">
-        <p className="label">Step 1 — Connect</p>
+        <div className="flex items-center justify-between">
+          <p className="label">Step 1 — Connect</p>
+          <NetworkBadge />
+        </div>
         <div className="mt-2"><ConnectButton /></div>
       </section>
 

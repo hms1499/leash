@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi'
 import Meter from '../../../components/Meter'
 import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
+import NetworkBadge from '../../../components/NetworkBadge'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
@@ -108,6 +109,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           {truncateAddress(address)}
         </a>
         <span className="ml-auto flex items-center gap-3">
+          <NetworkBadge />
           <StopButton
             account={address}
             paused={state.paused}

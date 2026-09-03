@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useWriteContract } from 'wagmi'
-import { publicClient } from '../lib/chain.js'
+import { useAccount, useWriteContract } from 'wagmi'
+import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 import { formatAmount, parseAmount } from '../lib/policy.js'
 import { transactionsLeft } from '../lib/gasFloat.js'
 import { truncateAddress } from '../lib/address.js'
@@ -44,6 +44,7 @@ export default function AgentPanel({
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const { writeContractAsync } = useWriteContract()
+  const { chainId } = useAccount()
   // Tracks the last successfully observed balance across renders, independent
   // of the `float` state's stale-closure risk inside the 8s interval — used
   // only to notice a rise and clear a stale timeout note.
@@ -92,14 +93,15 @@ export default function AgentPanel({
   const low = left <= 3
 
   async function refuel() {
-    setBusy(true)
     setNote(null)
+    if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
+    setBusy(true)
     try {
       const amount = parseAmount('0.05', decimals)
       const before = float as bigint
       await writeContractAsync({
         address: account, abi: SWEEP_ABI, functionName: 'sweep',
-        args: [token, operator, amount],
+        args: [token, operator, amount], chainId: REQUIRED_CHAIN_ID,
       })
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useWriteContract } from 'wagmi'
-import { publicClient } from '../lib/chain.js'
+import { useAccount, useWriteContract } from 'wagmi'
+import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 
 const PAUSE_ABI = [
   { type: 'function', name: 'setPaused', stateMutability: 'nonpayable',
@@ -25,6 +25,7 @@ export default function StopButton({
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const { writeContractAsync } = useWriteContract()
+  const { chainId } = useAccount()
 
   if (!isOwner) {
     // `paused` defaults to false before the first read; printing "Active"
@@ -33,11 +34,13 @@ export default function StopButton({
   }
 
   async function send(next: boolean) {
-    setBusy(true)
     setNote(null)
+    if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
+    setBusy(true)
     try {
       await writeContractAsync({
         address: account, abi: PAUSE_ABI, functionName: 'setPaused', args: [next],
+        chainId: REQUIRED_CHAIN_ID,
       })
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.
