@@ -6,12 +6,13 @@ import Meter from '../../../components/Meter'
 import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
 import NetworkBadge from '../../../components/NetworkBadge'
+import CopyAddress from '../../../components/CopyAddress'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
 import { useAccountState } from '../../../lib/useAccountState.js'
 import { useFeed } from '../../../lib/useFeed.js'
-import { isValidAddress, truncateAddress } from '../../../lib/address.js'
+import { isValidAddress } from '../../../lib/address.js'
 import { canEdit } from '../../../lib/policy.js'
 import { publicClient } from '../../../lib/chain.js'
 
@@ -118,14 +119,19 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         {/* .label's --dim on the paused band's --bad is about 1.6:1 and
             disappears on video. The state change is meant to read at a glance,
             and the address is what tells you *which* account stopped. */}
+        <CopyAddress
+          address={address}
+          style={{ color: state.paused ? 'var(--text)' : undefined }}
+        />
         <a
           className="label"
           href={`https://celoscan.io/address/${address}`}
           target="_blank"
           rel="noreferrer"
+          title="Open on Celoscan"
           style={{ color: state.paused ? 'var(--text)' : undefined }}
         >
-          {truncateAddress(address)}
+          ↗
         </a>
         <span className="ml-auto flex items-center gap-3">
           <NetworkBadge />
