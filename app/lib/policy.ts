@@ -43,3 +43,18 @@ export function parseAmount(input: string, decimals: number): bigint {
   }
   return parseUnits(input.trim(), decimals)
 }
+
+/**
+ * Whether the connected wallet may write to this account.
+ *
+ * This is a display gate, not a security boundary — the contract's onlyOwner
+ * modifier is the security boundary. It exists so a non-owner is not offered
+ * a button whose transaction would certainly revert.
+ */
+export function canEdit(
+  owner: string | null | undefined,
+  connected: string | null | undefined,
+): boolean {
+  if (!owner || !connected) return false
+  return owner.toLowerCase() === connected.toLowerCase()
+}

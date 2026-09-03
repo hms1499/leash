@@ -1,12 +1,16 @@
 'use client'
 
 import { use } from 'react'
+import { useAccount } from 'wagmi'
 import Meter from '../../../components/Meter'
 import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
+import LimitsDrawer from '../../../components/LimitsDrawer'
+import StopButton from '../../../components/StopButton'
 import { useAccountState } from '../../../lib/useAccountState.js'
 import { useFeed } from '../../../lib/useFeed.js'
 import { isValidAddress, truncateAddress } from '../../../lib/address.js'
+import { canEdit } from '../../../lib/policy.js'
 
 // USDC on Celo mainnet. The token the policy is denominated in; the UI treats
 // stablecoins as 1:1 with the dollar, and that assumption lives here in the UI
@@ -26,6 +30,8 @@ export default function DashboardRoute({ params }: { params: Promise<{ address: 
 function Dashboard({ address }: { address: `0x${string}` }) {
   const state = useAccountState(address, TOKEN)
   const feed = useFeed(address)
+  const { address: connected } = useAccount()
+  const isOwner = canEdit(state.owner, connected)
 
   return (
     <main>
@@ -47,7 +53,15 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         >
           {truncateAddress(address)}
         </a>
-        <span className="ml-auto"><ConnectButton /></span>
+        <span className="ml-auto flex items-center gap-3">
+          <StopButton
+            account={address}
+            paused={state.paused}
+            isOwner={isOwner}
+            onChanged={state.refetch}
+          />
+          <ConnectButton />
+        </span>
       </header>
 
       <Meter
@@ -60,6 +74,16 @@ function Dashboard({ address }: { address: `0x${string}` }) {
       />
 
       <div className="p-4">
+        <LimitsDrawer
+          account={address}
+          token={TOKEN}
+          decimals={DECIMALS}
+          symbol={SYMBOL}
+          perTx={state.perTx}
+          daily={state.daily}
+          isOwner={isOwner}
+          onSaved={state.refetch}
+        />
         <Feed
           rows={feed.rows}
           decimals={DECIMALS}

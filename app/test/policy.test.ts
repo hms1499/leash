@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  spentToday, percentUsed, refusalThreshold, formatAmount, parseAmount,
+  spentToday, percentUsed, refusalThreshold, formatAmount, parseAmount, canEdit,
 } from '../lib/policy.js'
 
 const USDC = 6
@@ -84,5 +84,30 @@ describe('parseAmount', () => {
   // money. Refuse instead.
   it('rejects more decimal places than the token supports', () => {
     expect(() => parseAmount('0.1234567', USDC)).toThrow(RangeError)
+  })
+})
+
+describe('canEdit', () => {
+  it('lets the owner write', () => {
+    expect(canEdit('0xAbC0000000000000000000000000000000000001',
+                   '0xabc0000000000000000000000000000000000001')).toBe(true)
+  })
+
+  it('compares case-insensitively, since one side is checksummed', () => {
+    expect(canEdit('0xABC0000000000000000000000000000000000001',
+                   '0xabc0000000000000000000000000000000000001')).toBe(true)
+  })
+
+  it('refuses a different wallet', () => {
+    expect(canEdit('0xAbC0000000000000000000000000000000000001',
+                   '0xdEf0000000000000000000000000000000000002')).toBe(false)
+  })
+
+  it('refuses when no wallet is connected', () => {
+    expect(canEdit('0xAbC0000000000000000000000000000000000001', undefined)).toBe(false)
+  })
+
+  it('refuses when the owner has not loaded yet', () => {
+    expect(canEdit(null, '0xabc0000000000000000000000000000000000001')).toBe(false)
   })
 })
