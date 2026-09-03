@@ -1,0 +1,11 @@
+{
+  "name": "@leash/examples",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "demo": "tsx demo-agent.ts", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@leash/sdk": "workspace:*", "viem": "^2.21.0" },
+  "devDependencies": {
+    "@types/node": "^22.0.0", "tsx": "^4.19.0", "typescript": "^5.6.0"
+  }
+}
