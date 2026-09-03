@@ -33,6 +33,26 @@ export default function Meter({ daily, remaining, perTx, decimals, symbol, pause
   const scale = atCap ? 11 : 2 + (used / 100) * 8
   const period = atCap ? 0 : Math.max(3, 14 - (used / 100) * 11)
 
+  // Spec §3's other non-negotiable guard. It was written in CSS as
+  // `@media (prefers-reduced-motion: reduce) { .meter-turbulence animate {
+  // display: none } }`, which matches and applies — computed display really
+  // is none — and does nothing at all: `display` has no effect on an
+  // animation element, because it has no renderer to suppress. SMIL keeps
+  // running and feTurbulence keeps costing, which on MiniPay is a phone's
+  // battery. Only mounting the element decides whether it animates, so the
+  // query is read here.
+  //
+  // False on the server and on first paint, so hydration matches; the effect
+  // corrects it before the first frame anyone sees.
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const onChange = () => setReduced(mq.matches)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
   // A filter animating in a hidden tab is pure cost. Stop it there.
   const [visible, setVisible] = useState(true)
   const ref = useRef<SVGAnimateElement>(null)
@@ -42,7 +62,7 @@ export default function Meter({ daily, remaining, perTx, decimals, symbol, pause
     return () => document.removeEventListener('visibilitychange', onChange)
   }, [])
 
-  const animate = !loading && !paused && !atCap && visible && period > 0
+  const animate = !loading && !paused && !atCap && visible && !reduced && period > 0
 
   return (
     <div className="px-4 py-3" style={{ background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>

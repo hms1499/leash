@@ -24,3 +24,30 @@ test('the dashboard renders live numbers with no wallet connected', async ({ pag
   // And nothing asked for a wallet.
   await expect(page.getByText('Connect wallet')).toBeVisible()
 })
+
+/**
+ * Spec §3 calls this one of two non-negotiable guards: a continuously running
+ * feTurbulence is the most expensive thing on this page, and MiniPay runs on
+ * phones. The guard was CSS until it was measured and found to do nothing, so
+ * it is asserted here in a real browser rather than trusted.
+ */
+test('the meter stops animating when the OS asks it to', async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  try {
+    await page.goto(`/a/${ACCOUNT}`)
+    await expect(page.locator('.num').first())
+      .toContainText(/\d+\.\d{6}/, { timeout: 30_000 })
+    await expect(page.locator('.meter-turbulence animate')).toHaveCount(0)
+  } finally {
+    await context.close()
+  }
+})
+
+// Without this the test above passes even if the meter never animates at all.
+test('the meter animates when the OS has not asked otherwise', async ({ page }) => {
+  await page.goto(`/a/${ACCOUNT}`)
+  await expect(page.locator('.num').first())
+    .toContainText(/\d+\.\d{6}/, { timeout: 30_000 })
+  await expect(page.locator('.meter-turbulence animate')).toHaveCount(1)
+})

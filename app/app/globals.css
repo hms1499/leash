@@ -79,7 +79,7 @@ body {
 }
 
 /* The ground drifts; the data snaps. Someone who has asked the OS to stop
-   animating gets a still meter that is still correct. */
-@media (prefers-reduced-motion: reduce) {
-  .meter-turbulence animate { display: none; }
-}
+   animating gets a still meter that is still correct — enforced in Meter.tsx,
+   not here. A `display: none` on an <animate> element applies and achieves
+   nothing: SMIL has no renderer to suppress, so the animation keeps running.
+   The only way to stop it is not to mount it. */
