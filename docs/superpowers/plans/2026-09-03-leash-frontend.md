@@ -363,6 +363,15 @@ import type { NextConfig } from 'next'
 // has to compile it rather than treat it as a built dependency.
 const config: NextConfig = {
   transpilePackages: ['@leash/sdk'],
+  webpack(config) {
+    // The SDK's own sources import with a `.js` specifier pointing at a `.ts`
+    // file (`export … from './attribution.js'`). tsc and vitest resolve that
+    // natively; webpack does not, and transpilePackages means webpack compiles
+    // those sources — so without this alias `@leash/sdk` fails to resolve at
+    // build time. Not optional.
+    config.resolve.extensionAlias = { '.js': ['.ts', '.tsx', '.js', '.jsx'] }
+    return config
+  },
 }
 
 export default config
@@ -525,6 +534,11 @@ export const wagmiConfig = createConfig({
   chains: [celo],
   connectors: [injected()],
   transports: { [celo.id]: http(RPC_URL) },
+  // Required under the App Router. Without it wagmi rehydrates its persisted
+  // connection synchronously during render, so a returning visitor whose
+  // wallet was already connected gets a hydration mismatch the first time a
+  // component branches on `isConnected`.
+  ssr: true,
 })
 
 /** True inside the MiniPay in-app browser, which auto-connects. */
