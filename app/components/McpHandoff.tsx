@@ -4,12 +4,16 @@ import { useState } from 'react'
 import { buildMcpJson, type McpHandoff as Handoff } from '../lib/mcpJson.js'
 
 export default function McpHandoff({
-  handoff, tagMissing,
+  handoff, tagStatus = 'ok',
 }: {
   handoff: Handoff
-  /** True when the user left the attribution-tag input blank, so the block
-   * ships the `celo_yourtag` placeholder instead of a real one. */
-  tagMissing?: boolean
+  /**
+   * Whether ATTRIBUTION_TAG in the block above is real. 'missing' and
+   * 'invalid' both ship the `celo_yourtag` placeholder, but they are
+   * different mistakes: one person has not filled the field in, the other
+   * believes they have.
+   */
+  tagStatus?: 'ok' | 'missing' | 'invalid'
 }) {
   const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
@@ -56,12 +60,21 @@ export default function McpHandoff({
         yourself. This site never asks for it and never sees it. It is a hot key:
         whoever holds it can spend up to your limits.
       </p>
-      {tagMissing && (
+      {tagStatus === 'missing' && (
         <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
           You left the attribution tag blank, so <code>ATTRIBUTION_TAG</code> is
           the placeholder <code>celo_yourtag</code>. Replace it with your own tag
           before running your agent — leaving it in silently voids your x402
           attribution; nothing errors, the leaderboard simply reads zero.
+        </p>
+      )}
+      {tagStatus === 'invalid' && (
+        <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
+          That is not the shape of an attribution tag, so the block above still
+          carries the placeholder rather than your value. The MCP server checks
+          the same rule at startup and exits before your agent&apos;s first
+          tool call, which surfaces only as &ldquo;server failed to
+          connect&rdquo;.
         </p>
       )}
       <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>

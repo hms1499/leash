@@ -9,6 +9,7 @@ import McpHandoff from '../components/McpHandoff'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 import { isValidAddress } from '../lib/address.js'
 import { parseAmount } from '../lib/policy.js'
+import { isAttributionTag } from '../lib/mcpJson.js'
 import { pollUntil } from '../lib/confirm.js'
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
@@ -54,6 +55,9 @@ export default function Onboard() {
   const [funded, setFunded] = useState(false)
   const [checkingFunds, setCheckingFunds] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const tagStatus: 'ok' | 'missing' | 'invalid' =
+    !tag.trim() ? 'missing' : isAttributionTag(tag.trim()) ? 'ok' : 'invalid'
 
   const { deployContractAsync } = useDeployContract()
   const { writeContractAsync } = useWriteContract()
@@ -335,15 +339,44 @@ export default function Onboard() {
           {feeAdapter && (
             <section>
               <p className="label mb-2">Step 6 — Connect your agent</p>
+              <p className="label">Attribution tag</p>
+              <p className="text-sm mt-1 mb-2" style={{ color: 'var(--dim)' }}>
+                <code>celo_</code> plus 12 hex characters. It is issued when you
+                register your project on{' '}
+                <a
+                  href="https://celobuilders.xyz"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'var(--celo)' }}
+                >
+                  celobuilders.xyz
+                </a>{' '}
+                and comes back as <code>attributionTag</code> — the same value
+                you can re-read any time from{' '}
+                <code>GET /submissions/me</code>. Every transaction your agent
+                sends carries it; there is no untagged path.
+              </p>
               <input
-                className="num w-full mb-3 p-2"
-                style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
-                placeholder="celo_ your attribution tag"
+                className="num w-full mb-1 p-2"
+                style={{
+                  background: 'var(--well)', borderRadius: 4,
+                  border: `1px solid ${tagStatus === 'invalid' ? 'var(--bad)' : 'var(--line)'}`,
+                }}
+                placeholder="celo_0123456789ab"
                 value={tag} onChange={(e) => setTag(e.target.value)}
               />
+              <p className="text-sm mb-3" style={{ color: 'var(--bad)', minHeight: '1rem' }}>
+                {tagStatus === 'invalid' && 'Not a valid tag — expected celo_ and 12 hex characters.'}
+              </p>
               <McpHandoff
-                handoff={{ account, token: TOKEN, feeAdapter, attributionTag: tag || 'celo_yourtag' }}
-                tagMissing={!tag.trim()}
+                handoff={{
+                  account, token: TOKEN, feeAdapter,
+                  // Never emit a value the server will refuse. A placeholder
+                  // the user can see is better than a config that dies at
+                  // startup with the reason buried in an agent's log.
+                  attributionTag: tagStatus === 'ok' ? tag.trim() : 'celo_yourtag',
+                }}
+                tagStatus={tagStatus}
               />
               <a className="label block mt-3" href={`/a/${account}`}>Open your dashboard →</a>
             </section>
