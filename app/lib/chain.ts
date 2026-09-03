@@ -22,6 +22,11 @@ export const wagmiConfig = createConfig({
   chains: [celo],
   connectors: [injected()],
   transports: { [celo.id]: http(RPC_URL) },
+  // Required under the App Router. Without it wagmi rehydrates its persisted
+  // connection synchronously during render, so a returning visitor whose
+  // wallet was already connected gets a hydration mismatch the first time a
+  // component branches on `isConnected`.
+  ssr: true,
 })
 
 /** True inside the MiniPay in-app browser, which auto-connects. */
