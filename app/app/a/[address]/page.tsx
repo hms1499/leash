@@ -66,6 +66,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           symbol={SYMBOL}
           isLoading={feed.isLoading}
           hasPolicy={state.daily > 0n}
+          error={feed.error}
         />
       </div>
     </main>

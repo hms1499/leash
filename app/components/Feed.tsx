@@ -4,10 +4,10 @@ import { formatAmount } from '../lib/policy.js'
 import type { FeedRow } from '../lib/feed.js'
 
 export default function Feed({
-  rows, decimals, symbol, isLoading, hasPolicy,
+  rows, decimals, symbol, isLoading, hasPolicy, error,
 }: {
   rows: FeedRow[]; decimals: number; symbol: string
-  isLoading: boolean; hasPolicy: boolean
+  isLoading: boolean; hasPolicy: boolean; error: Error | null
 }) {
   // A freshly deployed account has no policy, and every operator path reverts
   // TokenNotConfigured until the owner sets one. Saying so beats an empty list.
@@ -25,6 +25,21 @@ export default function Feed({
 
   if (isLoading) {
     return <div className="panel p-4"><p className="label">Loading activity…</p></div>
+  }
+
+  // A failed log scan must never be shown as a quiet account. forno is
+  // load-balanced and a chunk can fail after its retry; saying "no activity"
+  // then would be the UI asserting something it does not know.
+  if (error) {
+    return (
+      <div className="panel p-4">
+        <p className="label" style={{ color: 'var(--bad)' }}>Could not load activity</p>
+        <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
+          The chain did not answer. The allowance above is still correct — it is
+          read separately and does not depend on this. Reload to try again.
+        </p>
+      </div>
+    )
   }
 
   if (rows.length === 0) {
