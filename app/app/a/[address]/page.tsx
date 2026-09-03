@@ -156,6 +156,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           </p>
         )}
         <Feed
+          account={address}
           rows={feed.rows}
           decimals={DECIMALS}
           symbol={SYMBOL}

@@ -1,11 +1,12 @@
 'use client'
 
 import { formatAmount } from '../lib/policy.js'
-import type { FeedRow } from '../lib/feed.js'
+import { rowKey, WINDOW_LABEL, type FeedRow } from '../lib/feed.js'
 
 export default function Feed({
-  rows, decimals, symbol, isLoading, hasPolicy, error,
+  account, rows, decimals, symbol, isLoading, hasPolicy, error,
 }: {
+  account: `0x${string}`
   rows: FeedRow[]; decimals: number; symbol: string
   // null while the account read is still in flight: an unread policy is not
   // an absent one, and saying "refuses every spend" about an account nobody
@@ -54,7 +55,20 @@ export default function Feed({
       <div className="panel p-4">
         <p className="label">No activity yet</p>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
-          Nothing has been spent in the last three days.
+          {/* The span this states is the span that was scanned — the label
+              is exported beside the block count it is derived from. */}
+          Nothing has been spent in the last {WINDOW_LABEL}.{' '}
+          {/* Not a dead end: forno caps a log query at 5,000 blocks, so
+              scanning further back on every page load is not free. Anyone who
+              wants the whole history can have it in one click. */}
+          <a
+            href={`https://celoscan.io/address/${account}#events`}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--celo)' }}
+          >
+            See the full history on Celoscan →
+          </a>
         </p>
       </div>
     )
@@ -64,7 +78,7 @@ export default function Feed({
     <div className="panel px-4">
       {rows.map((r) => (
         <div
-          key={`${r.txHash}-${r.blockNumber}-${r.text}`}
+          key={rowKey(r)}
           className="flex items-center gap-3 py-2 text-sm"
           style={{ borderBottom: '1px solid var(--line)' }}
         >
