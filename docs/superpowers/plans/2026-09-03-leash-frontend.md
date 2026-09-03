@@ -1055,8 +1055,8 @@ export default function Meter({ daily, remaining, perTx, decimals, symbol, pause
             />
           </filter>
           <linearGradient id={`g${id}`}>
-            <stop offset="0" stopColor="#1B4A63" />
-            <stop offset="0.6" stopColor="#3E86A0" />
+            <stop offset="0" stopColor="var(--meter-start)" />
+            <stop offset="0.6" stopColor="var(--meter-mid)" />
             <stop offset="1" stopColor="var(--celo)" />
           </linearGradient>
         </defs>
@@ -1074,11 +1074,21 @@ export default function Meter({ daily, remaining, perTx, decimals, symbol, pause
       </svg>
 
       <p className="label mt-2" style={{ color: atCap ? 'var(--bad)' : 'var(--dim)' }}>
-        {paused
-          ? 'Paused by the owner — every spend is refused'
-          : threshold === 0n
-            ? 'The allowance is spent — resets at UTC midnight'
-            : `Next spend over ${formatAmount(threshold, decimals)} ${symbol} will be refused`}
+        {paused ? (
+          'Paused by the owner — every spend is refused'
+        ) : threshold === 0n ? (
+          'The allowance is spent — resets at UTC midnight'
+        ) : (
+          <>
+            Next spend over{' '}
+            {/* .num even here: this figure changes live, and the whole point
+                of tabular-nums is that a changing figure must not reflow. */}
+            <span className="num">
+              {formatAmount(threshold, decimals)} {symbol}
+            </span>{' '}
+            will be refused
+          </>
+        )}
       </p>
     </div>
   )
