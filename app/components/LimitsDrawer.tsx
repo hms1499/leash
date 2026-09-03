@@ -53,15 +53,21 @@ export default function LimitsDrawer({
         address: account, abi: SET_POLICY_ABI, functionName: 'setPolicy',
         args: [token, nextPerTx, nextDaily],
       })
+      let confirmed = false
       for (let i = 0; i < 20; i++) {
         const l = await publicClient.readContract({
           address: account, abi: SET_POLICY_ABI, functionName: 'limits', args: [token],
         }) as readonly [bigint, bigint, bigint, bigint]
-        if (l[0] === nextPerTx && l[1] === nextDaily) break
+        if (l[0] === nextPerTx && l[1] === nextDaily) { confirmed = true; break }
         await new Promise((r) => setTimeout(r, 3000))
       }
       onSaved()
-      setOpen(false)
+      // Closing the drawer is how this UI says "saved". Only say it if the
+      // chain actually agreed; otherwise stay open and explain.
+      if (confirmed) setOpen(false)
+      else setError('Sent, but the chain has not confirmed it yet. Reload in a moment.')
+    } catch (e) {
+      setError((e as Error).message || 'The transaction was not sent.')
     } finally {
       setBusy(false)
     }
