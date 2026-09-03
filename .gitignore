@@ -8,4 +8,6 @@ cache/
 broadcast/
 .next/
 dist/
+*.tsbuildinfo
+next-env.d.ts
 .superpowers/brainstorm/
