@@ -6,6 +6,7 @@ export type FeedRow = {
   amount: bigint | null
   txHash: `0x${string}`
   blockNumber: bigint
+  operator?: `0x${string}`
 }
 
 type DecodedLog = {
@@ -32,12 +33,14 @@ export function describeLog(log: DecodedLog): FeedRow {
         ...base, kind: 'spent',
         text: `Spent to ${truncateAddress(String(log.args.to))}`,
         amount: log.args.amount as bigint,
+        operator: log.args.operator as `0x${string}`,
       }
     case 'ToppedUp':
       return {
         ...base, kind: 'toppedUp',
         text: 'Topped up the agent wallet',
         amount: log.args.amount as bigint,
+        operator: log.args.operator as `0x${string}`,
       }
     case 'PolicyChanged':
       return { ...base, kind: 'policy', text: 'Limits changed', amount: null }

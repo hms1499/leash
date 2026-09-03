@@ -17,6 +17,16 @@ describe('describeLog', () => {
     expect(row.amount).toBe(10_000n)
   })
 
+  it('exposes the operator that made the spend', () => {
+    const row = describeLog({
+      eventName: 'Spent',
+      args: { token: PAYEE, to: PAYEE, amount: 10_000n, operator: PAYEE },
+      transactionHash: TX,
+      blockNumber: 100n,
+    })
+    expect(row.operator).toBe(PAYEE)
+  })
+
   it('renders a top-up as money leaving the policy, not a payment', () => {
     const row = describeLog({
       eventName: 'ToppedUp',

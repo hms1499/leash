@@ -1,12 +1,13 @@
 'use client'
 
-import { use } from 'react'
+import { use, useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 import Meter from '../../../components/Meter'
 import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
+import AgentPanel from '../../../components/AgentPanel'
 import { useAccountState } from '../../../lib/useAccountState.js'
 import { useFeed } from '../../../lib/useFeed.js'
 import { isValidAddress, truncateAddress } from '../../../lib/address.js'
@@ -32,6 +33,23 @@ function Dashboard({ address }: { address: `0x${string}` }) {
   const feed = useFeed(address)
   const { address: connected } = useAccount()
   const isOwner = canEdit(state.owner, connected)
+
+  // The contract stores operators in a mapping(address => bool), which
+  // cannot be enumerated, so the dashboard learns the operator address from
+  // the most recent Spent or ToppedUp row — both carry it — falling back to
+  // a query parameter when the feed is empty.
+  //
+  // Read inside an effect, never during render: this page is server-rendered
+  // before it hydrates, and touching window.location in the render body
+  // produces a hydration mismatch.
+  const [operator, setOperator] = useState<string | null>(null)
+  useEffect(() => {
+    const fromFeed = feed.rows.find((r) => r.kind === 'spent' || r.kind === 'toppedUp')
+    setOperator(
+      fromFeed?.operator
+        ?? new URLSearchParams(window.location.search).get('operator'),
+    )
+  }, [feed.rows])
 
   return (
     <main>
@@ -84,6 +102,13 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           isOwner={isOwner}
           onSaved={state.refetch}
         />
+        {operator && isValidAddress(operator) && (
+          <AgentPanel
+            account={address} operator={operator} token={TOKEN}
+            decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
+            onRefuelled={state.refetch}
+          />
+        )}
         <Feed
           rows={feed.rows}
           decimals={DECIMALS}
