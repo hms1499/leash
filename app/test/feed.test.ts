@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   describeLog, rowKey, relativeAge, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
+  tailRange, MAX_LOG_RANGE_BLOCKS,
 } from '../lib/feed.js'
 
 const TX = ('0x' + 'ab'.repeat(32)) as `0x${string}`
@@ -125,5 +126,37 @@ describe('relativeAge', () => {
   it('never renders a negative age', () => {
     expect(relativeAge(-2)).toBe('just now')
     expect(relativeAge(0)).toBe('just now')
+  })
+})
+
+describe('tailRange', () => {
+  it('asks for everything after the last block already seen', () => {
+    expect(tailRange(100n, 104n)).toEqual({ from: 101n, to: 104n })
+  })
+
+  it('returns null when the chain has not moved', () => {
+    expect(tailRange(100n, 100n)).toBeNull()
+  })
+
+  it('returns null when the node answers with an older head', () => {
+    // forno is load-balanced: a later call can land on a node that is behind.
+    // Walking backwards would re-ask for logs already merged, and setting the
+    // cursor back would re-ask for them again on every poll after that.
+    expect(tailRange(100n, 97n)).toBeNull()
+  })
+
+  it('never asks for a range forno refuses', () => {
+    const r = tailRange(0n, 20_000n)!
+    expect(r.to - r.from + 1n).toBeLessThanOrEqual(MAX_LOG_RANGE_BLOCKS)
+    expect(r.to).toBe(20_000n)
+  })
+
+  it('keeps the newest blocks when it has to drop some', () => {
+    // A tab left hidden for two hours comes back 7,200 blocks behind. The
+    // recent end is the half a reader is looking at; the backfill owns
+    // history.
+    const r = tailRange(0n, 7_200n)!
+    expect(r.to).toBe(7_200n)
+    expect(r.from).toBe(7_200n - MAX_LOG_RANGE_BLOCKS + 1n)
   })
 })

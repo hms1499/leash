@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { publicClient } from './chain.js'
 import {
-  describeLog, rowKey, WINDOW_BLOCKS, type FeedRow,
+  describeLog, rowKey, tailRange, MAX_LOG_RANGE_BLOCKS, WINDOW_BLOCKS, type FeedRow,
 } from './feed.js'
 
 const EVENT_ABI = [
@@ -24,9 +24,7 @@ const EVENT_ABI = [
     { name: 'paused', type: 'bool', indexed: false }] },
 ] as const
 
-// forno refuses a wider getLogs range: 5,000 is served, 10,000 comes back
-// "Invalid parameters were provided to the RPC method" (measured 2026-09-03).
-const CHUNK = 5_000n
+const CHUNK = MAX_LOG_RANGE_BLOCKS
 
 // Enough to fill the panel. The window is walked newest-first, so stopping
 // here means the reader already has more recent activity than they can see —
@@ -128,31 +126,57 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
 
     void backfill()
 
+    // The live tail, walked with getLogs rather than through
+    // watchContractEvent. See tailRange in feed.ts for what the filter path
+    // does on forno and why nothing ever arrived through it.
+    //
     // EVENT_ABI, not spendPolicyAccountAbi: the SDK's ABI carries functions
-    // and error definitions only — it has no `event` entries, so watching
-    // with it would silently never fire.
-    const unwatch = publicClient.watchContractEvent({
-      address: account, abi: EVENT_ABI, poll: true, pollingInterval: 4000,
-      onLogs: (logs) => {
-        // A watched log is proof the chain has reached at least its block, so
-        // the reference point moves forward for free.
-        for (const l of logs) {
-          const b = l.blockNumber as bigint | null
-          if (b !== null) {
-            setHead((prev) => (prev && prev.block >= b ? prev : { block: b, seenAt: Date.now() }))
-          }
-        }
-        setRows((prev) => merge(prev, logs.map((l) => describeLog({
-          eventName: (l as { eventName: string }).eventName,
-          args: (l as { args: Record<string, unknown> }).args,
-          transactionHash: l.transactionHash as `0x${string}`,
-          blockNumber: l.blockNumber as bigint,
-          logIndex: l.logIndex as number,
-        }))))
-      },
-    })
+    // and error definitions only — it has no `event` entries, so asking for
+    // those would silently match nothing.
+    let lastSeen: bigint | null = null
 
-    return () => { cancelled = true; unwatch() }
+    async function tail() {
+      // A hidden tab is not watching. The cursor stays put, and tailRange
+      // clamps the catch-up when it comes back.
+      if (cancelled || document.hidden) return
+      try {
+        const head = await publicClient.getBlockNumber()
+        if (cancelled) return
+        // Move the reference point every poll, not only when a log arrives:
+        // it is what dates every row on screen, and a head that only advances
+        // on activity leaves a quiet account's ages drifting.
+        setHead((prev) => (prev && prev.block >= head ? prev : { block: head, seenAt: Date.now() }))
+
+        if (lastSeen === null) { lastSeen = head; return }
+        const range = tailRange(lastSeen, head)
+        if (!range) return
+
+        const logs = await publicClient.getLogs({
+          address: account, events: EVENT_ABI,
+          fromBlock: range.from, toBlock: range.to,
+        })
+        if (cancelled) return
+        lastSeen = range.to
+        if (logs.length === 0) return
+
+        setRows((prev) => merge(prev, logs.map((l) => describeLog({
+          eventName: l.eventName as string,
+          args: l.args as Record<string, unknown>,
+          transactionHash: l.transactionHash,
+          blockNumber: l.blockNumber,
+          logIndex: l.logIndex,
+        }))))
+      } catch {
+        // One failed poll is not a failed feed: forno drops a call often
+        // enough that surfacing it would mean an error banner on a working
+        // page. The cursor is only advanced on success, so the next poll
+        // asks for the same range again and nothing is skipped.
+      }
+    }
+
+    const timer = setInterval(() => { void tail() }, 4000)
+
+    return () => { cancelled = true; clearInterval(timer) }
   }, [account, fromBlock])
 
   return { rows, isLoading, error, head }
