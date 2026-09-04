@@ -28,6 +28,15 @@
      dark track, because --bad on this fill is 1.36:1 and the lock indicator
      would vanish exactly when it matters. Spec §3.1. */
   --meter-fill: #5C6E88;
+
+  /* Superseded, and deliberately still here. Meter.tsx still paints its gradient
+     from these two, and `stop-color` is not an inherited property: an undefined
+     var() with no fallback makes it invalid at computed-value time and both stops
+     fall back to black. Deleting them now would break the app's one signature
+     component in every commit until a later task redraws it. That task deletes
+     them. */
+  --meter-start: #1B4A63;
+  --meter-mid: #3E86A0;
 }
 
 body {
