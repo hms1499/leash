@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { formatAmount, refusalThreshold } from '../lib/policy.js'
-import { meterState } from '../lib/meter.js'
+import { formatAmount } from '../lib/policy.js'
+import { meterState, spendBand } from '../lib/meter.js'
 import Label from './ui/Label'
 
 type Props = {
@@ -11,6 +11,9 @@ type Props = {
   perTx: bigint
   decimals: number
   symbol: string
+  /** What the account holds. The caps say what is allowed; only this says
+   *  whether there is anything to spend. */
+  balance: bigint
   paused: boolean
   /** True until the first read returns. Zeroes are not observations. */
   loading: boolean
@@ -25,7 +28,7 @@ const CAP_W = 4
 const FILL_MAX = CAP_X - 2
 
 export default function Meter({
-  daily, remaining, perTx, decimals, symbol, paused, loading,
+  daily, remaining, perTx, decimals, symbol, balance, paused, loading,
 }: Props) {
   // False on the server and on first paint so hydration matches; the effect
   // corrects it before the first frame anyone sees.
@@ -48,7 +51,7 @@ export default function Meter({
 
   const { fillPercent, locked, animating } =
     meterState({ daily, remaining, paused, loading, visible, reduced })
-  const threshold = refusalThreshold(remaining, perTx)
+  const band = spendBand({ remaining, perTx, balance, paused, loading })
   const width = Math.max(0, Math.min(FILL_MAX, (fillPercent / 100) * FILL_MAX))
 
   return (
@@ -62,6 +65,18 @@ export default function Meter({
           {loading
             ? `— / — ${symbol}`
             : `${formatAmount(remaining, decimals)} / ${formatAmount(daily, decimals)} ${symbol}`}
+        </span>
+      </div>
+
+      {/* The allowance above is what policy permits; this is whether the money
+          is there. They are different numbers and only the first was shown. */}
+      <div className="flex justify-between items-baseline gap-3 mt-1">
+        <Label>Account holds</Label>
+        <span
+          className="num text-sm"
+          style={{ color: band.kind === 'unfunded' ? 'var(--bad)' : 'var(--dim)' }}
+        >
+          {loading ? `— ${symbol}` : `${formatAmount(balance, decimals)} ${symbol}`}
         </span>
       </div>
 
@@ -104,12 +119,21 @@ export default function Meter({
         />
       </svg>
 
-      <Label className="block mt-2" style={{ color: locked ? 'var(--bad)' : 'var(--dim)' }}>
-        {loading ? (
+      {/* Which sentence this is, is decided in lib/meter.ts so it can be
+          tested; only the wording lives here. */}
+      <Label
+        className="block mt-2"
+        style={{
+          color: locked || band.kind === 'unfunded' ? 'var(--bad)' : 'var(--dim)',
+        }}
+      >
+        {band.kind === 'loading' ? (
           'Reading the chain…'
-        ) : paused ? (
+        ) : band.kind === 'paused' ? (
           'Paused by the owner — every spend is refused'
-        ) : threshold === 0n ? (
+        ) : band.kind === 'unfunded' ? (
+          `This account holds no ${symbol} — every spend will fail`
+        ) : band.kind === 'exhausted' ? (
           'The allowance is spent — resets at UTC midnight'
         ) : (
           <>
@@ -117,7 +141,7 @@ export default function Meter({
             {/* .num even here: this figure changes live, and the whole point of
                 tabular-nums is that a changing figure must not reflow. */}
             <span className="num">
-              {formatAmount(threshold, decimals)} {symbol}
+              {formatAmount(band.amount, decimals)} {symbol}
             </span>{' '}
             will be refused
           </>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { meterState } from '../lib/meter.js'
+import { meterState, spendBand } from '../lib/meter.js'
 
 const base = {
   daily: 1_000_000n, remaining: 1_000_000n,
@@ -60,5 +60,50 @@ describe('animating', () => {
 
   it('stops before the first read returns', () => {
     expect(meterState({ ...base, loading: true }).animating).toBe(false)
+  })
+})
+
+describe('spendBand', () => {
+  const band = {
+    remaining: 1_000_000n, perTx: 500_000n, balance: 2_000_000n,
+    paused: false, loading: false,
+  }
+
+  it('states nothing before the first read returns', () => {
+    expect(spendBand({ ...band, loading: true })).toEqual({ kind: 'loading' })
+  })
+
+  it('reports the owner stopping the account above everything else', () => {
+    expect(spendBand({ ...band, paused: true, balance: 0n })).toEqual({ kind: 'paused' })
+  })
+
+  it('reports an empty account, which no cap describes', () => {
+    // The meter reads a full allowance on an account holding nothing, and
+    // every spend still reverts -- execute() consumes the cap, then the ERC-20
+    // transfer fails. Measured on 0xA73DB76f: remainingToday 1.000000 against
+    // a balance of 0.
+    expect(spendBand({ ...band, balance: 0n })).toEqual({ kind: 'unfunded' })
+  })
+
+  it('prefers the empty account to the spent allowance, because midnight does not fix it', () => {
+    expect(spendBand({ ...band, balance: 0n, remaining: 0n })).toEqual({ kind: 'unfunded' })
+  })
+
+  it('reports the spent allowance when there is money behind it', () => {
+    expect(spendBand({ ...band, remaining: 0n })).toEqual({ kind: 'exhausted' })
+  })
+
+  it('takes the per-transaction cap when it is the tightest', () => {
+    expect(spendBand(band)).toEqual({ kind: 'ceiling', amount: 500_000n })
+  })
+
+  it('takes what is left today when that is tighter than the cap', () => {
+    expect(spendBand({ ...band, remaining: 200_000n }))
+      .toEqual({ kind: 'ceiling', amount: 200_000n })
+  })
+
+  it('takes the balance when the account holds less than either cap', () => {
+    expect(spendBand({ ...band, balance: 100_000n }))
+      .toEqual({ kind: 'ceiling', amount: 100_000n })
   })
 })

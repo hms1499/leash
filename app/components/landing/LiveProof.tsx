@@ -36,6 +36,7 @@ export default function LiveProof() {
           perTx={state.perTx}
           decimals={DECIMALS}
           symbol="USDC"
+          balance={state.balance}
           paused={state.paused}
           loading={state.isLoading}
         />

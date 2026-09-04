@@ -9,10 +9,21 @@ const OWNER_AND_PAUSED_ABI = [
   { type: 'function', name: 'paused', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
 ] as const
 
+const ERC20_BALANCE_ABI = [
+  { type: 'function', name: 'balanceOf', stateMutability: 'view',
+    inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
+] as const
+
 export type AccountState = {
   daily: bigint
   remaining: bigint
   perTx: bigint
+  /**
+   * What the account actually holds. The caps above are policy accounting and
+   * never look at it, so without this the meter can read a full allowance on
+   * an account holding nothing -- and every spend still reverts.
+   */
+  balance: bigint
   paused: boolean
   owner: `0x${string}` | null
   isLoading: boolean
@@ -32,13 +43,13 @@ export function useAccountState(
   token: `0x${string}`,
 ): AccountState {
   const [state, setState] = useState<Omit<AccountState, 'refetch'>>({
-    daily: 0n, remaining: 0n, perTx: 0n, paused: false, owner: null,
+    daily: 0n, remaining: 0n, perTx: 0n, balance: 0n, paused: false, owner: null,
     isLoading: true, error: null,
   })
 
   const read = useCallback(async () => {
     try {
-      const [limits, remaining, paused, owner] = await Promise.all([
+      const [limits, remaining, paused, owner, balance] = await Promise.all([
         publicClient.readContract({
           address: account, abi: spendPolicyAccountAbi,
           functionName: 'limits', args: [token],
@@ -53,10 +64,17 @@ export function useAccountState(
         publicClient.readContract({
           address: account, abi: OWNER_AND_PAUSED_ABI, functionName: 'owner',
         }),
+        // Batched with the rest: one more call in a Promise.all that already
+        // makes four, not a second round trip.
+        publicClient.readContract({
+          address: token, abi: ERC20_BALANCE_ABI,
+          functionName: 'balanceOf', args: [account],
+        }),
       ])
       const [perTx, daily] = limits as readonly [bigint, bigint, bigint, bigint]
       setState({
         perTx, daily, remaining: remaining as bigint,
+        balance: balance as bigint,
         paused: paused as boolean, owner: owner as `0x${string}`,
         isLoading: false, error: null,
       })

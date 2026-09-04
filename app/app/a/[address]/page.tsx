@@ -182,6 +182,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         perTx={state.perTx}
         decimals={DECIMALS}
         symbol={SYMBOL}
+        balance={state.balance}
         paused={state.paused}
         loading={state.isLoading}
       />
