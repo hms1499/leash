@@ -413,11 +413,13 @@ export default function Section({
 }
 ```
 
-- [ ] **Step 3: Remove the superseded classes from `app/app/globals.css`**
+- [ ] **Step 3: Delete nothing from `app/app/globals.css` in this task**
 
-Delete `.panel`, `.btn-primary`, `.btn-ghost`, `.btn-stop`, and the two rules that follow them setting `cursor` and the disabled state. **Keep `.num` and `.label`** — `.num` is a `CLAUDE.md` convention applied inside unrelated markup, and `.label` is still used by markup Task 8 has not reached yet.
+**Pre-flight ruling, 2026-09-04.** An earlier draft deleted `.panel` and the three `.btn-*` rules here. Seven files still use them — `app/app/page.tsx`, `AgentPanel`, `ConnectButton`, `Feed`, `LimitsDrawer`, `McpHandoff`, `StopButton` — and only Task 8 converts those. Deleting the rules now ships a dashboard with no panel backgrounds and unstyled buttons in every commit from here to Task 8, on a branch the owner may demo from.
 
-The two comments attached to the deleted rules do not disappear: their content is already carried in the docstring of `Button.tsx` in Step 1. Verify that before deleting.
+This task only *adds*. All four rules are deleted in Task 8 Step 2, once the last consumer is gone.
+
+The comments attached to those rules — Tailwind's preflight cursor reset, and a disabled button reading identically to a live one on a control that spends real money — are already carried in `Button.tsx`'s docstring from Step 1. Confirm that before Task 8 removes the originals.
 
 - [ ] **Step 4: Typecheck**
 
@@ -477,7 +479,7 @@ mkdir -p app/app/setup
 git mv app/app/page.tsx app/app/setup/page.tsx
 ```
 
-The wizard's relative imports go up one more level. In `app/app/setup/page.tsx`, rewrite every `'../components/…'` to `'../../components/…'` and every `'../lib/…'` to `'../../lib/…'`. There are eleven such imports; `npx tsc --noEmit` in Step 5 names any that were missed.
+The wizard's relative imports go up one more level. In `app/app/setup/page.tsx`, rewrite every `'../components/…'` to `'../../components/…'` and every `'../lib/…'` to `'../../lib/…'`. There are nine such imports — four components and five from `lib/`; `npx tsc --noEmit` in Step 5 names any that were missed.
 
 - [ ] **Step 4: Put a placeholder at `/`**
 
@@ -1227,7 +1229,7 @@ The landing page's whole argument is that a visitor can verify without trusting.
 - Modify: `app/app/page.tsx`
 
 **Interfaces:**
-- Consumes: `useAccountState(account, token, decimals?)` returning `{ daily, remaining, perTx, paused, owner, isLoading, error, refetch }`; `useFeed(account, fromBlock?)` returning `{ rows: FeedRow[], … }`; `Meter` from Task 4; `truncateAddress` from `app/lib/address.js`.
+- Consumes: `useAccountState(account, token)` — **two arguments** — returning `{ daily, remaining, perTx, paused, owner, isLoading, error, refetch }`; `useFeed(account, fromBlock?)` returning `{ rows, isLoading, error, head }`; `Meter` from Task 4; `AddressChip` from Task 2.
 - Produces: nothing consumed later.
 
 - [ ] **Step 1: Write `app/components/landing/LiveProof.tsx`**
@@ -1240,7 +1242,7 @@ import Panel from '../ui/Panel'
 import Label from '../ui/Label'
 import { useAccountState } from '../../lib/useAccountState.js'
 import { useFeed } from '../../lib/useFeed.js'
-import { truncateAddress } from '../../lib/address.js'
+import AddressChip from '../ui/AddressChip'
 import { explorerUrl } from '../../lib/proofs.js'
 
 const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2' as const
@@ -1258,15 +1260,10 @@ export default function LiveProof() {
     <Panel>
       <div className="px-4 pt-4 flex flex-wrap items-center justify-between gap-2">
         <Label>Live on Celo mainnet</Label>
-        <a
-          className="num text-xs"
-          style={{ color: 'var(--dim)' }}
-          href={`https://celoscan.io/address/${ACCOUNT}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {truncateAddress(ACCOUNT)} ↗
-        </a>
+        {/* Pre-flight ruling: use the AddressChip primitive rather than
+            hand-rolling the identical markup. Spec §6 lists it, and an unused
+            primitive is dead code. */}
+        <AddressChip address={ACCOUNT} href={`https://celoscan.io/address/${ACCOUNT}`} />
       </div>
 
       <div className="mt-3">
@@ -1358,12 +1355,14 @@ In each of the eight components and the dashboard page, replace `<div className=
 
 Do not touch: the `pollUntil` calls, the `chainId !== REQUIRED_CHAIN_ID` guards, the `operators()` verification in `app/app/a/[address]/page.tsx:113-122`, or any `catch` branch. Every one of those guards a hazard this project paid for.
 
-- [ ] **Step 2: Delete `.label` from `app/app/globals.css`**
+- [ ] **Step 2: Delete the superseded classes from `app/app/globals.css`**
 
-Only after every `className="label"` has become `<Label>`. Search first:
+This task owns all four deletions Task 2 deliberately left in place. Only after every consumer has been converted. Search first:
 
-Run: `grep -rn 'className="label"' app/components app/app`
-Expected: no matches before deleting the rule. `.num` stays.
+Run: `grep -rnE 'className="(panel|btn-primary|btn-ghost|btn-stop|label)"' app/components app/app`
+Expected: no matches. Then delete `.panel`, `.btn-primary`, `.btn-ghost`, `.btn-stop`, the two rules that follow them setting `cursor` and the disabled state, and `.label`.
+
+**`.num` stays.** It is a `CLAUDE.md` convention applied to numerals inside otherwise unrelated markup, and nothing replaces it.
 
 - [ ] **Step 3: Typecheck**
 
