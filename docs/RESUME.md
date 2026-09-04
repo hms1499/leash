@@ -1,6 +1,6 @@
 # Resume Here — Leash
 
-Session paused 2026-09-03. This file is the entry point for the next session.
+Session paused 2026-09-04. This file is the entry point for the next session.
 Read it before anything else, then read the documents it points at.
 
 ## What this project is
@@ -11,7 +11,7 @@ contract reverts past its limits. The limits are code on Celo, not a sentence in
 a prompt, so a leaked agent key does not become an unbounded one.
 
 - **Primary track:** `judges-favorite` · **Secondary:** `askbots-growth` (not entered yet)
-- **Deadline:** 2026-09-14 09:00 GMT (16:00 ICT, Monday) — **11 days left**
+- **Deadline:** 2026-09-14 09:00 GMT (16:00 ICT, Monday) — **10 days left**
 - **Repo:** https://github.com/hms1499/leash (public)
 
 ## Read these, in order
@@ -37,7 +37,7 @@ context on decisions already taken.
 | `cd contracts && forge test` | 32/32 |
 | `cd sdk && pnpm run test` | 42/42 |
 | `cd mcp && pnpm run test` | 12/12 |
-| `cd app && pnpm run test` | 110/110 |
+| `cd app && pnpm run test` | 134/134 |
 | `cd app && pnpm run test:e2e` | 6/6 (Playwright, against a local build) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
@@ -49,6 +49,7 @@ and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
 | | |
 |---|---|
 | `SpendPolicyAccount` | `0x7aDa926B021BAef4896F51F237bCA61435E43fd2` (source-verified) |
+| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0 USDC**. Not project infrastructure; use it to exercise the UI, not as the demo account. |
 | Superseded instance | `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` — **do not use.** It accepted native CELO that could never be recovered; swept to 0 and replaced. See `docs/deployments.md`. |
 | Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.5639 CELO |
 | Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.012215 USDC |
@@ -78,11 +79,24 @@ recollection of it.
 
 The code is complete and reviewed. Nothing below is blocked on more building.
 
-1. **Connect a real wallet on Celo and click every write path once** — limits,
-   stop, resume, deploy, add agent, refuel — including a deliberate rejection
-   and a deliberate wrong-chain attempt. **No browser wallet connected during
-   the entire frontend plan.** Every write is unit-tested and none has been
-   clicked. This will find more than any further review.
+1. **Finish clicking every write path with a real wallet.** Started
+   2026-09-04 with OKX on Celo, and it found four real defects in one sitting
+   — three of them silent. See "What the wallet session found" below.
+
+   | Path | |
+   |---|---|
+   | `deploy` (wizard) | done — and broken until `f682558` |
+   | `setOperator` (wizard step 3) | done |
+   | `setPolicy` (wizard step 4) | done |
+   | `setPaused` — Stop | done |
+   | `setPaused` — Resume | done |
+   | Limits from the dashboard | **not yet** |
+   | Refuel | **not yet** — needs USDC in the account |
+   | Deliberate rejection in the wallet | **not yet** — free |
+   | Deliberate wrong-chain attempt | **not yet** — free |
+
+   Do the two free ones first; they cost nothing and exercise error paths
+   nobody has run.
 2. **Deploy to Vercel** (`app/`), then run the smoke test against the
    production URL: `LEASH_E2E_URL=https://… pnpm -F @leash/app test:e2e`. Set
    `NEXT_PUBLIC_CELO_RPC_URL` there — otherwise every visitor shares public
@@ -96,6 +110,36 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    each transaction costs ~0.0028 and reserves ~0.0046, so that is two or
    three transactions. The demo needs at least three consecutive `leash_pay`
    calls. 0.05 USDC is comfortable.
+
+### What the wallet session found (2026-09-04)
+
+Four defects, in one sitting, none of which any review had caught. Three
+failed silently. The write paths themselves were all correct — every bug was
+in what the app told the person driving it.
+
+- **A wallet that cannot estimate gas could not deploy at all** (`f682558`).
+  OKX showed "Network fee estimation unsuccessful", a fee of `--`, and a
+  Confirm that could not be pressed. The request reaching it carried only
+  `data` and `from`: no `gas`, so a wallet whose own estimator comes back empty
+  had nothing to fall back on. `CLAUDE.md` already said to always send an
+  explicit gas and the SDK already did; `deploy()` was the path that did not.
+- **The live feed never updated, and said nothing about it** (`e247872`).
+  forno accepts `eth_newFilter`, so viem takes the filter path and never
+  reaches its `getLogs` fallback; every `eth_getFilterChanges` then lands on a
+  different node and answers "filter not found" (`-32602`, five polls in six).
+  viem only rebuilds on `InvalidInputRpcError`, which that is not, and no
+  `onError` was passed. The backfill hid it — a reload always looked right.
+  **Assume nothing about `watchContractEvent` on a load-balanced RPC.**
+- **The meter said what was allowed and never what was there** (`50778cd`).
+  An account holding nothing read as a full allowance and offered a next spend
+  that would revert. The caps are policy accounting and never look at the
+  balance.
+- **An account with an agent but no spends showed no agent** (`0478e44`).
+  `operators` is not enumerable, and the dashboard learned the address only
+  from a past spend or a hand-typed `?operator=`.
+
+Also struck spec §4's landed-revert row (`879f514`), which contradicted its own
+paragraph — see the entry below.
 
 ### Known and deliberately unfixed
 
