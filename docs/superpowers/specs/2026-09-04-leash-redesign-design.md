@@ -103,13 +103,32 @@ Replaces the `:root` block in `app/globals.css`.
 | `--dim` | `#8A9199` | Labels, secondary text |
 | `--celo` | `#FCFF52` | Primary action, cap line. Nowhere else |
 | `--ok` | `#4E9E7E` | Within limit |
-| `--bad` | `#C4544F` | Blocked, paused, locked cap |
-| `--meter-fill` | `#2C3540` | Meter fill below the cap line |
+| `--bad` | `#D0605B` | Blocked, paused, locked cap |
+| `--meter-fill` | `#5C6E88` | Meter fill below the cap line |
 
-Every text-on-background pair must be measured against WCAG AA (4.5:1 for body,
-3:1 for large text and UI boundaries) during implementation. The values above
-are proposals, not verified ratios; any pair that fails is adjusted and the
-adjustment recorded here.
+**Measured 2026-09-04, not proposed.** Every pair below was computed against
+WCAG AA — 4.5:1 for body text, 3:1 for non-text UI boundaries. Two values in the
+first draft failed and were changed:
+
+- `--bad` was `#C4544F`, which reached only 4.38:1 on `--bg` and 4.04:1 on
+  `--panel`. It is used for body text ("Paused by the owner — every spend is
+  refused") so 3:1 was not the applicable threshold. Now `#D0605B`: 5.10 and 4.71.
+- `--meter-fill` was `#2C3540`, which reached 1.61:1 against the `--well` track.
+  The fill against the track is exactly the boundary that tells a viewer how much
+  allowance is left, so an invisible one defeats the component. Now `#5C6E88`: 3.84.
+
+A third failure had no colour fix. At the cap the fill would sit flush against
+the cap line, and `--bad` on `--meter-fill` is 1.36:1 — the lock indicator would
+vanish at the moment it matters most. **The fill therefore always stops short of
+the cap line, with a 2px `--well` gap between them.** The line is then always
+drawn on the dark track: 18.58:1 for `--celo`, 5.23:1 for `--bad`. The gap is
+also the truer picture — the bar strikes the wall and stops, and you can see
+that it stopped.
+
+Verified ratios: text/bg 16.14 · text/panel 14.90 · dim/bg 6.11 · dim/panel 5.64
+· celo/bg 18.13 · celo/panel 16.74 · ok/bg 6.04 · ok/panel 5.57 · bad/bg 5.10 ·
+bad/panel 4.71 · bg-on-celo (primary button) 18.13 · fill/well 3.84 ·
+celo/fill 4.84.
 
 ### 3.2 Type and motion
 
