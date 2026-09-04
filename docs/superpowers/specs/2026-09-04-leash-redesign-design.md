@@ -199,9 +199,22 @@ primitives they render. `Meter.tsx` is the exception — it is redrawn per §2.4
 
 ## 7. Testing
 
-The existing suites must stay green with no edits: 67 vitest specs in `app`,
-and the three Playwright specs, which survive because `/a/<address>` does not
-move.
+The 67 vitest specs in `app` are pure logic and stay green with no edits.
+
+**Correction to this spec, 2026-09-04.** An earlier draft claimed all three
+Playwright specs survive untouched because `/a/<address>` does not move. That is
+wrong. The route does not move, so the first spec — the dashboard renders live
+numbers with no wallet — is unaffected. The other two assert on
+`.meter-turbulence animate`, the SMIL element inside the `feTurbulence` filter
+that §2.4 deletes.
+
+Those two are **rewritten, not deleted.** The guarantee they encode is the one
+this project paid to learn: a viewer who asked the OS to stop animation must get
+no *mounted* animation, because suppressing it in CSS matches, applies, and
+achieves nothing. That guarantee still holds for the replacement meter, whose
+`<animate>` mounts under exactly the same condition as today's
+(`!loading && !paused && !atCap && visible && !reduced`). Only the selector
+changes, from `.meter-turbulence animate` to `.meter animate`.
 
 Added:
 
