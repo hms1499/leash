@@ -3,29 +3,31 @@
 @tailwind utilities;
 
 /*
- * Cafe Terrace at Night. Painterly in the chrome, clinical in the data:
- * the ground and the borders carry the reference, the numerals never do.
- * Spec 2026-09-03 section 3.
+ * The limit is the design: every screen makes visible the line the money does
+ * not cross. Replaces the Café Terrace palette, which the owner dropped on
+ * 2026-09-04 against this spec's own competitive argument. Spec §2.1, §2.3.
+ *
+ * Ratios are asserted in test/tokens.test.ts, not trusted. Any edit here that
+ * breaks WCAG AA fails the suite.
  */
 :root {
-  --bg: #0E1F2E;
-  --panel: #162D40;
-  --well: #091822;
-  --line: rgba(214, 190, 140, 0.22);
-  --text: #F2E9D8;
-  --dim: #8FA6B5;
-  --amber: #F2B441;
-  /* Celo brand yellow, verified 2026-09-03 by fetching celo.org/brand-kit
-     directly and inspecting the page's own rendered CSS: #fcff52 appears as
-     a repeated CSS custom-property value (used as a background/foreground
-     token) in that first-party page's own stylesheet — not from memory or
-     a third-party aggregator. Source: https://celo.org/brand-kit */
+  --bg: #0B0D10;
+  --panel: #14171C;
+  --well: #07090B;
+  --line: rgba(255, 255, 255, 0.10);
+  --text: #E8EAED;
+  --dim: #8A9199;
+  /* Celo brand yellow, verified 2026-09-03 by fetching celo.org/brand-kit and
+     inspecting that first-party page's own rendered CSS -- not from memory and
+     not from an aggregator. Used in exactly two roles, the primary action and
+     the cap line. A third use dilutes both. Spec §2.5. */
   --celo: #FCFF52;
-  --ok: #5FA98C;
-  --bad: #D9534F;
-  /* The meter's fill gradient: calm water shading up into --celo at the cap. */
-  --meter-start: #1B4A63;
-  --meter-mid: #3E86A0;
+  --ok: #4E9E7E;
+  --bad: #D0605B;
+  /* The fill never touches the cap line: a 2px --well gap keeps the line on the
+     dark track, because --bad on this fill is 1.36:1 and the lock indicator
+     would vanish exactly when it matters. Spec §3.1. */
+  --meter-fill: #5C6E88;
 }
 
 body {
