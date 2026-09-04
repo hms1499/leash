@@ -10,7 +10,7 @@ import Panel from '../../components/ui/Panel'
 import Label from '../../components/ui/Label'
 import Button from '../../components/ui/Button'
 import McpHandoff from '../../components/McpHandoff'
-import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../../lib/chain.js'
+import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
 import { parseAmount } from '../../lib/policy.js'
 import { isAttributionTag } from '../../lib/mcpJson.js'
@@ -122,6 +122,11 @@ export default function Onboard() {
       try {
         hash = await deployContractAsync({
           abi, bytecode, args: [connected!], chainId: REQUIRED_CHAIN_ID,
+          // Without this the request reaches the wallet carrying only `data`
+          // and `from`, and a wallet whose own estimator fails then has
+          // nothing to fall back on -- OKX showed a fee of `--` and would not
+          // let the deployment be confirmed. See DEPLOY_GAS.
+          gas: DEPLOY_GAS,
         })
       } catch {
         // Almost always the user rejecting in their wallet. Silence here

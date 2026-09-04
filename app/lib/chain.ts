@@ -47,5 +47,24 @@ export function isMiniPay(): boolean {
  */
 export const REQUIRED_CHAIN_ID = celo.id
 
+/**
+ * Explicit gas limit for the deployment, because a browser wallet asked to
+ * estimate one may simply fail.
+ *
+ * Measured 2026-09-04: OKX Wallet on Celo showed "Network fee estimation
+ * unsuccessful", a Network fee of `--`, and a Confirm button that could not be
+ * pressed. The request it received carried only `data` and `from` -- viem adds
+ * nothing Celo-specific, and the transaction itself is sound: `cast estimate
+ * --create` and viem's `estimateGas` both returned 797,607 for it against
+ * mainnet, from that same wallet, which held 12.5 CELO. With no `gas` in the
+ * request the wallet had nothing to fall back on when its own estimator came
+ * back empty, so a working deployment was unreachable.
+ *
+ * 1,200,000 is the measured 797,607 with half again as much room. Unused gas
+ * is refunded, so an over-estimate costs nothing; `sdk/src/policyClient.ts`
+ * carries the same reasoning and the price of getting it wrong.
+ */
+export const DEPLOY_GAS = 1_200_000n
+
 export const WRONG_NETWORK =
   'Your wallet is on another network. Switch it to Celo — the badge in the header does it — and try again.'
