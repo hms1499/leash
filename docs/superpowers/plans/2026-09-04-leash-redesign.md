@@ -240,13 +240,21 @@ Replace the existing `:root { … }` with the block below. Leave `@tailwind` lin
      dark track, because --bad on this fill is 1.36:1 and the lock indicator
      would vanish exactly when it matters. Spec §3.1. */
   --meter-fill: #5C6E88;
+
+  /* Superseded, and deliberately still here. Meter.tsx still paints its gradient
+     from these two, and `stop-color` is not an inherited property: an undefined
+     var() with no fallback makes it invalid at computed-value time and both stops
+     fall back to black. Deleting them now would break the app's one signature
+     component in every commit until Task 4 redraws it. Task 4 deletes them. */
+  --meter-start: #1B4A63;
+  --meter-mid: #3E86A0;
 }
 ```
 
 - [ ] **Step 5: Run the test and confirm it passes**
 
 Run: `pnpm -F @leash/app test -- tokens`
-Expected: PASS, 20 tests.
+Expected: PASS, 25 tests.
 
 - [ ] **Step 6: Run the whole app suite**
 
@@ -799,19 +807,26 @@ export default function Meter({
 }
 ```
 
-- [ ] **Step 6: Update the two e2e selectors**
+- [ ] **Step 6: Delete the two superseded gradient tokens**
+
+`Meter.tsx` no longer references them as of Step 5, so `--meter-start` and `--meter-mid` — and the comment above them explaining why Task 1 kept them — come out of the `:root` block in `app/app/globals.css` now. Confirm first:
+
+Run: `grep -rn 'meter-start\|meter-mid' app/components app/app --include='*.tsx' --include='*.css'`
+Expected: only the two declarations in `globals.css`, no consumers.
+
+- [ ] **Step 7: Update the two e2e selectors**
 
 In `app/e2e/dashboard.spec.ts`, change `.meter-turbulence animate` to `.meter animate` in both places. Update the comment above the reduced-motion spec: the expensive thing is no longer `feTurbulence`, but the guarantee is unchanged and is the reason the assertion lives in a real browser.
 
-- [ ] **Step 7: Run both suites**
+- [ ] **Step 8: Run both suites**
 
 Run: `pnpm -F @leash/app test && cd app && pnpm run test:e2e`
 Expected: all unit tests pass; all four e2e specs pass.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add app/lib/meter.ts app/test/meter.test.ts app/components/Meter.tsx app/e2e/dashboard.spec.ts
+git add app/app/globals.css app/lib/meter.ts app/test/meter.test.ts app/components/Meter.tsx app/e2e/dashboard.spec.ts
 git commit -m "feat(app): the meter strikes a hard cap line instead of a painted current"
 ```
 
