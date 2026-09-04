@@ -37,7 +37,7 @@ context on decisions already taken.
 | `cd contracts && forge test` | 32/32 |
 | `cd sdk && pnpm run test` | 42/42 |
 | `cd mcp && pnpm run test` | 12/12 |
-| `cd app && pnpm run test` | 57/57 |
+| `cd app && pnpm run test` | 67/67 |
 | `cd app && pnpm run test:e2e` | 3/3 (Playwright, against a local build) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
