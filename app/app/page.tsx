@@ -3,6 +3,7 @@ import Hero from '../components/landing/Hero'
 import Contrast from '../components/landing/Contrast'
 import HowItWorks from '../components/landing/HowItWorks'
 import AgentTools from '../components/landing/AgentTools'
+import LiveProof from '../components/landing/LiveProof'
 import ProofTable from '../components/landing/ProofTable'
 import Section from '../components/ui/Section'
 import Button from '../components/ui/Button'
@@ -11,6 +12,7 @@ export default function Landing() {
   return (
     <main>
       <Hero />
+      <Section><LiveProof /></Section>
       <Section title="The difference"><Contrast /></Section>
       <Section title="How it works"><HowItWorks /></Section>
       <Section title="What your agent gets"><AgentTools /></Section>
