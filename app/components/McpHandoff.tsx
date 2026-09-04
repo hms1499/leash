@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { buildMcpJson, type McpHandoff as Handoff } from '../lib/mcpJson.js'
+import Panel from './ui/Panel'
+import Label from './ui/Label'
+import Button from './ui/Button'
 
 export default function McpHandoff({
   handoff, tagStatus = 'ok',
@@ -20,16 +23,17 @@ export default function McpHandoff({
   const block = buildMcpJson(handoff)
 
   return (
-    <div className="panel p-4">
-      <p className="label">Add this to your agent&apos;s .mcp.json</p>
+    <Panel className="p-4">
+      <Label className="block">Add this to your agent&apos;s .mcp.json</Label>
       <pre
         className="num text-xs mt-2 p-3 overflow-x-auto"
         style={{ background: 'var(--well)', borderRadius: 4 }}
       >
         {block}
       </pre>
-      <button
-        className="btn-primary mt-3"
+      <Button
+        variant="primary"
+        className="mt-3"
         onClick={() => {
           void (async () => {
             try {
@@ -49,7 +53,7 @@ export default function McpHandoff({
         }}
       >
         {copied ? 'Copied' : 'Copy'}
-      </button>
+      </Button>
       {copyFailed && (
         <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
           Copy failed — select the block and copy manually.
@@ -80,6 +84,6 @@ export default function McpHandoff({
       <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
         Point <code>args</code> at your own checkout of the Leash repository.
       </p>
-    </div>
+    </Panel>
   )
 }

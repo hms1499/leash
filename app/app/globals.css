@@ -43,60 +43,6 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.label {
-  font-size: 0.6875rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--dim);
-}
-
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-.btn-primary {
-  background: var(--celo);
-  color: var(--bg);
-  font-weight: 700;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-}
-
-.btn-ghost {
-  border: 1px solid var(--line);
-  color: var(--text);
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-}
-
-.btn-stop {
-  border: 1px solid var(--bad);
-  color: var(--bad);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-}
-
-/* Tailwind 3's preflight resets button cursors to `auto`, so without this
-   every button in the app showed an arrow. And a disabled button looked
-   exactly like a live one — only the label changed — which on a write that
-   spends real money is the wrong thing to leave ambiguous. */
-.btn-primary,
-.btn-ghost,
-.btn-stop {
-  cursor: pointer;
-}
-
-.btn-primary:disabled,
-.btn-ghost:disabled,
-.btn-stop:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
 /* The ground drifts; the data snaps. Someone who has asked the OS to stop
    animating gets a still meter that is still correct — enforced in Meter.tsx,
    not here. A `display: none` on an <animate> element applies and achieves

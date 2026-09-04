@@ -7,6 +7,9 @@ import { formatAmount, parseAmount } from '../lib/policy.js'
 import { transactionsLeft } from '../lib/gasFloat.js'
 import { truncateAddress } from '../lib/address.js'
 import { pollUntil } from '../lib/confirm.js'
+import Panel from './ui/Panel'
+import Label from './ui/Label'
+import Button from './ui/Button'
 
 const ERC20_ABI = [
   { type: 'function', name: 'balanceOf', stateMutability: 'view',
@@ -83,11 +86,11 @@ export default function AgentPanel({
 
   if (float === null) {
     return failed ? (
-      <div className="panel p-4">
+      <Panel className="p-4">
         <p className="text-sm" style={{ color: 'var(--bad)' }}>
           Could not read the agent wallet balance.
         </p>
-      </div>
+      </Panel>
     ) : null
   }
   const left = transactionsLeft(float)
@@ -133,8 +136,8 @@ export default function AgentPanel({
   }
 
   return (
-    <div className="panel p-4">
-      <p className="label">Agent wallet</p>
+    <Panel className="p-4">
+      <Label className="block">Agent wallet</Label>
       <p className="num text-sm mt-1">{truncateAddress(operator)}</p>
       <p className="text-sm mt-2" style={{ color: low ? 'var(--bad)' : 'var(--dim)' }}>
         <span className="num">{formatAmount(float, decimals)} {symbol}</span> — about{' '}
@@ -144,10 +147,10 @@ export default function AgentPanel({
       </p>
       {note && <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>{note}</p>}
       {isOwner && low && (
-        <button className="btn-primary mt-3" disabled={busy} onClick={() => void refuel()}>
+        <Button variant="primary" className="mt-3" disabled={busy} onClick={() => void refuel()}>
           {busy ? 'Sending…' : `Send 0.05 ${symbol} for gas`}
-        </button>
+        </Button>
       )}
-    </div>
+    </Panel>
   )
 }

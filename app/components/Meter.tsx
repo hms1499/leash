@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { formatAmount, refusalThreshold } from '../lib/policy.js'
 import { meterState } from '../lib/meter.js'
+import Label from './ui/Label'
 
 type Props = {
   daily: bigint
@@ -53,7 +54,7 @@ export default function Meter({
   return (
     <div className="px-4 py-3" style={{ background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
       <div className="flex justify-between items-baseline gap-3">
-        <span className="label">Remaining today</span>
+        <Label>Remaining today</Label>
         <span className="num text-sm" style={{ color: locked ? 'var(--bad)' : 'var(--text)' }}>
           {/* Before the first read there is nothing to state. 0.000000 here is
               indistinguishable from a spent allowance, and that is the first
@@ -103,7 +104,7 @@ export default function Meter({
         />
       </svg>
 
-      <p className="label mt-2" style={{ color: locked ? 'var(--bad)' : 'var(--dim)' }}>
+      <Label className="block mt-2" style={{ color: locked ? 'var(--bad)' : 'var(--dim)' }}>
         {loading ? (
           'Reading the chain…'
         ) : paused ? (
@@ -121,7 +122,7 @@ export default function Meter({
             will be refused
           </>
         )}
-      </p>
+      </Label>
     </div>
   )
 }

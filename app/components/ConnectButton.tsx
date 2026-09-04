@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { isMiniPay } from '../lib/chain.js'
 import { truncateAddress } from '../lib/address.js'
+import Button from './ui/Button'
 
 export default function ConnectButton() {
   const { address, isConnected } = useAccount()
@@ -19,18 +20,18 @@ export default function ConnectButton() {
 
   if (isConnected && address) {
     return (
-      <button className="btn-ghost" onClick={() => disconnect()}>
+      <Button variant="ghost" onClick={() => disconnect()}>
         {truncateAddress(address)}
-      </button>
+      </Button>
     )
   }
 
   return (
-    <button
-      className="btn-primary"
+    <Button
+      variant="primary"
       onClick={() => connectors[0] && connect({ connector: connectors[0] })}
     >
       Connect wallet
-    </button>
+    </Button>
   )
 }

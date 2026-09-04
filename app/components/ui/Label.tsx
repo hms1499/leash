@@ -1,14 +1,26 @@
+/**
+ * The type treatment, exported separately so a component that must render its
+ * own element -- CopyAddress owns a <button> and its copy state -- can wear
+ * the label look without a second copy of these four values.
+ */
+export const LABEL_STYLE: React.CSSProperties = {
+  fontSize: '0.6875rem',
+  letterSpacing: '0.16em',
+  textTransform: 'uppercase',
+  color: 'var(--dim)',
+}
+
 export default function Label({
-  className = '', children,
-}: { className?: string; children: React.ReactNode }) {
+  className = '', style, children,
+}: {
+  className?: string
+  /** Merged last, so a caller can recolour a label -- an error label is
+   *  --bad -- without restating what makes it a label. */
+  style?: React.CSSProperties
+  children: React.ReactNode
+}) {
   return (
-    <span
-      className={className}
-      style={{
-        fontSize: '0.6875rem', letterSpacing: '0.16em',
-        textTransform: 'uppercase', color: 'var(--dim)',
-      }}
-    >
+    <span className={className} style={{ ...LABEL_STYLE, ...style }}>
       {children}
     </span>
   )

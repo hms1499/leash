@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { formatAmount } from '../lib/policy.js'
 import { relativeAge, rowKey, WINDOW_LABEL, type FeedRow } from '../lib/feed.js'
+import Panel from './ui/Panel'
+import Label from './ui/Label'
 
 export default function Feed({
   account, rows, decimals, symbol, isLoading, hasPolicy, error, head,
@@ -26,25 +28,25 @@ export default function Feed({
   }, [])
 
   if (hasPolicy === null) {
-    return <div className="panel p-4"><p className="label">Reading the chain…</p></div>
+    return <Panel className="p-4"><Label className="block">Reading the chain…</Label></Panel>
   }
 
   // A freshly deployed account has no policy, and every operator path reverts
   // TokenNotConfigured until the owner sets one. Saying so beats an empty list.
   if (!hasPolicy) {
     return (
-      <div className="panel p-4">
-        <p className="label">No limits set</p>
+      <Panel className="p-4">
+        <Label className="block">No limits set</Label>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
           Until the owner sets a per-transaction and a daily cap, this account
           refuses every spend. Open <strong>Limits</strong> to set them.
         </p>
-      </div>
+      </Panel>
     )
   }
 
   if (isLoading) {
-    return <div className="panel p-4"><p className="label">Loading activity…</p></div>
+    return <Panel className="p-4"><Label className="block">Loading activity…</Label></Panel>
   }
 
   // A failed log scan must never be shown as a quiet account. forno is
@@ -52,20 +54,20 @@ export default function Feed({
   // then would be the UI asserting something it does not know.
   if (error) {
     return (
-      <div className="panel p-4">
-        <p className="label" style={{ color: 'var(--bad)' }}>Could not load activity</p>
+      <Panel className="p-4">
+        <Label className="block" style={{ color: 'var(--bad)' }}>Could not load activity</Label>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
           The chain did not answer. The allowance above is still correct — it is
           read separately and does not depend on this. Reload to try again.
         </p>
-      </div>
+      </Panel>
     )
   }
 
   if (rows.length === 0) {
     return (
-      <div className="panel p-4">
-        <p className="label">No activity yet</p>
+      <Panel className="p-4">
+        <Label className="block">No activity yet</Label>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
           {/* The span this states is the span that was scanned — the label
               is exported beside the block count it is derived from. */}
@@ -82,12 +84,12 @@ export default function Feed({
             See the full history on Celoscan →
           </a>
         </p>
-      </div>
+      </Panel>
     )
   }
 
   return (
-    <div className="panel px-4">
+    <Panel className="px-4">
       {rows.map((r) => (
         <div
           key={rowKey(r)}
@@ -100,27 +102,31 @@ export default function Feed({
           />
           <span className="flex-1">{r.text}</span>
           {head && (
-            <span className="label shrink-0">
+            <Label className="shrink-0">
               {relativeAge(
                 Number(head.block - r.blockNumber) + (Date.now() - head.seenAt) / 1000,
               )}
-            </span>
+            </Label>
           )}
           {r.amount !== null && (
-            <span className="num" style={{ color: 'var(--amber)' }}>
+            // --text, stated rather than inherited. This read `var(--amber)`,
+            // a token the 2026-09-04 palette replaced and nothing defines, so
+            // the declaration was invalid and the figure fell back to the
+            // inherited colour. --celo is spoken for in exactly two roles and
+            // cannot be the third.
+            <span className="num" style={{ color: 'var(--text)' }}>
               {formatAmount(r.amount, decimals)} {symbol}
             </span>
           )}
           <a
-            className="label"
             href={`https://celoscan.io/tx/${r.txHash}`}
             target="_blank"
             rel="noreferrer"
           >
-            tx
+            <Label>tx</Label>
           </a>
         </div>
       ))}
-    </div>
+    </Panel>
   )
 }

@@ -7,6 +7,7 @@ import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
 import NetworkBadge from '../../../components/NetworkBadge'
 import CopyAddress from '../../../components/CopyAddress'
+import Label, { LABEL_STYLE } from '../../../components/ui/Label'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
@@ -152,17 +153,15 @@ function Dashboard({ address }: { address: `0x${string}` }) {
             and the address is what tells you *which* account stopped. */}
         <CopyAddress
           address={address}
-          style={{ color: state.paused ? 'var(--text)' : undefined }}
+          style={{ ...LABEL_STYLE, color: state.paused ? 'var(--text)' : undefined }}
         />
         <a
-          className="label"
           href={`https://celoscan.io/address/${address}`}
           target="_blank"
           rel="noreferrer"
           title="Open on Celoscan"
-          style={{ color: state.paused ? 'var(--text)' : undefined }}
         >
-          ↗
+          <Label style={{ color: state.paused ? 'var(--text)' : undefined }}>↗</Label>
         </a>
         <span className="ml-auto flex items-center gap-3">
           <NetworkBadge />
@@ -207,9 +206,9 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           />
         )}
         {!operator && operatorCheckFailed && (
-          <p className="label mt-2" style={{ color: 'var(--bad)' }}>
+          <Label className="block mt-2" style={{ color: 'var(--bad)' }}>
             Could not verify the agent wallet — still trying.
-          </p>
+          </Label>
         )}
         <Feed
           account={address}

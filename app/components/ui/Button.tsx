@@ -14,12 +14,22 @@ const BASE =
  * (spec §2.2), so nothing supplies it if this does not.
  */
 export default function Button({
-  variant = 'ghost', style, ...rest
+  variant = 'ghost', className = '', style, ...rest
 }: { variant?: Variant } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const tone: Record<Variant, React.CSSProperties> = {
     primary: { background: 'var(--celo)', color: 'var(--bg)', fontWeight: 700, outlineColor: 'var(--celo)' },
     ghost: { border: '1px solid var(--line)', color: 'var(--text)', outlineColor: 'var(--text)' },
     stop: { border: '1px solid var(--bad)', color: 'var(--bad)', fontWeight: 700, letterSpacing: '0.1em', outlineColor: 'var(--bad)' },
   }
-  return <button className={BASE} style={{ ...tone[variant], ...style }} {...rest} />
+  // Appended, not spread through `rest`. A caller passing className="mt-3"
+  // would otherwise replace BASE outright and silently lose the cursor, the
+  // focus ring and the disabled treatment -- the three things this component
+  // exists to guarantee.
+  return (
+    <button
+      className={`${BASE} ${className}`.trimEnd()}
+      style={{ ...tone[variant], ...style }}
+      {...rest}
+    />
+  )
 }

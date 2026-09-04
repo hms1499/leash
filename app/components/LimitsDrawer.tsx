@@ -5,6 +5,9 @@ import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 import { formatAmount, validateLimits } from '../lib/policy.js'
 import { pollUntil } from '../lib/confirm.js'
+import Panel from './ui/Panel'
+import Label from './ui/Label'
+import Button from './ui/Button'
 
 const SET_POLICY_ABI = [
   { type: 'function', name: 'setPolicy', stateMutability: 'nonpayable',
@@ -93,16 +96,16 @@ export default function LimitsDrawer({
 
   return (
     <>
-      <button className="btn-ghost" onClick={() => setOpen(!open)}>Limits</button>
+      <Button variant="ghost" onClick={() => setOpen(!open)}>Limits</Button>
       {open && (
-        <div className="panel p-4 mt-3">
+        <Panel className="p-4 mt-3">
           {loading ? (
             // Never print 0.00 as if it were read. An owner cannot tell a
             // placeholder from a policy that refuses everything.
-            <p className="label">Reading the current limits…</p>
+            <Label className="block">Reading the current limits…</Label>
           ) : (
             <>
-              <p className="label">Per transaction ({symbol})</p>
+              <Label className="block">Per transaction ({symbol})</Label>
               <input
                 className="num w-full mt-1 mb-3 p-2"
                 style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
@@ -110,7 +113,7 @@ export default function LimitsDrawer({
                 onChange={(e) => { setDirty(true); setPerTx(e.target.value) }}
                 disabled={!isOwner || busy}
               />
-              <p className="label">Per day ({symbol})</p>
+              <Label className="block">Per day ({symbol})</Label>
               <input
                 className="num w-full mt-1 mb-3 p-2"
                 style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
@@ -120,15 +123,15 @@ export default function LimitsDrawer({
               />
               {error && <p className="text-sm mb-2" style={{ color: 'var(--bad)' }}>{error}</p>}
               {isOwner ? (
-                <button className="btn-primary" disabled={busy} onClick={() => void save()}>
+                <Button variant="primary" disabled={busy} onClick={() => void save()}>
                   {busy ? 'Saving…' : 'Save'}
-                </button>
+                </Button>
               ) : (
-                <p className="label">Only the owner can change these limits.</p>
+                <Label className="block">Only the owner can change these limits.</Label>
               )}
             </>
           )}
-        </div>
+        </Panel>
       )}
     </>
   )

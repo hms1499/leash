@@ -2,6 +2,8 @@
 
 import { useAccount, useSwitchChain } from 'wagmi'
 import { celo } from 'viem/chains'
+import Button from './ui/Button'
+import Label from './ui/Label'
 
 /**
  * Which chain the wallet is actually on, and a way out when it is the wrong
@@ -17,17 +19,20 @@ export default function NetworkBadge() {
   const { switchChain, isPending } = useSwitchChain()
 
   if (!isConnected || chainId === celo.id) {
-    return <span className="label" style={{ color: 'var(--celo)' }}>Celo</span>
+    return <Label style={{ color: 'var(--celo)' }}>Celo</Label>
   }
 
   return (
-    <button
-      className="label"
-      style={{ color: 'var(--bad)', border: '1px solid var(--bad)', borderRadius: 4, padding: '0.25rem 0.5rem' }}
+    <Button
+      variant="stop"
+      // The label type treatment, kept: this reads as a badge in the header
+      // band, not as an action of the same weight as Connect. The variant is
+      // what supplies the cursor, the focus ring and the disabled state.
+      style={{ padding: '0.25rem 0.5rem', fontSize: '0.6875rem', letterSpacing: '0.16em', textTransform: 'uppercase' }}
       disabled={isPending}
       onClick={() => switchChain({ chainId: celo.id })}
     >
       {isPending ? 'Switching…' : 'Wrong network — switch to Celo'}
-    </button>
+    </Button>
   )
 }

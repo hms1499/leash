@@ -14,12 +14,15 @@ import { truncateAddress } from '../lib/address.js'
  * something that did not happen.
  */
 export default function CopyAddress({
-  address, full = false, className = 'label', style,
+  address, full = false, className = '', style,
 }: {
   address: `0x${string}`
   /** Show all 42 characters rather than the truncated form. */
   full?: boolean
   className?: string
+  /** No default tone: the dashboard wears LABEL_STYLE from ui/Label, the
+   *  wizard wears `.num`. This used to default to the `label` class, which
+   *  no longer exists. */
   style?: React.CSSProperties
 }) {
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle')

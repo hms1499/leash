@@ -6,6 +6,9 @@ import { KNOWN_FEE_ADAPTERS, FEE_CURRENCY_DIRECTORY } from '@leash/sdk'
 import ConnectButton from '../../components/ConnectButton'
 import NetworkBadge from '../../components/NetworkBadge'
 import CopyAddress from '../../components/CopyAddress'
+import Panel from '../../components/ui/Panel'
+import Label from '../../components/ui/Label'
+import Button from '../../components/ui/Button'
 import McpHandoff from '../../components/McpHandoff'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
@@ -257,17 +260,17 @@ export default function Onboard() {
 
       {error && <p style={{ color: 'var(--bad)' }}>{error}</p>}
 
-      <section className="panel p-4">
+      <Panel as="section" className="p-4">
         <div className="flex items-center justify-between">
-          <p className="label">Step 1 — Connect</p>
+          <Label className="block">Step 1 — Connect</Label>
           <NetworkBadge />
         </div>
         <div className="mt-2"><ConnectButton /></div>
-      </section>
+      </Panel>
 
       {isConnected && (
-        <section className="panel p-4">
-          <p className="label">Step 2 — Deploy your account</p>
+        <Panel as="section" className="p-4">
+          <Label className="block">Step 2 — Deploy your account</Label>
           <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
             You own it. Costs about $0.013 in gas.
           </p>
@@ -278,17 +281,17 @@ export default function Onboard() {
               </div>
             )
             : (
-              <button className="btn-primary mt-2" disabled={deploying} onClick={() => void deploy()}>
+              <Button variant="primary" className="mt-2" disabled={deploying} onClick={() => void deploy()}>
                 {deploying ? 'Deploying…' : 'Deploy'}
-              </button>
+              </Button>
             )}
-        </section>
+        </Panel>
       )}
 
       {account && (
         <>
-          <section className="panel p-4">
-            <p className="label">Step 3 — Add your agent</p>
+          <Panel as="section" className="p-4">
+            <Label className="block">Step 3 — Add your agent</Label>
             <p className="text-sm mt-1" style={{ color: 'var(--bad)' }}>
               This must be the wallet you registered as your agentWalletAddress.
               A different address silently voids your x402 attribution — nothing
@@ -300,38 +303,38 @@ export default function Onboard() {
               placeholder="0x…" value={agent} onChange={(e) => setAgent(e.target.value)}
               disabled={agentBusy}
             />
-            <button className="btn-primary mt-2" disabled={agentBusy} onClick={() => void addAgent()}>
+            <Button variant="primary" className="mt-2" disabled={agentBusy} onClick={() => void addAgent()}>
               {agentBusy ? 'Adding…' : 'Add agent'}
-            </button>
+            </Button>
             {agentNote && (
               <p className="text-sm mt-2" style={{ color: agentNote === 'Agent added.' ? 'var(--ok)' : 'var(--bad)' }}>
                 {agentNote}
               </p>
             )}
-          </section>
+          </Panel>
 
-          <section className="panel p-4">
-            <p className="label">Step 4 — Set limits (USDC)</p>
-            <p className="label mt-2">Per transaction</p>
+          <Panel as="section" className="p-4">
+            <Label className="block">Step 4 — Set limits (USDC)</Label>
+            <Label className="block mt-2">Per transaction</Label>
             <input className="num w-full mt-1 p-2"
               style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
               value={perTx} onChange={(e) => setPerTx(e.target.value)} disabled={limitsBusy} />
-            <p className="label mt-2">Per day</p>
+            <Label className="block mt-2">Per day</Label>
             <input className="num w-full mt-1 p-2"
               style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
               value={daily} onChange={(e) => setDaily(e.target.value)} disabled={limitsBusy} />
-            <button className="btn-primary mt-2" disabled={limitsBusy} onClick={() => void setLimits()}>
+            <Button variant="primary" className="mt-2" disabled={limitsBusy} onClick={() => void setLimits()}>
               {limitsBusy ? 'Saving…' : 'Save limits'}
-            </button>
+            </Button>
             {limitsNote && (
               <p className="text-sm mt-2" style={{ color: limitsNote === 'Limits saved.' ? 'var(--ok)' : 'var(--bad)' }}>
                 {limitsNote}
               </p>
             )}
-          </section>
+          </Panel>
 
-          <section className="panel p-4">
-            <p className="label">Step 5 — Fund it</p>
+          <Panel as="section" className="p-4">
+            <Label className="block">Step 5 — Fund it</Label>
             <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
               Send USDC to <CopyAddress address={account} full className="num" />. Send USDC, not
               CELO: a native CELO send is rejected outright, on purpose. CELO
@@ -339,15 +342,15 @@ export default function Onboard() {
               arrive — but the policy is denominated in USDC, so the agent
               could never spend it and only you could sweep it back.
             </p>
-            <button className="btn-ghost mt-2" disabled={checkingFunds} onClick={() => void waitForFunding()}>
+            <Button variant="ghost" className="mt-2" disabled={checkingFunds} onClick={() => void waitForFunding()}>
               {funded ? 'Funded' : checkingFunds ? 'Checking…' : 'Check balance'}
-            </button>
-          </section>
+            </Button>
+          </Panel>
 
           {feeAdapter && (
             <section>
-              <p className="label mb-2">Step 6 — Connect your agent</p>
-              <p className="label">Attribution tag</p>
+              <Label className="block mb-2">Step 6 — Connect your agent</Label>
+              <Label className="block">Attribution tag</Label>
               <p className="text-sm mt-1 mb-2" style={{ color: 'var(--dim)' }}>
                 <code>celo_</code> plus 12 hex characters. It is issued when you
                 register your project on{' '}
@@ -386,7 +389,7 @@ export default function Onboard() {
                 }}
                 tagStatus={tagStatus}
               />
-              <a className="label block mt-3" href={`/a/${account}`}>Open your dashboard →</a>
+              <a className="block mt-3" href={`/a/${account}`}><Label>Open your dashboard →</Label></a>
             </section>
           )}
         </>

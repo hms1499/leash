@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
+import Button from './ui/Button'
+import Label from './ui/Label'
 
 const PAUSE_ABI = [
   { type: 'function', name: 'setPaused', stateMutability: 'nonpayable',
@@ -31,7 +33,7 @@ export default function StopButton({
   if (!isOwner) {
     // `paused` defaults to false before the first read; printing "Active"
     // then states something nobody has checked.
-    return <span className="label">{loading ? '—' : paused ? 'Paused' : 'Active'}</span>
+    return <Label>{loading ? '—' : paused ? 'Paused' : 'Active'}</Label>
   }
 
   async function send(next: boolean) {
@@ -69,20 +71,20 @@ export default function StopButton({
 
   return (
     <span className="flex items-center gap-2">
-      {note && <span className="label" style={{ color: 'var(--bad)' }}>{note}</span>}
+      {note && <Label style={{ color: 'var(--bad)' }}>{note}</Label>}
       {paused ? (
-        <button className="btn-ghost" disabled={busy} onClick={() => void send(false)}>
+        <Button variant="ghost" disabled={busy} onClick={() => void send(false)}>
           {busy ? 'Resuming…' : 'Resume'}
-        </button>
+        </Button>
       ) : (
-        <button
-          className="btn-stop"
+        <Button
+          variant="stop"
           disabled={busy}
           onClick={() => (arming ? void send(true) : setArming(true))}
           onBlur={() => setArming(false)}
         >
           {busy ? 'Stopping…' : arming ? 'Confirm stop' : '■ Stop'}
-        </button>
+        </Button>
       )}
     </span>
   )
