@@ -3,8 +3,9 @@ import './globals.css'
 import Providers from './providers'
 
 export const metadata: Metadata = {
-  title: 'Leash',
-  description: 'Give an AI agent a wallet without trusting it.',
+  title: 'Leash — an agent wallet you do not have to trust',
+  description:
+    'Spend limits for an AI agent, enforced by a contract on Celo mainnet rather than by a prompt. Live, verifiable, and open source.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
