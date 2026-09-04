@@ -145,3 +145,52 @@ export function describeLog(log: DecodedLog): FeedRow {
       return { ...base, kind: 'policy', text: log.eventName, amount: null }
   }
 }
+
+export type OperatorChange = {
+  operator: `0x${string}`
+  enabled: boolean
+  blockNumber: bigint
+  logIndex: number
+}
+
+/**
+ * Which operator the dashboard should offer to show, from the account's
+ * `OperatorChanged` history.
+ *
+ * `operators` is a plain `mapping(address => bool)` and is not enumerable, so
+ * the contract cannot be asked who its operators are. Until this existed the
+ * dashboard learned the address only from a past `Spent` or `ToppedUp` row, or
+ * from a hand-typed `?operator=`. An account configured but not yet used —
+ * exactly what the wizard produces — therefore never showed its agent panel,
+ * and the step the owner had just completed was invisible.
+ *
+ * These events are read from the getLogs calls the history walk already makes,
+ * so discovery costs no extra round trips. They are deliberately not feed
+ * rows: spec §1.3 fixes the feed at Spent, ToppedUp, PolicyChanged and
+ * PausedSet, and this is a different question.
+ *
+ * The answer here is only ever a candidate. `operators()` on the account still
+ * decides, and still fails closed — a name is not an authorisation
+ * (`CLAUDE.md`).
+ */
+export function pickOperator(changes: readonly OperatorChange[]): `0x${string}` | null {
+  // Chain order, not arrival order: the backfill walks newest-first and merges
+  // with the live tail, so these arrive shuffled as a matter of course.
+  const ordered = [...changes].sort((a, b) =>
+    a.blockNumber === b.blockNumber
+      ? a.logIndex - b.logIndex
+      : Number(a.blockNumber - b.blockNumber))
+
+  // Last write per address wins, and the newest still-enabled one is the most
+  // useful to offer. A revoked operator is not a candidate at all.
+  const live = new Map<string, { address: `0x${string}`; at: number }>()
+  ordered.forEach((c, i) => {
+    const key = c.operator.toLowerCase()
+    if (c.enabled) live.set(key, { address: c.operator, at: i })
+    else live.delete(key)
+  })
+
+  let best: { address: `0x${string}`; at: number } | null = null
+  for (const entry of live.values()) if (!best || entry.at > best.at) best = entry
+  return best?.address ?? null
+}

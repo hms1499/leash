@@ -113,7 +113,12 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     async function resolve() {
       const fromFeed = feed.rows.find((r) => r.kind === 'spent' || r.kind === 'toppedUp')?.operator
       const fromQuery = new URLSearchParams(window.location.search).get('operator')
-      const candidate = fromFeed ?? fromQuery
+      // A spend proves the operator is real and working, so it wins. Failing
+      // that, who the owner authorised: without this an account set up but not
+      // yet used — what the wizard leaves behind — never showed its agent at
+      // all. The query parameter stays last and stays untrusted; operators()
+      // below is what decides, either way.
+      const candidate = fromFeed ?? feed.operatorCandidate ?? fromQuery
       if (!candidate || !isValidAddress(candidate)) {
         if (!cancelled) { setOperator(null); setOperatorCheckFailed(false) }
         return
@@ -134,7 +139,11 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     }
     void resolve()
     return () => { cancelled = true }
-  }, [feed.rows, address, retry])
+    // operatorCandidate belongs here: on an account that has been configured
+    // but never used it is the only thing that changes, so leaving it out
+    // would keep the panel hidden for exactly the case it was added for. It is
+    // an address or null, compared by value.
+  }, [feed.rows, feed.operatorCandidate, address, retry])
 
   return (
     <main>

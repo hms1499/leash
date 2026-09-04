@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   describeLog, rowKey, relativeAge, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
-  tailRange, MAX_LOG_RANGE_BLOCKS,
+  tailRange, MAX_LOG_RANGE_BLOCKS, pickOperator,
 } from '../lib/feed.js'
 
 const TX = ('0x' + 'ab'.repeat(32)) as `0x${string}`
@@ -158,5 +158,48 @@ describe('tailRange', () => {
     const r = tailRange(0n, 7_200n)!
     expect(r.to).toBe(7_200n)
     expect(r.from).toBe(7_200n - MAX_LOG_RANGE_BLOCKS + 1n)
+  })
+})
+
+describe('pickOperator', () => {
+  const at = (operator: string, enabled: boolean, blockNumber: bigint, logIndex = 0) =>
+    ({ operator: operator as `0x${string}`, enabled, blockNumber, logIndex })
+
+  const A = '0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6'
+  const B = '0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57'
+
+  it('has nobody to suggest when the account has never named one', () => {
+    expect(pickOperator([])).toBeNull()
+  })
+
+  it('suggests the operator the owner authorised', () => {
+    expect(pickOperator([at(A, true, 100n)])).toBe(A)
+  })
+
+  it('does not suggest one the owner has since revoked', () => {
+    expect(pickOperator([at(A, true, 100n), at(A, false, 200n)])).toBeNull()
+  })
+
+  it('suggests one re-authorised after a revocation', () => {
+    expect(pickOperator([at(A, true, 100n), at(A, false, 200n), at(A, true, 300n)])).toBe(A)
+  })
+
+  it('reads the events in chain order, not the order they arrived', () => {
+    // The backfill walks newest-first and merges with the live tail, so this
+    // function is handed logs out of order as a matter of course.
+    expect(pickOperator([at(A, false, 200n), at(A, true, 100n)])).toBeNull()
+  })
+
+  it('separates two writes in one block by log index', () => {
+    expect(pickOperator([at(A, true, 100n, 1), at(A, false, 100n, 0)])).toBe(A)
+  })
+
+  it('prefers the most recently authorised when the account has several', () => {
+    expect(pickOperator([at(A, true, 100n), at(B, true, 300n)])).toBe(B)
+    expect(pickOperator([at(A, true, 300n), at(B, true, 100n)])).toBe(A)
+  })
+
+  it('falls back to another live operator when the newest was revoked', () => {
+    expect(pickOperator([at(A, true, 100n), at(B, true, 200n), at(B, false, 300n)])).toBe(A)
   })
 })
