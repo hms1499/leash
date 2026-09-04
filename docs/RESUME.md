@@ -106,12 +106,21 @@ knowing before touching the app:
 - The onboarding wizard asks for an attribution tag with no link explaining
   how to get one, and does not validate its shape — so a mistyped tag yields a
   `.mcp.json` that looks complete and an MCP server that dies at startup.
-- Six spec §4/§5 items were never built: address click-to-copy, relative
-  timestamps on feed rows, and a QR code on the fund step among them. The
-  network badge, the seventh, now exists.
-- Spec §7 asks for a feed-formatting test covering "each custom error name".
-  That is not buildable: a reverted transaction emits no logs, so `getLogs`
-  can never surface one. Strike it from the spec rather than chase it.
+- Of the seven spec §4/§5 items once listed here, three now exist: the network
+  badge, address click-to-copy (`42a84b5`), and relative timestamps on feed
+  rows (`9b80f5f`). Four remain unbuilt, a QR code on the fund step among them.
+- **Landed reverts are not in the feed and will not be.** A reverted
+  transaction emits no logs, so `getLogs` can never surface one. Spec §7 asked
+  for a test of it (struck 2026-09-03) and spec §4 asked for the row itself
+  (struck 2026-09-04) — the second was missed the first time round, and §4's
+  own sentence contradicted its own paragraph. Both are struck in place with
+  the reasoning, and `describeLog` carries a comment so nobody re-derives it
+  from an older revision. Surfacing them would mean scanning every transaction
+  sent to the account — 86,400 blocks a day, not a client-side job — hence an
+  explorer API and a backend route that §1 deliberately does not have. Celoscan
+  V1 is retired and Etherscan V2's free tier rate-limits, both measured
+  2026-09-04. A revert caused deliberately as evidence belongs in
+  `app/lib/proofs.ts`, which already renders on the landing page.
 
 ## Decisions already made — do not re-litigate
 

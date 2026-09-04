@@ -270,9 +270,21 @@ wording the MCP server already returns to the agent.
 
 **Feed.** Newest first. Each row: status dot, what happened, amount, relative
 time, and a link to the transaction. Rows are on-chain events only — a refused
-spend never reaches the chain (§1.3), so the feed never shows one. A revert that
-*does* land is rendered `--bad` with the amount struck through and the custom
-error named (`PerTxCapExceeded`, `DailyCapExceeded`, `PayeeNotAllowed`).
+spend never reaches the chain (§1.3), so the feed never shows one.
+~~A revert that *does* land is rendered `--bad` with the amount struck through
+and the custom error named (`PerTxCapExceeded`, `DailyCapExceeded`,
+`PayeeNotAllowed`).~~ — **struck 2026-09-04, for the same reason §7's test was
+struck on 2026-09-03 and by the same decision.** This sentence contradicted its
+own paragraph: a landed revert is not an on-chain event, and rows here are
+on-chain events only. A reverted transaction emits no logs, so the `getLogs`
+feed cannot see one however it is rendered. Surfacing it would mean scanning
+every transaction sent to the account — 86,400 blocks a day, not a client-side
+job — and therefore an explorer API and a backend route, which §1 deliberately
+does not have. Celoscan's V1 endpoint is retired and the V2 free tier
+rate-limits (both measured 2026-09-04). Where a revert is caused deliberately
+as evidence, its home is `app/lib/proofs.ts`, which already renders on the
+landing page. The wall is stated by the meter before money moves; that is
+§1.3's whole point.
 
 **`Limits` drawer.** Per-transaction cap, daily cap, save. Values entered in
 human units and converted using the token's decimals. Owner only; others see the

@@ -107,6 +107,12 @@ export function rowKey(row: FeedRow): string {
  * transaction — the MCP server pre-checks with a staticcall — so the feed has
  * no blocked rows to show and must not pretend otherwise. The wall is stated
  * by the meter instead, before money moves.
+ *
+ * There is deliberately no branch for a landed revert, and adding one would
+ * achieve nothing: a reverted transaction emits no logs, so `getLogs` never
+ * delivers it here to be formatted. Spec §4 asked for one and §7 asked for a
+ * test of it; both were struck for this reason (§7 on 2026-09-03, §4 on
+ * 2026-09-04). Do not re-derive this from the spec's older revisions.
  */
 export function describeLog(log: DecodedLog): FeedRow {
   const base = {
