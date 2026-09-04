@@ -6,7 +6,7 @@ your limits. The limits are code on Celo, not a sentence in a prompt.
 
 This document gets your own agent spending through your own account from the
 command line. If you would rather click: run the app (`pnpm --filter @leash/app
-dev`) and open `/`, where a wizard does every step below and hands you the
+dev`) and open `/setup`, where a wizard does every step below and hands you the
 finished `.mcp.json` at the end.
 
 **Before anything else:** Node >= 20, pnpm 9.12.0 (the root `package.json`

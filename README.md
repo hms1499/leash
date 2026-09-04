@@ -80,7 +80,7 @@ LEASH_DEMO_SPEND_REAL_MONEY=yes pnpm --filter @leash/examples demo
 Two routes to the same place — your own account, and a `.mcp.json` block your
 agent reads.
 
-**In the browser (easier).** Run the app and open `/`. The onboarding wizard
+**In the browser (easier).** Run the app and open `/setup`. The onboarding wizard
 connects your wallet, deploys your own `SpendPolicyAccount`, adds your agent,
 sets the limits, and ends by handing you the filled-in `.mcp.json`. You paste
 your agent's wallet address once; it assembles every contract call for you.
