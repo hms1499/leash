@@ -14,3 +14,10 @@ next-env.d.ts
 test-results/
 playwright-report/
 .playwright-mcp/
+
+# Agent tooling installed per-developer, not project source. The celo-builders
+# skill says of itself that it is a snapshot and that the live copy at
+# celobuilders.xyz/skill.md should be re-fetched each session, so a committed
+# copy would go stale by design.
+.agents/
+skills-lock.json
