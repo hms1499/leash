@@ -52,11 +52,11 @@ and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
 | Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.050000 USDC**. Not project infrastructure; use it to exercise the UI, not as the demo account. |
 | Superseded instance | `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` — **do not use.** It accepted native CELO that could never be recovered; swept to 0 and replaced. See `docs/deployments.md`. |
 | Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.5639 CELO |
-| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.053070 USDC |
+| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.044505 USDC |
 | Attribution tag | `celo_3dec652cd977` |
 | ERC-8004 identity | agentId 9804, owned by the operator |
 | Policy | USDC: perTx 0.50, daily 1.00. `paused` false, allowlist off |
-| Contract holds | 2.466567 USDC · `remainingToday` 0.970000 — the demo ran |
+| Contract holds | 2.436567 USDC · `remainingToday` 0.940000 — the demo ran twice |
 
 Read back from mainnet on 2026-09-05. The figures above are the state, not a
 recollection of it.
@@ -71,14 +71,20 @@ recollection of it.
   fell by exactly the amount spent.
 - **A real x402 purchase.** `0x0ac87832…b46e` — paid from the operator's own
   leftovers, never touching the contract.
-- **The demo runs, end to end, on mainnet.** Three spends of 0.01 USDC and
-  then a refusal, 2026-09-05. `remainingToday` fell 1.000000 → 0.990000 →
-  0.980000 → 0.970000, one step per spend, verified by reading each
-  transaction's own block. The refusal (`PerTxCapExceeded(900000, 500000)`)
-  sent nothing and cost nothing.
+- **The demo runs, end to end, on mainnet.** Twice on 2026-09-05, three
+  spends of 0.01 USDC and then a refusal each time. `remainingToday` fell one
+  step per spend across both runs, 1.000000 down to 0.940000, verified by
+  reading each transaction's own block. The refusal
+  (`PerTxCapExceeded(900000, 500000)`) sent nothing and cost nothing.
+  First run — correct on-chain, wrong on screen; see the 2026-09-05 entry:
   tx: 0x57c4695071de9c039d4563912c271bebec3913b36849666f78efa12546bcddb9
   tx: 0xf78e028eb09b567d142fd3ee79cf18c4e4d54cb929c2f72dcddea8343f634c71
   tx: 0xe0330cbc91007fea355bb1ec20c990098c3b84d14edb58c20ebe4e757b6b2552
+  Second run, after the fix — printed 0.96, 0.95, 0.94, each matching the
+  chain at that transaction's own block:
+  tx: 0xc79bb210dadee142a43cf1408a767665285ebf0cc7f99cb243e7696ae0e5a1e3
+  tx: 0x2d915b730cb0a08486656213ce85532a72cf5371d209c99411b670ece19d1e7a
+  tx: 0x2b364957bcc15dc68c085eb898fc12e13088fc64ba8bb5aefbd246cc8436aadf
 - **The live feed updates without a reload.** The three rows above appeared in
   the dashboard as they landed, watched by a human — the first real check of
   `e247872`, whose bug the backfill had been hiding.
@@ -113,18 +119,18 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    `NEXT_PUBLIC_CELO_RPC_URL` there — otherwise every visitor shares public
    forno, and the dashboard makes 18 `getLogs` calls per load. Then replace
    the "A hosted URL will be added here" line in `README.md`.
-3. **Re-run the mainnet demo once, after the fix below.** It ran for the
-   first time on 2026-09-05 and the spends were correct, but it *printed* the
-   allowance wrong — see the 2026-09-05 entry. The fix is in; nobody has
-   watched the corrected output yet, and that output is what gets filmed.
-   `LEASH_DEMO_SPEND_REAL_MONEY=yes pnpm -F @leash/examples demo`, roughly
-   0.03 USDC plus gas. Note the daily cap is per calendar day: three more
-   spends is fine against a 1.00 cap, but re-running repeatedly on one day
-   will eventually exhaust it, which is the demo's other beat, not a fault.
-4. **Top up the operator before filming.** It holds 0.053070 USDC and 0 CELO;
-   each transaction costs ~0.00305 and reserves ~0.0046, so that is about
-   fifteen transactions — comfortable for a shoot, but check it again on the
-   day rather than trusting this line.
+3. **The demo is proven; what is left is the shoot.** It ran twice on
+   2026-09-05 and the second run's output was checked figure by figure against
+   the chain. `LEASH_DEMO_SPEND_REAL_MONEY=yes pnpm -F @leash/examples demo`,
+   roughly 0.03 USDC plus gas per take. Budget takes against the daily cap,
+   not the balance: 1.00 USDC a day is about thirty runs, and it resets on
+   `block.timestamp / 1 days`, i.e. at UTC midnight, not on any wall clock the
+   shoot is keeping.
+4. **Top up the operator before filming.** It holds 0.044505 USDC and 0 CELO;
+   each transaction costs ~0.00286 and reserves ~0.0046, so that is about
+   thirteen transactions — enough for four takes. Re-read it on the day rather
+   than trusting this line, and refuel from the dashboard if it is low: that
+   path is now proven.
 
 ### What the wallet session found (2026-09-04)
 
@@ -182,7 +188,9 @@ write paths and the UI were both correct. The one defect was in the demo.
   condition, with its ceiling anchored to a reading taken *before* any spend —
   a ceiling from a fresh read would itself be stale, and the lag would
   survive the fix. When it times out it says the figure is not readable yet
-  rather than printing one nobody verified.
+  rather than printing one nobody verified. The second run printed 0.96, 0.95
+  and 0.94, each matching the chain at that transaction's own block — the fix
+  is checked against the hazard itself, not only against a unit test.
 
   **The rule was already written down** — `CLAUDE.md`, "wait on the condition,
   not the receipt" — and every write path in `app/` obeyed it. `examples/`
@@ -292,9 +300,9 @@ A pre-commit guard (`scripts/check-secrets.sh`, wired via
 `core.hooksPath` is local config and is not cloned — a fresh clone must set it
 again.
 
-Money spent to date: roughly **$0.087** of gas plus **$0.034** of USDC on two
-x402 purchases. The project holds 2.599638 USDC across its four addresses —
-account 2.466567, test account 0.050000, operator 0.053070, owner 0.030001 —
+Money spent to date: roughly **$0.096** of gas plus **$0.034** of USDC on two
+x402 purchases. The project holds 2.591073 USDC across its four addresses —
+account 2.436567, test account 0.050000, operator 0.044505, owner 0.060001 —
 and 3.5639 CELO in the owner wallet. The rise since 2026-09-04 is 0.10 USDC
 sent in from the browser wallet `0x94f7…6459` to fund the refuel test; the
 demo's 0.03 moved from the account to the payee, which is the owner EOA, so
