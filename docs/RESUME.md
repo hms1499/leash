@@ -246,12 +246,22 @@ write paths and the UI were both correct. The one defect was in the demo.
 
 The guard was never the problem. **The message it prints was invisible.**
 
-- **A wallet's network switch may not reach the page at all.** Changing chains
-  in OKX's own UI left `eth_chainId` answering `0xa4ec`: the wallet keeps a
-  per-site network, and the badge reading `Celo` was reporting that honestly.
-  To put the page on another chain, ask for it the way a dapp would —
-  `wallet_switchEthereumChain` from the console — and check `eth_chainId`
-  before concluding anything about the app.
+- **OKX keeps a per-site network and restores it on reload.** Changing chains
+  in OKX's own UI left `eth_chainId` answering `0xa4ec`, and so did a reload
+  after a successful `wallet_switchEthereumChain`. The badge reading `Celo`
+  was reporting that honestly every time. Two apparent app bugs this session
+  were this and nothing else, so: **read `eth_chainId` before concluding
+  anything about the badge**, and never reload during the test.
+- **The wrong-chain guard is still unverified.** Not "passing" — unexercised.
+  A Stop did reach the wallet at 09:41:17 while the page was believed to be on
+  Ethereum, but `eth_chainId` afterwards said Celo, so the guard was right not
+  to fire and the test had not run. The procedure that removes the ambiguity:
+  switch with `wallet_switchEthereumChain`, then **wait for the badge to turn
+  red before clicking anything** — the badge and the guard read the same
+  `useAccount().chainId`, so a red badge is proof wagmi has the new chain.
+  Clicking while it is still green tests nothing. If OKX keeps revoking the
+  switch, a wallet whose network is global (MetaMask) is the way through; that
+  is a limit of the test environment, not of the code.
 - **`--bad` on `--bad`, a contrast ratio of exactly 1.00** (fixed). `page.tsx`
   swaps the header's ground to `--bad` when the account is paused. The
   "Wrong network — switch to Celo" badge is the `stop` button variant, `--bad`
