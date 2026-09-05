@@ -121,8 +121,8 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    | Deliberate rejection in the wallet | done 2026-09-05 — nothing landed, no gas |
    | Deliberate wrong-chain attempt | done 2026-09-05 with Coinbase Wallet — found a defect, fixed, then passed |
 
-   Do the two free ones first; they cost nothing and exercise error paths
-   nobody has run.
+   Only **limits from the dashboard** is left, and it costs gas. The two free
+   error paths are both done and both passed — see the 2026-09-05 entries.
 2. **Deploy to Vercel** (`app/`), then run the smoke test against the
    production URL: `LEASH_E2E_URL=https://… pnpm -F @leash/app test:e2e`. Set
    `NEXT_PUBLIC_CELO_RPC_URL` there — otherwise every visitor shares public
@@ -135,7 +135,19 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    not the balance: 1.00 USDC a day is about thirty runs, and it resets on
    `block.timestamp / 1 days`, i.e. at UTC midnight, not on any wall clock the
    shoot is keeping.
-4. **Top up the operator before filming.** It holds 0.044505 USDC and 0 CELO;
+4. **The design system is written and planned; none of it is built.**
+   `docs/design-system.md` is the reference and
+   `docs/superpowers/plans/2026-09-05-leash-design-system.md` is nine tasks
+   implementing it. **Nothing has been started.** Tasks 1-4 are the whole
+   answer to the three complaints that opened the work — the UI reads rough,
+   nothing says where to look, and it does not look like a real product — and
+   task 3 is the largest visible gain for the least code. Every task ends
+   green and committed, so stopping after any one leaves the app consistent
+   rather than half-migrated.
+
+   Sequence it against the deadline honestly: this is *presentation*, and
+   items 2 and 3 above are *submission*. If only one fits, deploy and film.
+5. **Top up the operator before filming.** It holds 0.044505 USDC and 0 CELO;
    each transaction costs ~0.00286 and reserves ~0.0046, so that is about
    thirteen transactions — enough for four takes. Re-read it on the day rather
    than trusting this line, and refuel from the dashboard if it is low: that
@@ -243,6 +255,35 @@ write paths and the UI were both correct. The one defect was in the demo.
   Third time this project has shipped a correct write path with a wrong
   account of it. **When a path can refuse, read what the refusal says, not
   just whether it refused.**
+
+### The design system, and what writing it found (2026-09-05)
+
+The UI was reported as rough, hard to scan, and not obviously a real product.
+Measuring found one cause under all three: **the app had two type sizes.**
+`text-sm` carried 39 uses, and `Section.tsx` rendered every landing heading
+through `Label` — 11px dim uppercase, the same treatment as the label on a
+text input, and as a `<span>`, so the page had one heading in its outline.
+That leaves a cliff from 36px to 11px with no rank between.
+
+Spacing told the same story: nine steps, weighted to `mt-2` (26 uses) and
+`mt-1` (12), so 14px text sat at 4-8px intervals.
+
+`docs/design-system.md` is the result — direction, six type steps, four
+spacing steps, five named grounds, the state vocabulary, component contracts,
+and per-screen hierarchy. Its most valuable section invents nothing: §5 writes
+down the five sentences already in the code that separate "not observed" from
+"failed", which had never been recorded anywhere, so nothing stopped a new
+screen from breaking them.
+
+Two claims in its first draft were wrong and are recorded in its §9: `--ok` was
+called unused when it colours two wizard confirmations and the feed dot, and
+`--t-title` was going to flatten a hero that is responsive today. Both came
+from a grep that matched one spelling of a token and missed two. **Count it,
+do not recall it** — the same rule the rest of this repo follows.
+
+Spec §4.1 is struck and points at the new file. It still described the Van
+Gogh direction, dropped 2026-09-04. That is the third document this week found
+asserting something that had stopped being true.
 
 ### The landing page handed out a `.mcp.json` that could not start (2026-09-05)
 
