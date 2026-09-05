@@ -23,7 +23,7 @@ Contracts are Foundry and are not part of the workspace.
 pnpm -F @leash/sdk test          # 42 tests
 pnpm -F @leash/mcp test          # 20
 pnpm -F @leash/app test          # 191 (vitest)
-pnpm -F @leash/app test:e2e      # 6 (playwright; builds and serves unless LEASH_E2E_URL is set)
+pnpm -F @leash/app test:e2e      # 7 (playwright; builds and serves unless LEASH_E2E_URL is set)
 cd contracts && forge test       # 32
 ```
 

@@ -1,31 +1,40 @@
-import Link from 'next/link'
 import Hero from '../components/landing/Hero'
 import Contrast from '../components/landing/Contrast'
 import HowItWorks from '../components/landing/HowItWorks'
 import AgentTools from '../components/landing/AgentTools'
 import LiveProof from '../components/landing/LiveProof'
 import ProofTable from '../components/landing/ProofTable'
+import Questions from '../components/landing/Questions'
+import Footer from '../components/landing/Footer'
 import Section from '../components/ui/Section'
-import Button from '../components/ui/Button'
 
+/**
+ * The order is the order a reader asks the questions, not the order the
+ * sections were written:
+ *
+ *   what is it        the hero
+ *   is it real        the live account, read from mainnet
+ *   why bother        without Leash, and with it
+ *   how does it work  three steps
+ *   prove it          five claims, each with a transaction
+ *   what breaks       the questions worth asking, answered
+ *   how do I use it   the tools and the .mcp.json block
+ *
+ * The last two used to be reversed, so a reader who is not a developer met a
+ * wall of JSON before reaching the evidence. Implementation is the last thing
+ * anyone needs and the first thing that stops a non-developer reading.
+ */
 export default function Landing() {
   return (
     <main>
       <Hero />
-      <Section><LiveProof /></Section>
-      <Section title="The difference"><Contrast /></Section>
+      <Section title="What an account looks like right now"><LiveProof /></Section>
+      <Section title="Why not just give the agent a wallet?"><Contrast /></Section>
       <Section title="How it works"><HowItWorks /></Section>
-      <Section title="What your agent gets"><AgentTools /></Section>
       <Section title="Proven on Celo mainnet"><ProofTable /></Section>
-      <Section>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/setup"><Button variant="primary">Build your own</Button></Link>
-          <a className="text-sm" style={{ color: 'var(--dim)' }}
-             href="https://github.com/hms1499/leash" target="_blank" rel="noreferrer">
-            github ↗
-          </a>
-        </div>
-      </Section>
+      <Section title="Questions worth asking"><Questions /></Section>
+      <Section title="What your agent gets"><AgentTools /></Section>
+      <Section><Footer /></Section>
     </main>
   )
 }
