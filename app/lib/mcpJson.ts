@@ -30,6 +30,32 @@ export function isAttributionTag(value: string): boolean {
   return ATTRIBUTION_TAG_SHAPE.test(value)
 }
 
+/**
+ * What ATTRIBUTION_TAG reads as when the real one is missing or malformed.
+ *
+ * Deliberately a value `isAttributionTag` refuses: a placeholder the server
+ * would accept is worse than none, because it looks configured and then
+ * misattributes every transaction.
+ */
+export const ATTRIBUTION_TAG_PLACEHOLDER = 'celo_yourtag'
+
+/**
+ * The tag to show, given whatever the caller has.
+ *
+ * This lives here, next to the block builder, because it used to live in the
+ * callers: /setup substituted the placeholder and the landing page did not,
+ * so the landing shipped `"ATTRIBUTION_TAG": ""` under a note telling the
+ * reader to replace `celo_yourtag` — a string that block did not contain.
+ * Anyone who copied it got a server that threw "ATTRIBUTION_TAG is not set"
+ * before its first tool call.
+ *
+ * Deriving it from the tag's shape rather than from a caller-supplied status
+ * is the point: a new caller cannot reintroduce the bug by forgetting a step.
+ */
+export function displayTag(tag: string): string {
+  return isAttributionTag(tag) ? tag : ATTRIBUTION_TAG_PLACEHOLDER
+}
+
 /** Mirrors the block documented in docs/mcp-setup.md. */
 export function buildMcpJson(h: McpHandoff): string {
   return JSON.stringify(
@@ -41,7 +67,7 @@ export function buildMcpJson(h: McpHandoff): string {
           env: {
             LEASH_ACCOUNT: h.account,
             OPERATOR_PK: OPERATOR_PK_PLACEHOLDER,
-            ATTRIBUTION_TAG: h.attributionTag,
+            ATTRIBUTION_TAG: displayTag(h.attributionTag),
             SPEND_TOKEN: h.token,
             FEE_ADAPTER: h.feeAdapter,
           },

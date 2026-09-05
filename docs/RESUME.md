@@ -37,7 +37,7 @@ context on decisions already taken.
 | `cd contracts && forge test` | 32/32 |
 | `cd sdk && pnpm run test` | 42/42 |
 | `cd mcp && pnpm run test` | 20/20 |
-| `cd app && pnpm run test` | 138/138 |
+| `cd app && pnpm run test` | 150/150 |
 | `cd app && pnpm run test:e2e` | 6/6 (Playwright, against a local build) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
@@ -242,6 +242,30 @@ write paths and the UI were both correct. The one defect was in the demo.
   account of it. **When a path can refuse, read what the refusal says, not
   just whether it refused.**
 
+### The landing page handed out a `.mcp.json` that could not start (2026-09-05)
+
+Found while auditing whether the app is a finished product, not while looking
+for bugs.
+
+The block a stranger copies from the landing page carried
+`"ATTRIBUTION_TAG": ""`, under a note telling them to replace `celo_yourtag` —
+a string that block did not contain. Copying it produced a server that threw
+`ATTRIBUTION_TAG is not set` before its first tool call. Spec §3.3 calls the
+MCP server "the funnel, not an accessory"; this was the funnel failing at its
+mouth, on the one page a stranger reaches first.
+
+The substitution lived in the **callers**: `/setup` did it, the landing did
+not, and `McpHandoff`'s own prop doc claimed the component did — so all three
+descriptions of the behaviour disagreed with each other and two disagreed with
+the code. `buildMcpJson` now applies `displayTag`, which derives the
+substitution from the tag's *shape*, so a future caller cannot reintroduce it
+by forgetting a step. `/setup`'s duplicate was removed. app is 138 -> 150
+tests.
+
+The placeholder is deliberately a value `isAttributionTag` refuses: one the
+server would accept is worse than none, because it looks configured and then
+misattributes every transaction.
+
 ### The wrong-network test, and what it actually found (2026-09-05)
 
 The guard was never the problem. **The message it prints was invisible.**
@@ -300,9 +324,12 @@ The whole-branch review's remaining findings are listed in
 `.superpowers/sdd/2026-09-03-leash-frontend/progress.md`. The ones worth
 knowing before touching the app:
 
-- The onboarding wizard asks for an attribution tag with no link explaining
-  how to get one, and does not validate its shape — so a mistyped tag yields a
-  `.mcp.json` that looks complete and an MCP server that dies at startup.
+- ~~The onboarding wizard asks for an attribution tag with no link explaining
+  how to get one, and does not validate its shape.~~ **Both halves were stale
+  when re-read on 2026-09-05.** The wizard links to celobuilders.xyz
+  (`setup/page.tsx:363`) and checks the shape (`:63`), naming the expected
+  format when it fails. The real instance of this hazard was on the landing
+  page and is fixed — see the 2026-09-05 entry.
 - Of the seven spec §4/§5 items once listed here, three now exist: the network
   badge, address click-to-copy (`42a84b5`), and relative timestamps on feed
   rows (`9b80f5f`). Four remain unbuilt, a QR code on the fund step among them.

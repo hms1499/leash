@@ -390,7 +390,10 @@ export default function Onboard() {
                   // Never emit a value the server will refuse. A placeholder
                   // the user can see is better than a config that dies at
                   // startup with the reason buried in an agent's log.
-                  attributionTag: tagStatus === 'ok' ? tag.trim() : 'celo_yourtag',
+                  // buildMcpJson substitutes the placeholder itself, from the
+                  // tag's shape — see displayTag. Doing it here too is how the
+                  // landing page came to do it nowhere.
+                  attributionTag: tag.trim(),
                 }}
                 tagStatus={tagStatus}
               />

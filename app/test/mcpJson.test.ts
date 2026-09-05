@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildMcpJson, isAttributionTag, OPERATOR_PK_PLACEHOLDER,
+  ATTRIBUTION_TAG_PLACEHOLDER, displayTag,
 } from '../lib/mcpJson.js'
 
 const handoff = {
@@ -9,6 +10,52 @@ const handoff = {
   feeAdapter: '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B',
   attributionTag: 'celo_3dec652cd977',
 } as const
+
+/**
+ * The landing page shipped `"ATTRIBUTION_TAG": ""` while the note under the
+ * block told the reader to replace `celo_yourtag` — a string the block did
+ * not contain. Copying it produced an MCP server that threw
+ * "ATTRIBUTION_TAG is not set" before its first tool call, which is the
+ * funnel failing at its mouth.
+ *
+ * The substitution used to live in the caller: /setup did it, the landing did
+ * not, and the component's own doc claimed the component did. These assert it
+ * from the shape of the tag instead, so no caller can reintroduce it.
+ */
+describe('displayTag', () => {
+  it('keeps a tag that the server would accept', () => {
+    expect(displayTag('celo_3dec652cd977')).toBe('celo_3dec652cd977')
+  })
+
+  it.each(['', '   ', 'celo_mytag', 'celo_3DEC652CD977', 'not-a-tag'])(
+    'substitutes the placeholder for %o',
+    (bad) => {
+      expect(displayTag(bad)).toBe(ATTRIBUTION_TAG_PLACEHOLDER)
+    },
+  )
+
+  // Whatever it returns has to be the thing the note tells people to look for.
+  it('returns a placeholder the reader is actually told to replace', () => {
+    expect(ATTRIBUTION_TAG_PLACEHOLDER).toBe('celo_yourtag')
+  })
+
+  // And the placeholder must itself be refused, or it would look configured.
+  it('the placeholder is not a tag the server would accept', () => {
+    expect(isAttributionTag(ATTRIBUTION_TAG_PLACEHOLDER)).toBe(false)
+  })
+})
+
+describe('the emitted block never carries an unusable tag', () => {
+  it.each(['', 'celo_mytag', 'not-a-tag'])('given %o', (bad) => {
+    const env = JSON.parse(buildMcpJson({ ...handoff, attributionTag: bad })).mcpServers.leash.env
+    expect(env.ATTRIBUTION_TAG).toBe(ATTRIBUTION_TAG_PLACEHOLDER)
+  })
+
+  it('passes a real tag through untouched', () => {
+    const env = JSON.parse(buildMcpJson(handoff)).mcpServers.leash.env
+    expect(env.ATTRIBUTION_TAG).toBe('celo_3dec652cd977')
+  })
+})
 
 describe('buildMcpJson', () => {
   it('produces valid JSON', () => {
