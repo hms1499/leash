@@ -1,5 +1,6 @@
 import Panel from '../ui/Panel'
 import Label from '../ui/Label'
+import { PROSE } from '../ui/prose'
 
 const ROWS: ReadonlyArray<{ without: string; with_: string }> = [
   { without: 'The agent holds the private key.', with_: 'The money sits in a contract. The agent holds a key that can only ask.' },
@@ -15,7 +16,7 @@ export default function Contrast() {
         <Label>Without Leash</Label>
         <ul className="mt-3 flex flex-col gap-3">
           {ROWS.map((r) => (
-            <li key={r.without} className="text-sm" style={{ color: 'var(--dim)' }}>{r.without}</li>
+            <li key={r.without} style={{ ...PROSE, color: 'var(--dim)' }}>{r.without}</li>
           ))}
         </ul>
       </Panel>
@@ -23,7 +24,7 @@ export default function Contrast() {
         <Label>With Leash</Label>
         <ul className="mt-3 flex flex-col gap-3">
           {ROWS.map((r) => (
-            <li key={r.with_} className="text-sm" style={{ color: 'var(--text)' }}>{r.with_}</li>
+            <li key={r.with_} style={{ ...PROSE, color: 'var(--text)' }}>{r.with_}</li>
           ))}
         </ul>
       </Panel>

@@ -21,6 +21,20 @@ export default function Button({
   onDangerBand?: boolean
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   /**
+   * A control is looked at, not read, so it is mono (design-system §1) at the
+   * one mono step in its neighbourhood. Neither the design system's type table
+   * nor the plan assigns controls a step, but leaving them at the browser's
+   * 16px default put a seventh size on every screen -- the exact defect the
+   * scale exists to remove. NetworkBadge already renders this component at
+   * label size, so a button below 16px is not new here.
+   */
+  const face: React.CSSProperties = {
+    fontFamily: 'var(--mono)',
+    fontSize: 'var(--t-data)',
+    lineHeight: 'var(--t-data-line)',
+  }
+
+  /**
    * `onDangerBand` says this button sits on the paused header, whose ground is
    * --bad. The ghost and stop variants are drawn in --text and --bad, which are
    * 3.16 and 1.00 against that ground -- the second being invisible. --bg is
@@ -43,7 +57,7 @@ export default function Button({
   return (
     <button
       className={`${BASE} ${className}`.trimEnd()}
-      style={{ ...tone[variant], ...style }}
+      style={{ ...face, ...tone[variant], ...style }}
       {...rest}
     />
   )

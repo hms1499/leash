@@ -1,4 +1,5 @@
 import Panel from '../ui/Panel'
+import { PROSE } from '../ui/prose'
 import McpHandoff from '../McpHandoff'
 import type { McpHandoff as Handoff } from '../../lib/mcpJson.js'
 
@@ -23,12 +24,12 @@ export default function AgentTools() {
       <div className="grid gap-4 sm:grid-cols-3">
         {TOOLS.map((t) => (
           <Panel key={t.name} className="p-4">
-            <p className="num text-sm" style={{ color: 'var(--celo)' }}>{t.name}</p>
-            <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>{t.body}</p>
+            <p className="num" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: 'var(--celo)' }}>{t.name}</p>
+            <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>{t.body}</p>
           </Panel>
         ))}
       </div>
-      <p className="text-sm" style={{ color: 'var(--dim)' }}>
+      <p style={{ ...PROSE, maxWidth: '68ch', color: 'var(--dim)' }}>
         That is the whole surface. Nothing here raises a limit, moves the money
         out, or adds another agent — those live on the contract behind the
         owner&apos;s key.

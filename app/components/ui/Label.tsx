@@ -4,7 +4,9 @@
  * the label look without a second copy of these four values.
  */
 export const LABEL_STYLE: React.CSSProperties = {
-  fontSize: '0.6875rem',
+  fontFamily: 'var(--mono)',
+  fontSize: 'var(--t-label)',
+  lineHeight: 'var(--t-label-line)',
   letterSpacing: '0.16em',
   textTransform: 'uppercase',
   color: 'var(--dim)',

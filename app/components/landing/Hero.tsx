@@ -6,11 +6,36 @@ const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
 export default function Hero() {
   return (
     <header className="w-full max-w-3xl mx-auto px-4 pt-16 pb-10">
-      <p style={{ color: 'var(--celo)', letterSpacing: '.26em', fontWeight: 700 }}>LEASH</p>
-      <h1 className="mt-6 text-3xl sm:text-4xl font-semibold leading-tight" style={{ color: 'var(--text)' }}>
+      <p style={{
+        fontFamily: 'var(--mono)', fontSize: 'var(--t-label)',
+        color: 'var(--celo)', letterSpacing: '.26em', fontWeight: 700,
+      }}>
+        LEASH
+      </p>
+      <h1
+        className="mt-6"
+        style={{
+          fontFamily: 'var(--mono)',
+          fontSize: 'var(--t-title)',
+          lineHeight: 'var(--t-title-line)',
+          fontWeight: 600,
+          color: 'var(--text)',
+        }}
+      >
         Give an AI agent a wallet without trusting it.
       </h1>
-      <p className="mt-4 text-base sm:text-lg" style={{ color: 'var(--dim)' }}>
+      {/* The prose exception from design-system §1: sans, not mono, because
+          this is read rather than looked at. 68ch is the measure rule from §2. */}
+      <p
+        className="mt-4"
+        style={{
+          fontFamily: 'var(--sans)',
+          fontSize: 'var(--t-body)',
+          lineHeight: 'var(--t-body-line)',
+          maxWidth: '68ch',
+          color: 'var(--dim)',
+        }}
+      >
         Spend limits are enforced by a contract on Celo, not by a sentence in a
         prompt. The money never sits in the agent&apos;s wallet — the agent can
         only ask, and the contract refuses.

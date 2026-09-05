@@ -157,7 +157,10 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           borderBottom: '1px solid var(--line)',
         }}
       >
-        <strong style={{ color: state.paused ? 'var(--bg)' : 'var(--celo)', letterSpacing: '.26em' }}>
+        <strong style={{
+          fontFamily: 'var(--mono)', fontSize: 'var(--t-label)',
+          color: state.paused ? 'var(--bg)' : 'var(--celo)', letterSpacing: '.26em',
+        }}>
           LEASH
         </strong>
         {/* .label's --dim on the paused band's --bad is about 1.6:1 and

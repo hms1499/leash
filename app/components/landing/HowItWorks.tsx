@@ -1,4 +1,5 @@
 import Panel from '../ui/Panel'
+import { PROSE } from '../ui/prose'
 
 const STEPS = [
   { n: '1', title: 'Deploy your account', body: 'One transaction. You are the owner; nobody else can change the limits.' },
@@ -13,7 +14,7 @@ export default function HowItWorks() {
         <Panel key={s.n} className="p-4">
           <span className="num text-sm" style={{ color: 'var(--celo)' }}>{s.n}</span>
           <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--text)' }}>{s.title}</p>
-          <p className="mt-1 text-sm" style={{ color: 'var(--dim)' }}>{s.body}</p>
+          <p className="mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>{s.body}</p>
         </Panel>
       ))}
     </div>
