@@ -191,6 +191,8 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         </span>
       </header>
 
+      {/* The dashboard's dominant element, so the ceiling takes --t-display
+          here and nowhere else. design-system §7. */}
       <Meter
         daily={state.daily}
         remaining={state.remaining}
@@ -200,6 +202,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         balance={state.balance}
         paused={state.paused}
         loading={state.isLoading}
+        dominant
       />
 
       <div className="p-4">

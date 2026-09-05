@@ -60,7 +60,16 @@ export type SpendBand =
   | { kind: 'paused' }
   | { kind: 'unfunded' }
   | { kind: 'exhausted' }
-  | { kind: 'ceiling'; amount: bigint }
+  | {
+      kind: 'ceiling'
+      amount: bigint
+      /**
+       * Which of the three bounds produced `amount`. The figure alone does
+       * not tell an owner whether to raise a cap or send more money, and
+       * those are opposite actions.
+       */
+      limitedBy: 'daily allowance' | 'per-transaction cap' | 'balance'
+    }
 
 export function spendBand({
   remaining, perTx, balance, paused, loading,
@@ -80,5 +89,13 @@ export function spendBand({
   const cap = refusalThreshold(remaining, perTx)
   if (cap === 0n) return { kind: 'exhausted' }
 
-  return { kind: 'ceiling', amount: cap < balance ? cap : balance }
+  if (balance < cap) return { kind: 'ceiling', amount: balance, limitedBy: 'balance' }
+  // A tie between the two policy bounds resolves toward the per-transaction
+  // cap, deterministically, so the sentence under the figure does not flicker
+  // between renders.
+  return {
+    kind: 'ceiling',
+    amount: cap,
+    limitedBy: remaining < perTx ? 'daily allowance' : 'per-transaction cap',
+  }
 }
