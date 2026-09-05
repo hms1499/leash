@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { generatePrivateKey } from 'viem/accounts'
+import { describePreCheckFailure } from '@leash/sdk'
 import { loadConfig } from '../src/config.js'
 import { payTool } from '../src/tools/pay.js'
 
@@ -43,6 +44,78 @@ describe('payTool', () => {
     expect(out.remaining_today).toBe('0.100000')
     expect(out.suggestion).toMatch(/0\.100000|smaller|wait/i)
     expect((leash as never as { spend: ReturnType<typeof vi.fn> }).spend).not.toHaveBeenCalled()
+  })
+
+  // Every refusal below is built from the SDK's own describePreCheckFailure
+  // rather than a hand-written shape, so a change to what the SDK reports
+  // fails here instead of silently reaching an agent as a wrong number.
+  const refusedBy = (name: string, args: readonly unknown[], remainingToday?: bigint) => ({
+    preCheck: vi.fn().mockResolvedValue(describePreCheckFailure({ name, args })),
+    spend: vi.fn(),
+    remainingToday: remainingToday === undefined
+      ? vi.fn().mockRejectedValue(new Error('rpc down'))
+      : vi.fn().mockResolvedValue(remainingToday),
+  })
+
+  // PerTxCapExceeded carries the per-transaction cap. Reporting it as
+  // daily_cap told an agent its daily allowance was 0.50 on an account whose
+  // daily cap was 1.00 — measured against mainnet 2026-09-05.
+  it('names the per-transaction cap as such, and reads the day separately', async () => {
+    const leash = refusedBy('PerTxCapExceeded', [900_000n, 500_000n], 1_000_000n)
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.90' })
+    expect(out.error).toBe('per_tx_cap_exceeded')
+    expect(out.per_tx_cap).toBe('0.500000')
+    expect(out.remaining_today).toBe('1.000000')
+    expect(out.daily_cap).toBeUndefined()
+    expect(out.suggestion).toContain('0.500000')
+  })
+
+  // Whichever bound bites first is the one an agent should retry under.
+  it('suggests the daily remainder when it is tighter than the per-tx cap', async () => {
+    const leash = refusedBy('PerTxCapExceeded', [900_000n, 500_000n], 120_000n)
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.90' })
+    expect(out.suggestion).toContain('0.120000')
+  })
+
+  // A failed read must not become a wrong number.
+  it('omits the daily figure when it cannot be read', async () => {
+    const leash = refusedBy('PerTxCapExceeded', [900_000n, 500_000n])
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.90' })
+    expect(out.remaining_today).toBeUndefined()
+    expect(out.per_tx_cap).toBe('0.500000')
+    expect(out.suggestion).toMatch(/leash_status/)
+  })
+
+  // The worst of the old shape: an owner presses Stop, and the agent is told
+  // its allowance is exhausted and to wait for a reset that clears nothing.
+  it('does not tell a paused agent to wait for the daily reset', async () => {
+    const leash = refusedBy('ContractPaused', [], 1_000_000n)
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.01' })
+    expect(out.error).toBe('account_paused')
+    expect(out.daily_cap).toBeUndefined()
+    expect(out.remaining_today).toBeUndefined()
+    expect(out.suggestion).toMatch(/paused/i)
+    expect(out.suggestion).toMatch(/does not clear/i)
+  })
+
+  it.each([
+    ['NotOperator', [], 'not_an_operator', /setOperator/],
+    ['PayeeNotAllowed', ['0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57'], 'payee_not_allowed', /allowlist/i],
+    ['TokenNotConfigured', ['0xcebA9300f2b948710d2653dD7B07f33A8B32118C'], 'token_not_configured', /froze|policy/i],
+  ])('reports %s without inventing cap figures', async (name, args, code, hint) => {
+    const leash = refusedBy(name, args, 1_000_000n)
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.01' })
+    expect(out.error).toBe(code)
+    expect(out.daily_cap).toBeUndefined()
+    expect(out.remaining_today).toBeUndefined()
+    expect(out.suggestion).toMatch(hint)
+    expect(out.suggestion).not.toMatch(/allowance is spent/i)
+  })
+
+  it('names the payee that the allowlist refused', async () => {
+    const leash = refusedBy('PayeeNotAllowed', [PAYEE], 1_000_000n)
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.01' })
+    expect(out.payee).toBe(PAYEE)
   })
 
   it('refuses a payee that is not an address before touching the chain', async () => {

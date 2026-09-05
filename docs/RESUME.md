@@ -36,7 +36,7 @@ context on decisions already taken.
 |---|---|
 | `cd contracts && forge test` | 32/32 |
 | `cd sdk && pnpm run test` | 42/42 |
-| `cd mcp && pnpm run test` | 12/12 |
+| `cd mcp && pnpm run test` | 20/20 |
 | `cd app && pnpm run test` | 134/134 |
 | `cd app && pnpm run test:e2e` | 6/6 (Playwright, against a local build) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
@@ -49,10 +49,10 @@ and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
 | | |
 |---|---|
 | `SpendPolicyAccount` | `0x7aDa926B021BAef4896F51F237bCA61435E43fd2` (source-verified) |
-| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.050000 USDC**. Not project infrastructure; use it to exercise the UI, not as the demo account. |
+| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.040000 USDC**, `remainingToday` 0.990000. Not project infrastructure; use it to exercise the UI, not as the demo account. |
 | Superseded instance | `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` — **do not use.** It accepted native CELO that could never be recovered; swept to 0 and replaced. See `docs/deployments.md`. |
 | Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.5639 CELO |
-| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.044505 USDC |
+| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.041078 USDC |
 | Attribution tag | `celo_3dec652cd977` |
 | ERC-8004 identity | agentId 9804, owned by the operator |
 | Policy | USDC: perTx 0.50, daily 1.00. `paused` false, allowlist off |
@@ -85,6 +85,13 @@ recollection of it.
   tx: 0xc79bb210dadee142a43cf1408a767665285ebf0cc7f99cb243e7696ae0e5a1e3
   tx: 0x2d915b730cb0a08486656213ce85532a72cf5371d209c99411b670ece19d1e7a
   tx: 0x2b364957bcc15dc68c085eb898fc12e13088fc64ba8bb5aefbd246cc8436aadf
+- **A real MCP agent spent through the policy.** 2026-09-05, `leash_pay`
+  called by a second Claude session with the Leash MCP server attached — no
+  human typed an amount or a payee. Test account 0.050000 → 0.040000,
+  `remainingToday` 1.000000 → 0.990000, payee +0.010000, `Spent` event data
+  `0x2710`. Its first ever spend, so it also proved the dashboard learns the
+  operator address from a real spend row rather than from `?operator=`.
+  tx: 0x218d7f9516481a3c5747226cf2f90e73beaa4fde86e68c363e9259a66a244396
 - **The live feed updates without a reload.** The three rows above appeared in
   the dashboard as they landed, watched by a human — the first real check of
   `e247872`, whose bug the backfill had been hiding.
@@ -200,11 +207,40 @@ write paths and the UI were both correct. The one defect was in the demo.
 - **The live feed was verified by a human, finally.** Three `Spent` rows
   appeared without a reload. `e247872` holds against real traffic; the
   backfill was not what made it look right.
-- **Not a defect, but know it:** `preCheck` reports `spent: 0` for a per-tx
-  rejection (`policyClient.ts:40`) even when the account has spent plenty
-  today. `PerTxCapExceeded(amount, cap)` does not carry the daily figure, so
-  the SDK has nothing to report — but an agent reading that JSON could
-  conclude its whole daily allowance is intact.
+- **`leash_pay` reported four of its five refusals wrongly** (fixed this
+  session). Found by driving the real MCP server from a second Claude session
+  and reading the JSON an agent actually receives. An earlier note in this
+  file called the underlying `spent: 0` "not a defect, but know it" — that was
+  written from the SDK's raw output and was too soft. Through `payTool` it
+  became labelled, plausible, wrong numbers.
+
+  `PreCheckResult` has one `cap` field whose meaning changes with the error:
+  the daily cap for `DailyCapExceeded`, the **per-transaction** cap for
+  `PerTxCapExceeded`, zero for the rest. `pay.ts` labelled it `daily_cap`
+  unconditionally and derived `remaining_today = cap - spent` from it. Against
+  the test account (perTx 0.50, daily 1.00, nothing spent) a 0.90 request came
+  back claiming a daily cap of 0.50 and 0.50 left for the day. Only
+  `daily_cap_exceeded` was correct.
+
+  The worst branch was the kill switch. With `cap = 0` the `remaining > 0n`
+  test fell through to *"The allowance is exhausted. Wait for the reset at UTC
+  midnight"* — so an owner pressing **Stop** told the agent to sleep until
+  midnight and try again, against a switch a human threw on purpose.
+  `not_an_operator` and `payee_not_allowed` said the same thing, and no amount
+  of waiting clears either.
+
+  Now: each error carries only figures its own revert supplied, the per-tx cap
+  is named `per_tx_cap`, the day is read separately with `remainingToday()`
+  (not derived from `limits()`, whose `spentToday` is stale once its `day`
+  label is), the suggested ceiling is whichever bound bites first, and every
+  non-cap refusal says who can clear it and that waiting will not. A failed
+  read omits the field rather than guessing. Eight tests cover the branches,
+  built from the SDK's own `describePreCheckFailure` so a change there fails
+  here rather than reaching an agent.
+
+  Third time this project has shipped a correct write path with a wrong
+  account of it. **When a path can refuse, read what the refusal says, not
+  just whether it refused.**
 
 ### Known and deliberately unfixed
 
@@ -300,9 +336,9 @@ A pre-commit guard (`scripts/check-secrets.sh`, wired via
 `core.hooksPath` is local config and is not cloned — a fresh clone must set it
 again.
 
-Money spent to date: roughly **$0.096** of gas plus **$0.034** of USDC on two
-x402 purchases. The project holds 2.591073 USDC across its four addresses —
-account 2.436567, test account 0.050000, operator 0.044505, owner 0.060001 —
+Money spent to date: roughly **$0.099** of gas plus **$0.034** of USDC on two
+x402 purchases. The project holds 2.587646 USDC across its four addresses —
+account 2.436567, test account 0.040000, operator 0.041078, owner 0.070001 —
 and 3.5639 CELO in the owner wallet. The rise since 2026-09-04 is 0.10 USDC
 sent in from the browser wallet `0x94f7…6459` to fund the refuel test; the
 demo's 0.03 moved from the account to the payee, which is the owner EOA, so
