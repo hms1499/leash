@@ -1,6 +1,6 @@
 /**
  * The type treatment, exported separately so a component that must render its
- * own element -- CopyAddress owns a <button> and its copy state -- can wear
+ * own element -- Address owns a <button> and its copy state -- can wear
  * the label look without a second copy of these four values.
  */
 export const LABEL_STYLE: React.CSSProperties = {

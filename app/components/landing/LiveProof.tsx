@@ -3,7 +3,7 @@
 import Meter from '../Meter'
 import Panel from '../ui/Panel'
 import Label from '../ui/Label'
-import AddressChip from '../ui/AddressChip'
+import Address from '../ui/Address'
 import { useAccountState } from '../../lib/useAccountState.js'
 import { useFeed } from '../../lib/useFeed.js'
 import { explorerUrl } from '../../lib/proofs.js'
@@ -24,9 +24,14 @@ export default function LiveProof() {
     <Panel>
       <div className="px-4 pt-4 flex flex-wrap items-center justify-between gap-2">
         <Label>Live on Celo mainnet</Label>
-        {/* The AddressChip primitive rather than the identical markup by hand.
+        {/* The Address primitive rather than the identical markup by hand.
             Spec §6 lists it, and an unused primitive is dead code. */}
-        <AddressChip address={ACCOUNT} href={`https://celoscan.io/address/${ACCOUNT}`} />
+        <Address
+          address={ACCOUNT}
+          explorer
+          className="num"
+          style={{ color: 'var(--dim)', fontSize: 'var(--t-data)' }}
+        />
       </div>
 
       <div className="mt-3">

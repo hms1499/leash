@@ -6,7 +6,7 @@ import Meter from '../../../components/Meter'
 import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
 import NetworkBadge from '../../../components/NetworkBadge'
-import CopyAddress from '../../../components/CopyAddress'
+import Address from '../../../components/ui/Address'
 import Label, { LABEL_STYLE } from '../../../components/ui/Label'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
@@ -166,18 +166,12 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         {/* .label's --dim on the paused band's --bad is about 1.6:1 and
             disappears on video. The state change is meant to read at a glance,
             and the address is what tells you *which* account stopped. */}
-        <CopyAddress
+        <Address
           address={address}
+          copy
+          explorer
           style={{ ...LABEL_STYLE, color: state.paused ? 'var(--bg)' : undefined }}
         />
-        <a
-          href={`https://celoscan.io/address/${address}`}
-          target="_blank"
-          rel="noreferrer"
-          title="Open on Celoscan"
-        >
-          <Label style={{ color: state.paused ? 'var(--bg)' : undefined }}>↗</Label>
-        </a>
         <span className="ml-auto flex items-center gap-3">
           <NetworkBadge onDangerBand={state.paused} />
           <StopButton

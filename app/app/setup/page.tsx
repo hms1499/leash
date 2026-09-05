@@ -5,7 +5,7 @@ import { useAccount, useDeployContract, useWriteContract } from 'wagmi'
 import { KNOWN_FEE_ADAPTERS, FEE_CURRENCY_DIRECTORY } from '@leash/sdk'
 import ConnectButton from '../../components/ConnectButton'
 import NetworkBadge from '../../components/NetworkBadge'
-import CopyAddress from '../../components/CopyAddress'
+import Address from '../../components/ui/Address'
 import Panel from '../../components/ui/Panel'
 import Label from '../../components/ui/Label'
 import Button from '../../components/ui/Button'
@@ -282,7 +282,7 @@ export default function Onboard() {
           {account
             ? (
               <div className="mt-2">
-                <CopyAddress address={account} full className="num" />
+                <Address address={account} copy full className="num" />
               </div>
             )
             : (
@@ -341,7 +341,7 @@ export default function Onboard() {
           <Panel as="section" className="p-4">
             <Label className="block">Step 5 — Fund it</Label>
             <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
-              Send USDC to <CopyAddress address={account} full className="num" />. Send USDC, not
+              Send USDC to <Address address={account} copy full className="num" />. Send USDC, not
               CELO: a native CELO send is rejected outright, on purpose. CELO
               also has an ERC-20 interface, and a transfer through that does
               arrive — but the policy is denominated in USDC, so the agent
