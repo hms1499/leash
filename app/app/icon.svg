@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!--
+    The product in one mark: a bar that runs out of room.
+
+    The dark track is --well, the spent portion --meter-fill, and the wall on
+    the right is --celo. It is the meter, reduced until only the idea is left,
+    which is the one thing every screen in this app is drawing. Deliberately
+    not a letter or a padlock: the argument is not secrecy, it is a limit.
+
+    Values are the palette's, copied rather than tokenised because a favicon
+    is a standalone file with no access to CSS custom properties.
+  -->
+  <rect width="32" height="32" rx="7" fill="#0B0D10"/>
+  <rect x="6" y="13" width="20" height="6" rx="1" fill="#07090B"/>
+  <rect x="6" y="13" width="11" height="6" rx="1" fill="#5C6E88"/>
+  <rect x="23" y="10" width="3" height="12" rx="1" fill="#FCFF52"/>
+</svg>
