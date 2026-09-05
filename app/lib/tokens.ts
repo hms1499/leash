@@ -19,9 +19,27 @@ export const PALETTE = {
   ok: '#4E9E7E',
   bad: '#D0605B',
   meterFill: '#5C6E88',
+  /**
+   * Control borders. --line is rgba(255,255,255,.10), which is 1.32:1 on
+   * --panel: correct for a divider, and nothing at all for the border of a
+   * button. Measured 2026-09-05: this clears 3:1 on all three dark grounds
+   * (3.27 panel, 3.55 bg, 3.64 well) with a little headroom.
+   */
+  lineControl: '#626A73',
 } as const
 
 export type TokenName = keyof typeof PALETTE
+
+/**
+ * A ground is a colour something is drawn *on*. The app has five, and until
+ * 2026-09-05 only two were ever checked -- which is how a warning came to be
+ * painted in the colour behind it. docs/design-system.md §4.
+ *
+ * The split is not stylistic. On the dark grounds every foreground except
+ * --bg clears AA; on the bright ones only --bg does.
+ */
+export const DARK_GROUNDS = ['bg', 'panel', 'well'] as const satisfies readonly TokenName[]
+export const BRIGHT_GROUNDS = ['bad', 'celo'] as const satisfies readonly TokenName[]
 
 function channel(value: number): number {
   const c = value / 255

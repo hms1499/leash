@@ -28,7 +28,10 @@ export default function NetworkBadge({ onDangerBand = false }: { onDangerBand?: 
   const { switchChain, isPending } = useSwitchChain()
 
   if (!isConnected || chainId === celo.id) {
-    return <Label style={{ color: 'var(--celo)' }}>Celo</Label>
+    // The right-network branch is on the band too, and --celo on --bad is
+    // 3.55 -- under the body bar. The bright-ground rule is not only about
+    // the warning: it is about everything drawn on that ground.
+    return <Label style={{ color: onDangerBand ? 'var(--bg)' : 'var(--celo)' }}>Celo</Label>
   }
 
   return (
@@ -37,9 +40,9 @@ export default function NetworkBadge({ onDangerBand = false }: { onDangerBand?: 
       // The label type treatment, kept: this reads as a badge in the header
       // band, not as an action of the same weight as Connect. The variant is
       // what supplies the cursor, the focus ring and the disabled state.
+      onDangerBand={onDangerBand}
       style={{
         padding: '0.25rem 0.5rem', fontSize: '0.6875rem', letterSpacing: '0.16em', textTransform: 'uppercase',
-        ...(onDangerBand ? { color: 'var(--bg)', borderColor: 'var(--bg)' } : {}),
       }}
       disabled={isPending}
       onClick={() => switchChain({ chainId: celo.id })}

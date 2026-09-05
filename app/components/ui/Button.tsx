@@ -14,12 +14,27 @@ const BASE =
  * (spec §2.2), so nothing supplies it if this does not.
  */
 export default function Button({
-  variant = 'ghost', className = '', style, ...rest
-}: { variant?: Variant } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  variant = 'ghost', className = '', style, onDangerBand = false, ...rest
+}: {
+  variant?: Variant
+  /** This button sits on the paused header, whose ground is --bad. */
+  onDangerBand?: boolean
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  /**
+   * `onDangerBand` says this button sits on the paused header, whose ground is
+   * --bad. The ghost and stop variants are drawn in --text and --bad, which are
+   * 3.16 and 1.00 against that ground -- the second being invisible. --bg is
+   * 5.10 there, the same dark-on-bright treatment `primary` already uses on
+   * Celo yellow. docs/design-system.md §4.
+   */
   const tone: Record<Variant, React.CSSProperties> = {
     primary: { background: 'var(--celo)', color: 'var(--bg)', fontWeight: 700, outlineColor: 'var(--celo)' },
-    ghost: { border: '1px solid var(--line)', color: 'var(--text)', outlineColor: 'var(--text)' },
-    stop: { border: '1px solid var(--bad)', color: 'var(--bad)', fontWeight: 700, letterSpacing: '0.1em', outlineColor: 'var(--bad)' },
+    ghost: onDangerBand
+      ? { border: '1px solid var(--bg)', color: 'var(--bg)', outlineColor: 'var(--bg)' }
+      : { border: '1px solid var(--line-control)', color: 'var(--text)', outlineColor: 'var(--text)' },
+    stop: onDangerBand
+      ? { border: '1px solid var(--bg)', color: 'var(--bg)', fontWeight: 700, outlineColor: 'var(--bg)' }
+      : { border: '1px solid var(--bad)', color: 'var(--bad)', fontWeight: 700, outlineColor: 'var(--bad)' },
   }
   // Appended, not spread through `rest`. A caller passing className="mt-3"
   // would otherwise replace BASE outright and silently lose the cursor, the

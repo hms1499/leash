@@ -15,6 +15,9 @@
   --panel: #14171C;
   --well: #07090B;
   --line: rgba(255, 255, 255, 0.10);
+  /* Divider vs control border: --line is deliberately faint, and a button
+     needs to be seen. Asserted in test/tokens.test.ts. */
+  --line-control: #626A73;
   --text: #E8EAED;
   --dim: #8A9199;
   /* Celo brand yellow, verified 2026-09-03 by fetching celo.org/brand-kit and

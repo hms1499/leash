@@ -147,6 +147,9 @@ function Dashboard({ address }: { address: `0x${string}` }) {
 
   return (
     <main>
+      {/* Everything on this band obeys the bright-ground rule: --bg only.
+          Mixing --text at 3.16 with --bg at 5.10 was the state this was left
+          in when the invisible-badge bug was fixed in a hurry. */}
       <header
         className="flex items-center gap-3 px-4 py-3"
         style={{
@@ -154,7 +157,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           borderBottom: '1px solid var(--line)',
         }}
       >
-        <strong style={{ color: state.paused ? 'var(--text)' : 'var(--celo)', letterSpacing: '.26em' }}>
+        <strong style={{ color: state.paused ? 'var(--bg)' : 'var(--celo)', letterSpacing: '.26em' }}>
           LEASH
         </strong>
         {/* .label's --dim on the paused band's --bad is about 1.6:1 and
@@ -162,7 +165,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
             and the address is what tells you *which* account stopped. */}
         <CopyAddress
           address={address}
-          style={{ ...LABEL_STYLE, color: state.paused ? 'var(--text)' : undefined }}
+          style={{ ...LABEL_STYLE, color: state.paused ? 'var(--bg)' : undefined }}
         />
         <a
           href={`https://celoscan.io/address/${address}`}
@@ -170,7 +173,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           rel="noreferrer"
           title="Open on Celoscan"
         >
-          <Label style={{ color: state.paused ? 'var(--text)' : undefined }}>↗</Label>
+          <Label style={{ color: state.paused ? 'var(--bg)' : undefined }}>↗</Label>
         </a>
         <span className="ml-auto flex items-center gap-3">
           <NetworkBadge onDangerBand={state.paused} />

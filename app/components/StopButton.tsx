@@ -33,7 +33,17 @@ export default function StopButton({
   if (!isOwner) {
     // `paused` defaults to false before the first read; printing "Active"
     // then states something nobody has checked.
-    return <Label>{loading ? '—' : paused ? 'Paused' : 'Active'}</Label>
+    //
+    // The bright-ground rule applies here too, and this was the last place on
+    // the band still breaking it: a visitor with no wallet connected is not
+    // the owner, so this branch is what the paused dashboard shows a stranger
+    // -- and --dim on --bad is 1.20:1. The word "Paused" was invisible in
+    // exactly the case a shared link is opened. docs/design-system.md §4.
+    return (
+      <Label style={{ color: paused ? 'var(--bg)' : undefined }}>
+        {loading ? '—' : paused ? 'Paused' : 'Active'}
+      </Label>
+    )
   }
 
   async function send(next: boolean) {
@@ -80,7 +90,7 @@ export default function StopButton({
         <Label style={{ color: paused ? 'var(--bg)' : 'var(--bad)' }}>{note}</Label>
       )}
       {paused ? (
-        <Button variant="ghost" disabled={busy} onClick={() => void send(false)}>
+        <Button variant="ghost" onDangerBand={paused} disabled={busy} onClick={() => void send(false)}>
           {busy ? 'Resuming…' : 'Resume'}
         </Button>
       ) : (

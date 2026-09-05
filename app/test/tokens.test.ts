@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { PALETTE, contrastRatio } from '../lib/tokens.js'
+import { PALETTE, contrastRatio, DARK_GROUNDS, BRIGHT_GROUNDS } from '../lib/tokens.js'
 
 /** WCAG AA: 4.5:1 for body text, 3:1 for non-text UI boundaries. */
 const BODY = 4.5
@@ -21,55 +21,64 @@ describe('contrastRatio', () => {
   })
 })
 
-describe('every text colour clears AA body contrast', () => {
-  const grounds = ['bg', 'panel'] as const
-  for (const fg of ['text', 'dim', 'celo', 'ok', 'bad'] as const) {
-    for (const bg of grounds) {
-      it(`${fg} on ${bg}`, () => {
-        expect(contrastRatio(PALETTE[fg], PALETTE[bg])).toBeGreaterThanOrEqual(BODY)
+/**
+ * Five grounds, not two.
+ *
+ * The old loop checked --bg and --panel. --well was never checked (it is
+ * safe: darker than --bg, so everything clears by more), and neither bright
+ * ground was -- which is how the "Wrong network" badge came to be drawn in
+ * the colour behind it at exactly 1.00:1 on 2026-09-05, at the one moment an
+ * owner most needed to read it.
+ *
+ * This asserts the rule rather than a list of pairs, so a sixth ground added
+ * next year is caught here instead of by a person squinting at a screen.
+ * docs/design-system.md §4.
+ */
+describe('the ground rule', () => {
+  const foregrounds = ['text', 'dim', 'celo', 'ok', 'bad'] as const
+
+  for (const ground of DARK_GROUNDS) {
+    for (const fg of foregrounds) {
+      it(`--${fg} reads on the dark ground --${ground}`, () => {
+        expect(contrastRatio(PALETTE[fg], PALETTE[ground])).toBeGreaterThanOrEqual(BODY)
       })
     }
   }
+
+  for (const ground of BRIGHT_GROUNDS) {
+    it(`--bg reads on the bright ground --${ground}`, () => {
+      expect(contrastRatio(PALETTE.bg, PALETTE[ground])).toBeGreaterThanOrEqual(BODY)
+    })
+
+    // The other half of the rule, and the half that was violated: on a bright
+    // ground nothing but --bg is allowed, so this asserts they would fail.
+    for (const fg of foregrounds) {
+      it(`--${fg} is refused on the bright ground --${ground}`, () => {
+        expect(contrastRatio(PALETTE[fg], PALETTE[ground])).toBeLessThan(BODY)
+      })
+    }
+  }
+
+  it('every ground is classified exactly once', () => {
+    const all = [...DARK_GROUNDS, ...BRIGHT_GROUNDS]
+    expect(new Set(all).size).toBe(all.length)
+    expect(all).toHaveLength(5)
+  })
 })
 
 /**
- * The paused header is a third ground, and it was not being treated as one.
- *
- * `page.tsx` swaps the header's background to --bad the moment the account is
- * paused, so everything in that band is drawn on red. The loop above only
- * checks --bg and --panel, so it could never have caught what a wrong-network
- * test found on 2026-09-05: the "Wrong network" badge and the warning it
- * points at were both --bad on --bad, a ratio of exactly 1.00. Not hard to
- * read — invisible. The owner saw an unresponsive Resume button and no reason
- * why.
- *
- * These assert what is actually rendered there, not every token, because
- * over-constraining would fail on colours that never appear on this band.
+ * --line at rgba(255,255,255,.10) is 1.32:1 on --panel. That is right for a
+ * divider and does nothing for a control border: Resume and Disconnect are
+ * ghost buttons, and neither may be ambiguous. On a bright ground the border
+ * switches to --bg through Button's onDangerBand, so this only has to hold
+ * for the dark grounds.
  */
-describe('the paused header band is a ground too', () => {
-  const band = PALETTE.bad
-
-  // Both carry sentences an owner has to read, so both need body contrast.
-  it('the wrong-network badge reads on it', () => {
-    expect(contrastRatio(PALETTE.bg, band)).toBeGreaterThanOrEqual(BODY)
-  })
-
-  it('the stop/resume note reads on it', () => {
-    expect(contrastRatio(PALETTE.bg, band)).toBeGreaterThanOrEqual(BODY)
-  })
-
-  // The regression itself: whatever those two use, it must not be the ground.
-  it('--bad on --bad is the invisibility this guards against', () => {
-    expect(contrastRatio(band, band)).toBeLessThan(UI)
-  })
-
-  // The wordmark and the address are large or bold, so UI contrast is the
-  // bar they have to clear. --text on --bad is 3.16 — it passes here and
-  // would not pass BODY, which is a known limit of this band rather than an
-  // oversight: see the comment in page.tsx's header.
-  it('the wordmark and address clear UI contrast', () => {
-    expect(contrastRatio(PALETTE.text, band)).toBeGreaterThanOrEqual(UI)
-  })
+describe('control borders are visible on every dark ground', () => {
+  for (const ground of DARK_GROUNDS) {
+    it(`--line-control on --${ground}`, () => {
+      expect(contrastRatio(PALETTE.lineControl, PALETTE[ground])).toBeGreaterThanOrEqual(UI)
+    })
+  }
 })
 
 describe('non-text boundaries clear AA UI contrast', () => {
@@ -95,7 +104,7 @@ describe('globals.css does not drift from tokens.ts', () => {
   const cssVar: Record<keyof typeof PALETTE, string> = {
     bg: '--bg', panel: '--panel', well: '--well', text: '--text',
     dim: '--dim', celo: '--celo', ok: '--ok', bad: '--bad',
-    meterFill: '--meter-fill',
+    meterFill: '--meter-fill', lineControl: '--line-control',
   }
 
   for (const [name, value] of Object.entries(PALETTE)) {
