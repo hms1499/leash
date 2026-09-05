@@ -16,6 +16,7 @@ import { isValidAddress } from '../../lib/address.js'
 import { parseAmount } from '../../lib/policy.js'
 import { isAttributionTag } from '../../lib/mcpJson.js'
 import { pollUntil } from '../../lib/confirm.js'
+import { PAGE } from '../../components/ui/page'
 
 /**
  * A wizard's job is to say where you are. Every step was a Label -- the same
@@ -279,7 +280,7 @@ export default function Onboard() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto p-6 space-y-6">
+    <main className={`${PAGE} py-12 space-y-6`}>
       <h1 style={{
         fontFamily: 'var(--mono)',
         fontSize: 'var(--t-title)',

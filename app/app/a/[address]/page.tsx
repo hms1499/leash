@@ -9,6 +9,7 @@ import NetworkBadge from '../../../components/NetworkBadge'
 import Address from '../../../components/ui/Address'
 import Label, { LABEL_STYLE } from '../../../components/ui/Label'
 import Shell from '../../../components/ui/Shell'
+import { PAGE } from '../../../components/ui/page'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
@@ -159,12 +160,12 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           Mixing --text at 3.16 with --bg at 5.10 was the state this was left
           in when the invisible-badge bug was fixed in a hurry. */}
       <header
-        className="flex items-center gap-3 px-4 py-3"
         style={{
           background: state.paused ? 'var(--bad)' : 'var(--panel)',
           borderBottom: '1px solid var(--line)',
         }}
       >
+        <div className={`${PAGE} flex items-center gap-3 py-3`}>
         <strong style={{
           fontFamily: 'var(--mono)', fontSize: 'var(--t-label)',
           color: state.paused ? 'var(--bg)' : 'var(--celo)', letterSpacing: '.26em',
@@ -191,6 +192,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           />
           <ConnectButton />
         </span>
+        </div>
       </header>
 
       {/* The dashboard's dominant element, so the ceiling takes --t-display
@@ -207,7 +209,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         dominant
       />
 
-      <div className="p-6">
+      <div className={`${PAGE} py-6`}>
         <LimitsDrawer
           account={address}
           token={TOKEN}

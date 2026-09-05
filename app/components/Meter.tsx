@@ -6,6 +6,7 @@ import { meterState, spendBand } from '../lib/meter.js'
 import Label from './ui/Label'
 import Stat from './ui/Stat'
 import { PROSE } from './ui/prose'
+import { PAGE } from './ui/page'
 
 type Props = {
   daily: bigint
@@ -69,7 +70,13 @@ export default function Meter({
   const width = Math.max(0, Math.min(FILL_MAX, (fillPercent / 100) * FILL_MAX))
 
   return (
-    <div className="px-4 py-3" style={{ background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
+    <div style={{ background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
+      {/* The ground spans; the content does not. On the dashboard this element
+          is the full width of the viewport, and the meter inside it stays on
+          the page's column -- without this it drew 1888px wide, with the fill
+          at one edge and the cap line at the other. On the landing the outer
+          div is already inside a 768px Panel, so this changes nothing there. */}
+      <div className={`${PAGE} py-3`}>
       {/* One --t-display per screen, and on the dashboard this is it.
           The allowance alone says what is permitted and the balance alone
           says what is there; 50778cd was opened because the meter showed the
@@ -174,6 +181,7 @@ export default function Meter({
           label="Per-transaction cap"
           value={loading ? `— ${symbol}` : `${formatAmount(perTx, decimals)} ${symbol}`}
         />
+      </div>
       </div>
     </div>
   )

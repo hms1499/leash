@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import Button from '../ui/Button'
+import { PAGE } from '../ui/page'
 
 const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
 
 export default function Hero() {
   return (
-    <header className="w-full max-w-3xl mx-auto px-4 py-12">
+    <header className={`${PAGE} py-12`}>
       <p style={{
         fontFamily: 'var(--mono)', fontSize: 'var(--t-label)',
         color: 'var(--celo)', letterSpacing: '.26em', fontWeight: 700,

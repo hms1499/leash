@@ -142,6 +142,33 @@ spacing system fighting Tailwind's helps nobody.
 
 Nothing else. `mt-1` and `mt-8/10/14/16` are removed.
 
+### The page is one width
+
+`PAGE` in `components/ui/page.ts` — `w-full max-w-3xl mx-auto px-4`, so 768px
+with a 16px gutter. Every screen uses it: landing, wizard, dashboard, and the
+three message screens.
+
+There was no rule here until 2026-09-05, and measured at a 1920px viewport the
+app had four screens at three widths — 768px for the landing and the message
+screens, 672px for the wizard, and **no constraint at all** on the dashboard.
+
+That was not only untidy. `Meter` is rendered on the landing *and* the
+dashboard, and it measured **702px on one and 1888px on the other**. At the
+larger width its fill is a dot against the left edge and its cap line a dot
+against the right, nearly two thousand pixels apart — and the relationship
+between those two marks is the entire information content of the component.
+§3.1 of the spec spends a rule on the 2px gap between them.
+
+768px because that is the width `Meter` was drawn for and already ran at
+inside `LiveProof`. The gutter stays 16px: it is the edge of the viewport
+rather than a relationship between two elements, and 24px gutters waste width
+on the phone MiniPay runs on.
+
+**A full-bleed band puts its background on an outer element and `PAGE` on the
+content inside it.** The dashboard header and the meter's ground both do this,
+so the band spans the viewport — which is what makes the paused state read as
+red edge to edge — while what it holds stays on the page's column.
+
 ---
 
 ## 4. Colour

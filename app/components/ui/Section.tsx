@@ -1,8 +1,9 @@
+import { PAGE } from './page'
 export default function Section({
   id, title, children,
 }: { id?: string; title?: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="w-full max-w-3xl mx-auto px-4 py-12">
+    <section id={id} className={`${PAGE} py-12`}>
       {title && (
         <h2
           className="mb-3"

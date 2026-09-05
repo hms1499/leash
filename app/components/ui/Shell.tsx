@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Button from './Button'
+import { PAGE } from './page'
 
 /**
  * The frame the app's message screens share: not found, a render error, and
@@ -13,7 +14,7 @@ export default function Shell({
   title, children,
 }: { title: string; children: React.ReactNode }) {
   return (
-    <main className="w-full max-w-3xl mx-auto px-4 py-12">
+    <main className={`${PAGE} py-12`}>
       <p style={{
         fontFamily: 'var(--mono)', color: 'var(--celo)',
         letterSpacing: '.26em', fontWeight: 700, fontSize: 'var(--t-label)',
