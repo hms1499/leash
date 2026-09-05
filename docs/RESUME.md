@@ -20,6 +20,8 @@ a prompt, so a leaked agent key does not become an unbounded one.
 2. `docs/deployments.md` — what is live, what it cost, and the proof for every claim.
 3. `docs/mcp-setup.md` — the product surface, written for a stranger. Read it to
    see what a user actually receives.
+3a. `docs/design-system.md` — the interface's rules and the measurements behind
+   them. Read it before changing anything in `app/`. It supersedes spec §4.1.
 4. `spikes/README.md` — every chain assumption that was tested, with evidence.
 5. `.superpowers/sdd/2026-09-03-leash-frontend/progress.md` — the current
    ledger, including the whole-branch review and what it found.

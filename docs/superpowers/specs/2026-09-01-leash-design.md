@@ -323,7 +323,15 @@ Three screens in v1 (a fourth is descoped below). Next.js + wagmi/viem + Tailwin
 Explicitly out of v1: analytics charts, history export, team management,
 settings pages.
 
-### 4.1 Visual direction: Van Gogh
+### 4.1 Visual direction: ~~Van Gogh~~ — SUPERSEDED 2026-09-05
+
+> **Superseded.** The Café Terrace palette was dropped on 2026-09-04 and, for a
+> day, the replacement direction lived only in a comment in `globals.css` —
+> which is how this section came to describe a direction that no longer
+> existed. The live direction, the type scale, the grounds, the state
+> vocabulary and the component contracts are now in **`docs/design-system.md`**.
+> Read that, not this. The paragraphs below are kept only for the competitive
+> argument about visual distinctiveness, which still holds.
 
 > **Amended 2026-09-03.** The discipline below stands unchanged, including all
 > three failure modes. The *palette* moved from Starry Night's indigo/chrome
