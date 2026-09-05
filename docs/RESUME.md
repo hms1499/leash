@@ -29,10 +29,12 @@ a prompt, so a leaked agent key does not become an unbounded one.
    **Both gitignored, living only on this machine.** `git clean -fdx` would
    destroy them.
 
-All three plans in `docs/superpowers/plans/` are **done**; read them only for
-context on decisions already taken.
+All five plans in `docs/superpowers/plans/` are **done**; read them only for
+context on decisions already taken. The line above said "three" while five
+files sat in that directory -- it was written when there were three and never
+counted again.
 
-## State: all three plans complete. Reviewed, and the review's fixes applied.
+## State: all five plans complete. Reviewed, and the review's fixes applied.
 
 | Suite | Status |
 |---|---|
@@ -42,6 +44,11 @@ context on decisions already taken.
 | `cd app && pnpm run test` | 191/191 |
 | `cd app && pnpm run test:e2e` | 6/6 (Playwright, against a local build) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
+
+**Nothing is pushed.** `main` is 24 commits ahead of `origin/main` — the 11
+from the design-system session of 2026-09-05, and 13 that were already
+unpushed before it. The repo is public and `README.md` points at it, so what a
+stranger sees on GitHub is older than what is described here.
 
 Gate tests are excluded from the ordinary runs. `pnpm -F @leash/sdk test:gate`
 and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
@@ -128,6 +135,13 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    `NEXT_PUBLIC_CELO_RPC_URL` there — otherwise every visitor shares public
    forno, and the dashboard makes 18 `getLogs` calls per load. Then replace
    the "A hosted URL will be added here" line in `README.md`.
+
+   Do the social preview in the same pass: checked 2026-09-05, `app/` has no
+   favicon, no `opengraph-image`, and `layout.tsx` sets only `title` and
+   `description` — no `openGraph` block and no `metadataBase`. The submission
+   is a link, so pasted into a chat or a judging sheet it renders as bare text
+   with no tab icon. `metadataBase` needs the production URL, which is why it
+   belongs here rather than earlier.
 3. **The demo is proven; what is left is the shoot.** It ran twice on
    2026-09-05 and the second run's output was checked figure by figure against
    the chain. `LEASH_DEMO_SPEND_REAL_MONEY=yes pnpm -F @leash/examples demo`,
@@ -135,18 +149,20 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    not the balance: 1.00 USDC a day is about thirty runs, and it resets on
    `block.timestamp / 1 days`, i.e. at UTC midnight, not on any wall clock the
    shoot is keeping.
-4. **The design system is written and planned; none of it is built.**
-   `docs/design-system.md` is the reference and
-   `docs/superpowers/plans/2026-09-05-leash-design-system.md` is nine tasks
-   implementing it. **Nothing has been started.** Tasks 1-4 are the whole
-   answer to the three complaints that opened the work — the UI reads rough,
-   nothing says where to look, and it does not look like a real product — and
-   task 3 is the largest visible gain for the least code. Every task ends
-   green and committed, so stopping after any one leaves the app consistent
-   rather than half-migrated.
+4. **The design system is built.** All nine tasks of
+   `docs/superpowers/plans/2026-09-05-leash-design-system.md` landed on
+   2026-09-05, one commit each, `e060f95`..`47e279b`, with two follow-ups
+   after them (`4cbf028`, `99e0669`). The app suite went 150 -> 191, e2e
+   stayed 6/6, and `tsc --noEmit` is clean in all five packages.
 
-   Sequence it against the deadline honestly: this is *presentation*, and
-   items 2 and 3 above are *submission*. If only one fits, deploy and film.
+   Read "The design system was applied to `app/`" below rather than the plan:
+   it records the four places the plan and the code disagreed, the two changes
+   made beyond it, and what is still enforced by nobody. The plan itself is
+   now only a record of intent.
+
+   This entry said "**Nothing has been started**" until 2026-09-05 and was
+   left that way through the session that did the work — the same staleness
+   this file exists to prevent, in this file.
 5. **Top up the operator before filming.** It holds 0.044505 USDC and 0 CELO;
    each transaction costs ~0.00286 and reserves ~0.0046, so that is about
    thirteen transactions — enough for four takes. Re-read it on the day rather
