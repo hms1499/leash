@@ -287,12 +287,17 @@ be a claim about something that did not happen.
 
 ## 7. Screens: what dominates
 
-Each screen names its one `--t-display` element. Everything else ranks below
-it.
+Each screen names the one element that dominates it. Everything else ranks
+below.
+
+**`--t-display` and "dominant" are not the same word.** `--t-display` is the
+44px step, and it is only ever a *number*. A screen whose dominant element is
+a sentence uses `--t-title` for it and no `--t-display` at all. Two screens
+here do exactly that.
 
 ### Dashboard — `/a/[address]`
 
-**Display: the refusal threshold.** The smallest of the three constraints —
+**Dominant: the refusal threshold**, at `--t-display`. The smallest of the three constraints —
 remaining daily allowance, per-transaction cap, and the account's actual
 balance — with a line naming which one is currently biting.
 
@@ -310,7 +315,7 @@ Then limits, the agent panel, the feed.
 
 ### Landing — `/`
 
-**Display: the headline.** No competition.
+**Dominant: the headline**, at `--t-title`. No `--t-display` on this screen: nothing here is a number.
 
 The content here is already strong — the Without/With table, the three steps,
 the tool list, the copyable `.mcp.json`. It was failing only because every part
@@ -319,8 +324,8 @@ fix.
 
 ### Wizard — `/setup`
 
-**Display: none** — the one screen that uses none. A wizard's job is to say
-where you are, and no single figure on it is worth 44px.
+**Dominant: the current step**, at `--t-heading`. No `--t-display`: a wizard's
+job is to say where you are, and no figure on it is worth 44px.
 
 The steps reveal progressively and completed ones stay on screen, all six set
 in the same 11px label, so nothing says "you are here". The current step takes
