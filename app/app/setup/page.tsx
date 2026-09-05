@@ -8,6 +8,7 @@ import NetworkBadge from '../../components/NetworkBadge'
 import Address from '../../components/ui/Address'
 import Panel from '../../components/ui/Panel'
 import Label from '../../components/ui/Label'
+import { PROSE } from '../../components/ui/prose'
 import Button from '../../components/ui/Button'
 import McpHandoff from '../../components/McpHandoff'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS } from '../../lib/chain.js'
@@ -15,6 +16,28 @@ import { isValidAddress } from '../../lib/address.js'
 import { parseAmount } from '../../lib/policy.js'
 import { isAttributionTag } from '../../lib/mcpJson.js'
 import { pollUntil } from '../../lib/confirm.js'
+
+/**
+ * A wizard's job is to say where you are. Every step was a Label -- the same
+ * 11px treatment as the field labels inside it -- and completed steps stay on
+ * screen, so six identical headings competed for attention.
+ * docs/design-system.md §7.
+ */
+const STEP_HEADING: React.CSSProperties = {
+  fontFamily: 'var(--mono)',
+  fontSize: 'var(--t-heading)',
+  lineHeight: 'var(--t-heading-line)',
+  fontWeight: 500,
+  color: 'var(--text)',
+  display: 'block',
+}
+
+/** A finished step recedes: it is context now, not the thing to do. */
+const STEP_HEADING_DONE: React.CSSProperties = {
+  ...STEP_HEADING,
+  fontSize: 'var(--t-data)',
+  color: 'var(--dim)',
+}
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const USDC_FEE_ADAPTER = '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B' as const
@@ -257,8 +280,16 @@ export default function Onboard() {
 
   return (
     <main className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 style={{ color: 'var(--celo)', letterSpacing: '.26em' }}>LEASH</h1>
-      <p style={{ color: 'var(--dim)' }}>
+      <h1 style={{
+        fontFamily: 'var(--mono)',
+        fontSize: 'var(--t-title)',
+        lineHeight: 'var(--t-title-line)',
+        color: 'var(--celo)',
+        letterSpacing: '.26em',
+      }}>
+        LEASH
+      </h1>
+      <p style={{ ...PROSE, maxWidth: '68ch', color: 'var(--dim)' }}>
         Give an AI agent a wallet without trusting it. Spend limits are enforced
         on Celo, not by a prompt.
       </p>
@@ -267,7 +298,9 @@ export default function Onboard() {
 
       <Panel as="section" className="p-4">
         <div className="flex items-center justify-between">
-          <Label className="block">Step 1 — Connect</Label>
+          <h2 style={isConnected ? STEP_HEADING_DONE : STEP_HEADING}>
+            {isConnected ? '✓ ' : ''}Step 1 — Connect
+          </h2>
           <NetworkBadge />
         </div>
         <div className="mt-2"><ConnectButton /></div>
@@ -275,7 +308,9 @@ export default function Onboard() {
 
       {isConnected && (
         <Panel as="section" className="p-4">
-          <Label className="block">Step 2 — Deploy your account</Label>
+          <h2 style={Boolean(account) ? STEP_HEADING_DONE : STEP_HEADING}>
+            {Boolean(account) ? '✓ ' : ''}Step 2 — Deploy your account
+          </h2>
           <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
             You own it. Costs about $0.013 in gas.
           </p>
@@ -296,7 +331,9 @@ export default function Onboard() {
       {account && (
         <>
           <Panel as="section" className="p-4">
-            <Label className="block">Step 3 — Add your agent</Label>
+            <h2 style={agentNote === 'Agent added.' ? STEP_HEADING_DONE : STEP_HEADING}>
+            {agentNote === 'Agent added.' ? '✓ ' : ''}Step 3 — Add your agent
+          </h2>
             <p className="text-sm mt-1" style={{ color: 'var(--bad)' }}>
               This must be the wallet you registered as your agentWalletAddress.
               A different address silently voids your x402 attribution — nothing
@@ -319,7 +356,9 @@ export default function Onboard() {
           </Panel>
 
           <Panel as="section" className="p-4">
-            <Label className="block">Step 4 — Set limits (USDC)</Label>
+            <h2 style={limitsNote === 'Limits saved.' ? STEP_HEADING_DONE : STEP_HEADING}>
+            {limitsNote === 'Limits saved.' ? '✓ ' : ''}Step 4 — Set limits (USDC)
+          </h2>
             <Label className="block mt-2">Per transaction</Label>
             <input className="num w-full mt-1 p-2"
               style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
@@ -339,7 +378,9 @@ export default function Onboard() {
           </Panel>
 
           <Panel as="section" className="p-4">
-            <Label className="block">Step 5 — Fund it</Label>
+            <h2 style={Boolean(feeAdapter) ? STEP_HEADING_DONE : STEP_HEADING}>
+            {Boolean(feeAdapter) ? '✓ ' : ''}Step 5 — Fund it
+          </h2>
             <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
               Send USDC to <Address address={account} copy full className="num" />. Send USDC, not
               CELO: a native CELO send is rejected outright, on purpose. CELO
@@ -354,7 +395,7 @@ export default function Onboard() {
 
           {feeAdapter && (
             <section>
-              <Label className="block mb-2">Step 6 — Connect your agent</Label>
+              <h2 className="mb-2" style={STEP_HEADING}>Step 6 — Connect your agent</h2>
               <Label className="block">Attribution tag</Label>
               <p className="text-sm mt-1 mb-2" style={{ color: 'var(--dim)' }}>
                 <code>celo_</code> plus 12 hex characters. It is issued when you
