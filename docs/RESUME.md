@@ -117,7 +117,7 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    | Limits from the dashboard | **not yet** |
    | Refuel | done 2026-09-05 — `sweep`, tx: 0xb6a9ee9340561dbf56705a50b9cf9064abe78797b37fb0de561a76e518d2e3de |
    | Deliberate rejection in the wallet | **not yet** — free |
-   | Deliberate wrong-chain attempt | ran 2026-09-05, **found a defect, retest pending** — see below |
+   | Deliberate wrong-chain attempt | done 2026-09-05 with Coinbase Wallet — found a defect, fixed, then passed |
 
    Do the two free ones first; they cost nothing and exercise error paths
    nobody has run.
@@ -252,16 +252,18 @@ The guard was never the problem. **The message it prints was invisible.**
   was reporting that honestly every time. Two apparent app bugs this session
   were this and nothing else, so: **read `eth_chainId` before concluding
   anything about the badge**, and never reload during the test.
-- **The wrong-chain guard is still unverified.** Not "passing" — unexercised.
-  A Stop did reach the wallet at 09:41:17 while the page was believed to be on
-  Ethereum, but `eth_chainId` afterwards said Celo, so the guard was right not
-  to fire and the test had not run. The procedure that removes the ambiguity:
-  switch with `wallet_switchEthereumChain`, then **wait for the badge to turn
-  red before clicking anything** — the badge and the guard read the same
-  `useAccount().chainId`, so a red badge is proof wagmi has the new chain.
-  Clicking while it is still green tests nothing. If OKX keeps revoking the
-  switch, a wallet whose network is global (MetaMask) is the way through; that
-  is a limit of the test environment, not of the code.
+- **The guard passes — verified with Coinbase Wallet, not OKX.** Coinbase
+  switches networks globally rather than per site, so the page stays on the
+  wrong chain long enough for the guard to matter. Observed: the badge turned
+  red, the warning was legible on the paused band (which is the human check on
+  the fix above), and **the wallet never opened**. That last point is the
+  whole claim — the guard refuses before touching the wallet, rather than
+  leaving a person to cancel a prompt.
+
+  **Use a wallet whose network is global for this test.** With OKX the page
+  never stays on the wrong chain, and the badge and the guard read the same
+  `useAccount().chainId`, so clicking while the badge is still green tests
+  nothing at all.
 - **`--bad` on `--bad`, a contrast ratio of exactly 1.00** (fixed). `page.tsx`
   swaps the header's ground to `--bad` when the account is paused. The
   "Wrong network — switch to Celo" badge is the `stop` button variant, `--bad`
