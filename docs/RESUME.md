@@ -1,6 +1,6 @@
 # Resume Here — Leash
 
-Session paused 2026-09-04. This file is the entry point for the next session.
+Session paused 2026-09-05. This file is the entry point for the next session.
 Read it before anything else, then read the documents it points at.
 
 ## What this project is
@@ -11,7 +11,7 @@ contract reverts past its limits. The limits are code on Celo, not a sentence in
 a prompt, so a leaked agent key does not become an unbounded one.
 
 - **Primary track:** `judges-favorite` · **Secondary:** `askbots-growth` (not entered yet)
-- **Deadline:** 2026-09-14 09:00 GMT (16:00 ICT, Monday) — **10 days left**
+- **Deadline:** 2026-09-14 09:00 GMT (16:00 ICT, Monday) — **9 days left**
 - **Repo:** https://github.com/hms1499/leash (public)
 
 ## Read these, in order
@@ -49,16 +49,16 @@ and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
 | | |
 |---|---|
 | `SpendPolicyAccount` | `0x7aDa926B021BAef4896F51F237bCA61435E43fd2` (source-verified) |
-| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0 USDC**. Not project infrastructure; use it to exercise the UI, not as the demo account. |
+| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.050000 USDC**. Not project infrastructure; use it to exercise the UI, not as the demo account. |
 | Superseded instance | `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` — **do not use.** It accepted native CELO that could never be recovered; swept to 0 and replaced. See `docs/deployments.md`. |
 | Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.5639 CELO |
-| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.012215 USDC |
+| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.053070 USDC |
 | Attribution tag | `celo_3dec652cd977` |
 | ERC-8004 identity | agentId 9804, owned by the operator |
 | Policy | USDC: perTx 0.50, daily 1.00. `paused` false, allowlist off |
-| Contract holds | 2.496567 USDC · `remainingToday` 1.000000 |
+| Contract holds | 2.466567 USDC · `remainingToday` 0.970000 — the demo ran |
 
-Read back from mainnet on 2026-09-03. The figures above are the state, not a
+Read back from mainnet on 2026-09-05. The figures above are the state, not a
 recollection of it.
 
 ### Proven on mainnet, not asserted
@@ -71,6 +71,17 @@ recollection of it.
   fell by exactly the amount spent.
 - **A real x402 purchase.** `0x0ac87832…b46e` — paid from the operator's own
   leftovers, never touching the contract.
+- **The demo runs, end to end, on mainnet.** Three spends of 0.01 USDC and
+  then a refusal, 2026-09-05. `remainingToday` fell 1.000000 → 0.990000 →
+  0.980000 → 0.970000, one step per spend, verified by reading each
+  transaction's own block. The refusal (`PerTxCapExceeded(900000, 500000)`)
+  sent nothing and cost nothing.
+  tx: 0x57c4695071de9c039d4563912c271bebec3913b36849666f78efa12546bcddb9
+  tx: 0xf78e028eb09b567d142fd3ee79cf18c4e4d54cb929c2f72dcddea8343f634c71
+  tx: 0xe0330cbc91007fea355bb1ec20c990098c3b84d14edb58c20ebe4e757b6b2552
+- **The live feed updates without a reload.** The three rows above appeared in
+  the dashboard as they landed, watched by a human — the first real check of
+  `e247872`, whose bug the backfill had been hiding.
 - **x402 paid with money drawn through the policy.** Top-up `0xec08a200…33db`,
   settlement `0xb5dd4d16…1e25`. The daily counter fell by exactly the draw.
   This is the one that proves Path B; the bullet above does not.
@@ -91,7 +102,7 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    | `setPaused` — Stop | done |
    | `setPaused` — Resume | done |
    | Limits from the dashboard | **not yet** |
-   | Refuel | **not yet** — needs USDC in the account |
+   | Refuel | done 2026-09-05 — `sweep`, tx: 0xb6a9ee9340561dbf56705a50b9cf9064abe78797b37fb0de561a76e518d2e3de |
    | Deliberate rejection in the wallet | **not yet** — free |
    | Deliberate wrong-chain attempt | **not yet** — free |
 
@@ -102,14 +113,18 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    `NEXT_PUBLIC_CELO_RPC_URL` there — otherwise every visitor shares public
    forno, and the dashboard makes 18 `getLogs` calls per load. Then replace
    the "A hosted URL will be added here" line in `README.md`.
-3. **Run the mainnet demo** — the agent that spends and then gets blocked.
-   Still never run against the live chain. It refuses to start without its
-   money gate: `LEASH_DEMO_SPEND_REAL_MONEY=yes pnpm -F @leash/examples demo`.
-   Costs roughly 0.03 USDC plus gas.
-4. **Top up the operator before filming.** It holds 0.012215 USDC and 0 CELO;
-   each transaction costs ~0.0028 and reserves ~0.0046, so that is two or
-   three transactions. The demo needs at least three consecutive `leash_pay`
-   calls. 0.05 USDC is comfortable.
+3. **Re-run the mainnet demo once, after the fix below.** It ran for the
+   first time on 2026-09-05 and the spends were correct, but it *printed* the
+   allowance wrong — see the 2026-09-05 entry. The fix is in; nobody has
+   watched the corrected output yet, and that output is what gets filmed.
+   `LEASH_DEMO_SPEND_REAL_MONEY=yes pnpm -F @leash/examples demo`, roughly
+   0.03 USDC plus gas. Note the daily cap is per calendar day: three more
+   spends is fine against a 1.00 cap, but re-running repeatedly on one day
+   will eventually exhaust it, which is the demo's other beat, not a fault.
+4. **Top up the operator before filming.** It holds 0.053070 USDC and 0 CELO;
+   each transaction costs ~0.00305 and reserves ~0.0046, so that is about
+   fifteen transactions — comfortable for a shoot, but check it again on the
+   day rather than trusting this line.
 
 ### What the wallet session found (2026-09-04)
 
@@ -140,6 +155,48 @@ in what the app told the person driving it.
 
 Also struck spec §4's landed-revert row (`879f514`), which contradicted its own
 paragraph — see the entry below.
+
+### What the second wallet session found (2026-09-05)
+
+Refuel and the spend path were driven with a real wallet, and this time the
+write paths and the UI were both correct. The one defect was in the demo.
+
+- **Refuel is clean.** `sweep(USDC, operator, 0.05)` from the owner's browser
+  wallet: account 0.100000 → 0.050000, agent 0.012215 → 0.062215, the panel
+  moved 3 → 21 transactions and the button unmounted itself, and
+  `remainingToday` stayed at 1.000000 — proving the owner's rescue path does
+  not consume the agent's daily cap. No "not confirmed yet" note, so
+  `pollUntil` observed the change inside its window.
+- **The demo printed an allowance that had not moved** (fixed this session).
+  Against three spends whose blocks held 0.99, 0.98 and 0.97, it printed
+  **1, 1 and 0.98** — reads one to two blocks behind, with the receipt already
+  in hand. `demo-agent.ts` read `remainingToday` immediately after
+  `waitForTransactionReceipt`, and a comment in it argued that the receipt was
+  what made the read safe. It is not: forno is load-balanced, and a receipt
+  proves the transaction landed, never that the *next* node asked has seen
+  that block.
+
+  This matters more here than the same lag would anywhere else. The demo's
+  whole claim is a counter falling by exactly what was spent; on camera it
+  showed a counter sitting still. `remainingAtMost` now waits on the
+  condition, with its ceiling anchored to a reading taken *before* any spend —
+  a ceiling from a fresh read would itself be stale, and the lag would
+  survive the fix. When it times out it says the figure is not readable yet
+  rather than printing one nobody verified.
+
+  **The rule was already written down** — `CLAUDE.md`, "wait on the condition,
+  not the receipt" — and every write path in `app/` obeyed it. `examples/`
+  cannot import `app/lib/confirm.ts`, so it grew its own read, and the rule
+  did not travel with it. Where a hazard is handled twice, check the second
+  copy.
+- **The live feed was verified by a human, finally.** Three `Spent` rows
+  appeared without a reload. `e247872` holds against real traffic; the
+  backfill was not what made it look right.
+- **Not a defect, but know it:** `preCheck` reports `spent: 0` for a per-tx
+  rejection (`policyClient.ts:40`) even when the account has spent plenty
+  today. `PerTxCapExceeded(amount, cap)` does not carry the daily figure, so
+  the SDK has nothing to report — but an agent reading that JSON could
+  conclude its whole daily allowance is intact.
 
 ### Known and deliberately unfixed
 
@@ -235,9 +292,13 @@ A pre-commit guard (`scripts/check-secrets.sh`, wired via
 `core.hooksPath` is local config and is not cloned — a fresh clone must set it
 again.
 
-Money spent to date: roughly **$0.075** of gas plus **$0.034** of USDC on two
-x402 purchases. The project holds 2.508783 USDC across its three addresses and
-3.7582 CELO in the owner wallet.
+Money spent to date: roughly **$0.087** of gas plus **$0.034** of USDC on two
+x402 purchases. The project holds 2.599638 USDC across its four addresses —
+account 2.466567, test account 0.050000, operator 0.053070, owner 0.030001 —
+and 3.5639 CELO in the owner wallet. The rise since 2026-09-04 is 0.10 USDC
+sent in from the browser wallet `0x94f7…6459` to fund the refuel test; the
+demo's 0.03 moved from the account to the payee, which is the owner EOA, so
+it never left the project.
 
 ## How this project is being executed
 
