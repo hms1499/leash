@@ -68,9 +68,13 @@ const payee = requiredAddress('SPEND_PAYEE')
 const feeAdapter = requiredAddress('FEE_ADAPTER')
 
 /**
- * Reads receipts so `remainingToday` (below) reflects a mined spend rather
- * than a broadcast one. Separate from the LeashClient's own wallet client:
- * this script only ever reads with it, never signs.
+ * Reads receipts, so a spend is known to have been mined — and to have
+ * succeeded — before the demo says anything about it. Separate from the
+ * LeashClient's own wallet client: this script only ever reads with it,
+ * never signs.
+ *
+ * A receipt is where the allowance read USED to be taken from. It is not
+ * enough on its own; see remainingAtMost below for what that cost.
  */
 const publicClient = createPublicClient({
   chain: celo, transport: http(process.env.CELO_RPC_URL),
@@ -89,6 +93,43 @@ async function feeBalances(): Promise<ReadonlyMap<`0x${string}`, bigint>> {
   return new Map([[feeAdapter, await leash.operatorBalance(feeAdapter)]])
 }
 
+/**
+ * Re-reads the allowance until the chain actually shows it fall.
+ *
+ * The receipt waited for above proves the spend landed. It does NOT prove
+ * that the next read reaches a node which has seen that block: forno is
+ * load-balanced, and on the first real mainnet run (2026-09-05) it answered
+ * 1, 1, 0.98 for three spends whose blocks held 0.99, 0.98, 0.97 — reads one
+ * to two blocks behind, receipt in hand. On camera that turns this demo's
+ * central claim, a counter falling by exactly what was spent, into a counter
+ * that does not move.
+ *
+ * Same rule as the app's pollUntil (app/lib/confirm.ts), which `examples`
+ * cannot import: wait on the condition and never on the receipt; swallow a
+ * failed read, because one node refusing says nothing about the spend; and
+ * return null for "not observed" rather than a number nobody verified.
+ *
+ * The ceiling is derived from the allowance read before the loop minus the
+ * amounts deliberately spent since, not from a fresh read: a stale "before"
+ * would be satisfied by an equally stale "after", and the lag would survive.
+ *
+ * The interval is 1s rather than confirm.ts's 3s. Celo produces a block a
+ * second, and this runs between beats of a filmed demo, where a three-second
+ * stall reads as a hang.
+ */
+async function remainingAtMost(ceiling: bigint): Promise<bigint | null> {
+  for (let i = 0; i < 20; i++) {
+    try {
+      const remaining = await leash.remainingToday(token)
+      if (remaining <= ceiling) return remaining
+    } catch {
+      // A single node refusing the read says nothing about the spend.
+    }
+    await new Promise((r) => setTimeout(r, 1000))
+  }
+  return null
+}
+
 const SMALL = 10_000n      // 0.01 USDC — comfortably inside both caps
 const OVERSIZED = 900_000n // 0.90 USDC — above the 0.50 per-transaction cap
 
@@ -97,6 +138,10 @@ console.log(`account  ${accountAddress}`)
 console.log(`agent    ${account.address}`)
 
 try {
+  // Read once, before anything is spent, so the ceilings below are anchored
+  // to a figure no pending transaction can have made stale.
+  const startRemaining = await leash.remainingToday(token)
+
   for (let i = 1; i <= 3; i++) {
     const check = await leash.preCheck(token, payee, SMALL)
     if (!check.ok) {
@@ -106,12 +151,16 @@ try {
     const hash = await leash.spend(token, payee, SMALL, await feeBalances())
     // spend() resolves once the transaction is broadcast, not once it is
     // mined — LeashClient sends with `sendTransaction`, not `writeContract`
-    // + a receipt wait (sdk/src/policyClient.ts). Reading `remainingToday`
-    // right after `spend()` would race the block that includes it, on
-    // Celo's ~1s blocks almost certainly losing that race and printing a
-    // stale allowance. Waiting for the receipt here also serializes the
-    // three sends, which avoids three back-to-back broadcasts contending
-    // for the same nonce against load-balanced forno.
+    // + a receipt wait (sdk/src/policyClient.ts). Two things still need this
+    // wait: the status check just below, which needs a receipt to exist at
+    // all, and serializing the three sends, which keeps back-to-back
+    // broadcasts from contending for the same nonce against load-balanced
+    // forno.
+    //
+    // What it does NOT buy is a trustworthy read afterwards. This comment
+    // used to claim the receipt was what kept the allowance figure honest;
+    // the first real mainnet run disproved that. remainingAtMost carries the
+    // measurement.
     const receipt = await publicClient.waitForTransactionReceipt({ hash })
     // A revert resolves this promise; it does not reject it. Without this
     // check a reverted spend (fee-adapter drained mid-loop, the contract
@@ -123,8 +172,15 @@ try {
       throw new Error(`spend ${i} reverted on-chain: https://celoscan.io/tx/${hash}`)
     }
     console.log(`spend ${i}: 0.01 USDC  https://celoscan.io/tx/${hash}`)
-    const remaining = await leash.remainingToday(token)
-    console.log(`           remaining today: ${formatUnits(remaining, 6)} USDC`)
+    const remaining = await remainingAtMost(startRemaining - BigInt(i) * SMALL)
+    // Say the honest thing rather than print a figure that was never observed
+    // to fall — the same distinction pollUntil's callers draw between "we
+    // stopped waiting" and "it failed".
+    console.log(
+      remaining === null
+        ? '           remaining today: not readable yet — forno has not caught up'
+        : `           remaining today: ${formatUnits(remaining, 6)} USDC`,
+    )
   }
 } catch (err) {
   // A network hiccup, an unfunded fee adapter, or a nonce race here must
