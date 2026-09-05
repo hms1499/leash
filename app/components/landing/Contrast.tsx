@@ -11,8 +11,8 @@ const ROWS: ReadonlyArray<{ without: string; with_: string }> = [
 
 export default function Contrast() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <Panel className="p-4">
+    <div className="grid gap-6 sm:grid-cols-2">
+      <Panel className="p-6">
         <Label>Without Leash</Label>
         <ul className="mt-3 flex flex-col gap-3">
           {ROWS.map((r) => (
@@ -20,7 +20,7 @@ export default function Contrast() {
           ))}
         </ul>
       </Panel>
-      <Panel className="p-4">
+      <Panel className="p-6">
         <Label>With Leash</Label>
         <ul className="mt-3 flex flex-col gap-3">
           {ROWS.map((r) => (

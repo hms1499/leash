@@ -9,12 +9,12 @@ const STEPS = [
 
 export default function HowItWorks() {
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-3">
       {STEPS.map((s) => (
-        <Panel key={s.n} className="p-4">
+        <Panel key={s.n} className="p-6">
           <span className="num text-sm" style={{ color: 'var(--celo)' }}>{s.n}</span>
           <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--text)' }}>{s.title}</p>
-          <p className="mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>{s.body}</p>
+          <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>{s.body}</p>
         </Panel>
       ))}
     </div>

@@ -22,7 +22,7 @@ export default function LiveProof() {
 
   return (
     <Panel>
-      <div className="px-4 pt-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="px-4 pt-6 flex flex-wrap items-center justify-between gap-2">
         <Label>Live on Celo mainnet</Label>
         {/* The Address primitive rather than the identical markup by hand.
             Spec §6 lists it, and an unused primitive is dead code. */}
@@ -47,7 +47,7 @@ export default function LiveProof() {
         />
       </div>
 
-      <div className="p-4 flex flex-col gap-2">
+      <div className="p-6 flex flex-col gap-2">
         {/* Capped at three rows on purpose: forno refuses a getLogs range wider
             than 5,000 blocks, so every window costs window / 5,000 sequential
             round trips, and this page is the one strangers load. Spec §5.2. */}

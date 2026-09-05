@@ -28,14 +28,14 @@ export default function Feed({
   }, [])
 
   if (hasPolicy === null) {
-    return <Panel className="p-4"><Label className="block">Reading the chain…</Label></Panel>
+    return <Panel className="p-6"><Label className="block">Reading the chain…</Label></Panel>
   }
 
   // A freshly deployed account has no policy, and every operator path reverts
   // TokenNotConfigured until the owner sets one. Saying so beats an empty list.
   if (!hasPolicy) {
     return (
-      <Panel className="p-4">
+      <Panel className="p-6">
         <Label className="block">No limits set</Label>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
           Until the owner sets a per-transaction and a daily cap, this account
@@ -46,7 +46,7 @@ export default function Feed({
   }
 
   if (isLoading) {
-    return <Panel className="p-4"><Label className="block">Loading activity…</Label></Panel>
+    return <Panel className="p-6"><Label className="block">Loading activity…</Label></Panel>
   }
 
   // A failed log scan must never be shown as a quiet account. forno is
@@ -54,7 +54,7 @@ export default function Feed({
   // then would be the UI asserting something it does not know.
   if (error) {
     return (
-      <Panel className="p-4">
+      <Panel className="p-6">
         <Label className="block" style={{ color: 'var(--bad)' }}>Could not load activity</Label>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
           The chain did not answer. The allowance above is still correct — it is
@@ -66,7 +66,7 @@ export default function Feed({
 
   if (rows.length === 0) {
     return (
-      <Panel className="p-4">
+      <Panel className="p-6">
         <Label className="block">No activity yet</Label>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
           {/* The span this states is the span that was scanned — the label

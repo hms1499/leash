@@ -86,7 +86,7 @@ export default function AgentPanel({
 
   if (float === null) {
     return failed ? (
-      <Panel className="p-4">
+      <Panel className="p-6">
         <p className="text-sm" style={{ color: 'var(--bad)' }}>
           Could not read the agent wallet balance.
         </p>
@@ -136,9 +136,9 @@ export default function AgentPanel({
   }
 
   return (
-    <Panel className="p-4">
+    <Panel className="p-6">
       <Label className="block">Agent wallet</Label>
-      <p className="num text-sm mt-1">{truncateAddress(operator)}</p>
+      <p className="num text-sm mt-2">{truncateAddress(operator)}</p>
       <p className="text-sm mt-2" style={{ color: low ? 'var(--bad)' : 'var(--dim)' }}>
         <span className="num">{formatAmount(float, decimals)} {symbol}</span> — about{' '}
         <span className="num">{left}</span>{' '}

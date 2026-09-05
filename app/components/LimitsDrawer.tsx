@@ -98,7 +98,7 @@ export default function LimitsDrawer({
     <>
       <Button variant="ghost" onClick={() => setOpen(!open)}>Limits</Button>
       {open && (
-        <Panel className="p-4 mt-3">
+        <Panel className="p-6 mt-3">
           {loading ? (
             // Never print 0.00 as if it were read. An owner cannot tell a
             // placeholder from a policy that refuses everything.
@@ -107,7 +107,7 @@ export default function LimitsDrawer({
             <>
               <Label className="block">Per transaction ({symbol})</Label>
               <input
-                className="num w-full mt-1 mb-3 p-2"
+                className="num w-full mt-2 mb-3 p-2"
                 style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
                 value={perTxInput}
                 onChange={(e) => { setDirty(true); setPerTx(e.target.value) }}
@@ -115,7 +115,7 @@ export default function LimitsDrawer({
               />
               <Label className="block">Per day ({symbol})</Label>
               <input
-                className="num w-full mt-1 mb-3 p-2"
+                className="num w-full mt-2 mb-3 p-2"
                 style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
                 value={dailyInput}
                 onChange={(e) => { setDirty(true); setDaily(e.target.value) }}

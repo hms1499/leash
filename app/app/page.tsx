@@ -18,7 +18,7 @@ export default function Landing() {
       <Section title="What your agent gets"><AgentTools /></Section>
       <Section title="Proven on Celo mainnet"><ProofTable /></Section>
       <Section>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href="/setup"><Button variant="primary">Build your own</Button></Link>
           <a className="text-sm" style={{ color: 'var(--dim)' }}
              href="https://github.com/hms1499/leash" target="_blank" rel="noreferrer">

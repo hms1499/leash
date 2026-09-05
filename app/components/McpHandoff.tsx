@@ -23,7 +23,7 @@ export default function McpHandoff({
   const block = buildMcpJson(handoff)
 
   return (
-    <Panel className="p-4">
+    <Panel className="p-6">
       <Label className="block">Add this to your agent&apos;s .mcp.json</Label>
       <pre
         className="num text-xs mt-2 p-3 overflow-x-auto"

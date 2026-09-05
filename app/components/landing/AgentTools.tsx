@@ -20,10 +20,10 @@ const TOOLS = [
 
 export default function AgentTools() {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-3">
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-6 sm:grid-cols-3">
         {TOOLS.map((t) => (
-          <Panel key={t.name} className="p-4">
+          <Panel key={t.name} className="p-6">
             <p className="num" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: 'var(--celo)' }}>{t.name}</p>
             <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>{t.body}</p>
           </Panel>

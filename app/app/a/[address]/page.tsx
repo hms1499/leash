@@ -207,7 +207,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         dominant
       />
 
-      <div className="p-4">
+      <div className="p-6">
         <LimitsDrawer
           account={address}
           token={TOKEN}

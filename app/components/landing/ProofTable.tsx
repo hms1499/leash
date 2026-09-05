@@ -7,7 +7,7 @@ export default function ProofTable() {
       {PROOFS.map((p, i) => (
         <div
           key={`${p.url}-${i}`}
-          className="p-4 flex flex-col gap-1"
+          className="p-6 flex flex-col gap-2"
           style={{ borderTop: i === 0 ? 'none' : '1px solid var(--line)' }}
         >
           <span className="text-sm" style={{ color: 'var(--text)', fontWeight: 600 }}>
@@ -15,7 +15,7 @@ export default function ProofTable() {
           </span>
           <span className="text-sm" style={{ color: 'var(--dim)' }}>{p.detail}</span>
           <a
-            className="num text-xs mt-1 break-all"
+            className="num text-xs mt-2 break-all"
             style={{ color: 'var(--celo)' }}
             href={p.url}
             target="_blank"

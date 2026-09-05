@@ -296,7 +296,7 @@ export default function Onboard() {
 
       {error && <p style={{ color: 'var(--bad)' }}>{error}</p>}
 
-      <Panel as="section" className="p-4">
+      <Panel as="section" className="p-6">
         <div className="flex items-center justify-between">
           <h2 style={isConnected ? STEP_HEADING_DONE : STEP_HEADING}>
             {isConnected ? '✓ ' : ''}Step 1 — Connect
@@ -307,11 +307,11 @@ export default function Onboard() {
       </Panel>
 
       {isConnected && (
-        <Panel as="section" className="p-4">
+        <Panel as="section" className="p-6">
           <h2 style={Boolean(account) ? STEP_HEADING_DONE : STEP_HEADING}>
             {Boolean(account) ? '✓ ' : ''}Step 2 — Deploy your account
           </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
+          <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             You own it. Costs about $0.013 in gas.
           </p>
           {account
@@ -330,11 +330,11 @@ export default function Onboard() {
 
       {account && (
         <>
-          <Panel as="section" className="p-4">
+          <Panel as="section" className="p-6">
             <h2 style={agentNote === 'Agent added.' ? STEP_HEADING_DONE : STEP_HEADING}>
             {agentNote === 'Agent added.' ? '✓ ' : ''}Step 3 — Add your agent
           </h2>
-            <p className="text-sm mt-1" style={{ color: 'var(--bad)' }}>
+            <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
               This must be the wallet you registered as your agentWalletAddress.
               A different address silently voids your x402 attribution — nothing
               errors, the leaderboard simply reads zero.
@@ -355,16 +355,16 @@ export default function Onboard() {
             )}
           </Panel>
 
-          <Panel as="section" className="p-4">
+          <Panel as="section" className="p-6">
             <h2 style={limitsNote === 'Limits saved.' ? STEP_HEADING_DONE : STEP_HEADING}>
             {limitsNote === 'Limits saved.' ? '✓ ' : ''}Step 4 — Set limits (USDC)
           </h2>
             <Label className="block mt-2">Per transaction</Label>
-            <input className="num w-full mt-1 p-2"
+            <input className="num w-full mt-2 p-2"
               style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
               value={perTx} onChange={(e) => setPerTx(e.target.value)} disabled={limitsBusy} />
             <Label className="block mt-2">Per day</Label>
-            <input className="num w-full mt-1 p-2"
+            <input className="num w-full mt-2 p-2"
               style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
               value={daily} onChange={(e) => setDaily(e.target.value)} disabled={limitsBusy} />
             <Button variant="primary" className="mt-2" disabled={limitsBusy} onClick={() => void setLimits()}>
@@ -377,11 +377,11 @@ export default function Onboard() {
             )}
           </Panel>
 
-          <Panel as="section" className="p-4">
+          <Panel as="section" className="p-6">
             <h2 style={Boolean(feeAdapter) ? STEP_HEADING_DONE : STEP_HEADING}>
             {Boolean(feeAdapter) ? '✓ ' : ''}Step 5 — Fund it
           </h2>
-            <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
+            <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
               Send USDC to <Address address={account} copy full className="num" />. Send USDC, not
               CELO: a native CELO send is rejected outright, on purpose. CELO
               also has an ERC-20 interface, and a transfer through that does
@@ -397,7 +397,7 @@ export default function Onboard() {
             <section>
               <h2 className="mb-2" style={STEP_HEADING}>Step 6 — Connect your agent</h2>
               <Label className="block">Attribution tag</Label>
-              <p className="text-sm mt-1 mb-2" style={{ color: 'var(--dim)' }}>
+              <p className="text-sm mt-2 mb-2" style={{ color: 'var(--dim)' }}>
                 <code>celo_</code> plus 12 hex characters. It is issued when you
                 register your project on{' '}
                 <a
@@ -414,7 +414,7 @@ export default function Onboard() {
                 sends carries it; there is no untagged path.
               </p>
               <input
-                className="num w-full mb-1 p-2"
+                className="num w-full mb-2 p-2"
                 style={{
                   background: 'var(--well)', borderRadius: 4,
                   border: `1px solid ${tagStatus === 'invalid' ? 'var(--bad)' : 'var(--line)'}`,
