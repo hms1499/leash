@@ -81,7 +81,7 @@ export default function Feed({
             rel="noreferrer"
             style={{ color: 'var(--celo)' }}
           >
-            See the full history on Celoscan →
+            See the full history on Celoscan
           </a>
         </p>
       </Panel>

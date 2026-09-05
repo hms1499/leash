@@ -432,7 +432,7 @@ export default function Onboard() {
                 }}
                 tagStatus={tagStatus}
               />
-              <a className="block mt-3" href={`/a/${account}`}><Label>Open your dashboard →</Label></a>
+              <a className="block mt-3" href={`/a/${account}`}><Label>Open your dashboard</Label></a>
             </section>
           )}
         </>

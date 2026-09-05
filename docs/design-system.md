@@ -89,6 +89,10 @@ steps onto it rebuilds the whole hierarchy without touching a single colour.
 - **`--t-title` keeps its responsive step.** The hero is `text-3xl sm:text-4xl`
   today — 30px, 36px from 640px up. A flat 30px would shrink it on desktop,
   which is a regression dressed as a system.
+- **A link says where it goes; it does not point.** The four labels reading
+  "… →" were decoration appended to text that already said what it did, and
+  nothing here ever chose them. `↗` stays: on an external link it is the
+  affordance for "opens on Celoscan", and on the address it is the whole link.
 - **Letter-spacing has two values, not three.** `.16em` on `--t-label`, `.26em`
   on the wordmark. The stray `0.1em` on the stop button goes.
 

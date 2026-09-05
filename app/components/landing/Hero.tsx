@@ -42,7 +42,7 @@ export default function Hero() {
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Link href="/setup"><Button variant="primary">Build your own</Button></Link>
-        <Link href={`/a/${ACCOUNT}`}><Button variant="ghost">See the live account →</Button></Link>
+        <Link href={`/a/${ACCOUNT}`}><Button variant="ghost">See the live account</Button></Link>
       </div>
     </header>
   )
