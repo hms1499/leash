@@ -8,6 +8,7 @@ import ConnectButton from '../../../components/ConnectButton'
 import NetworkBadge from '../../../components/NetworkBadge'
 import Address from '../../../components/ui/Address'
 import Label, { LABEL_STYLE } from '../../../components/ui/Label'
+import Shell from '../../../components/ui/Shell'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
@@ -32,7 +33,14 @@ const OPERATOR_ABI = [
 export default function DashboardRoute({ params }: { params: Promise<{ address: string }> }) {
   const { address } = use(params)
   if (!isValidAddress(address)) {
-    return <main className="p-6"><p>That is not a Celo address.</p></main>
+    return (
+      <Shell title="That is not a Celo address.">
+        <p>
+          An address is <code>0x</code> followed by 40 hexadecimal characters.
+          Check the link you followed, or start from the top.
+        </p>
+      </Shell>
+    )
   }
   return <Dashboard address={address} />
 }
