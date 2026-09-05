@@ -205,6 +205,14 @@ Under the rule above, that is impossible to write.
 | `--line` | panel dividers | `rgba(255,255,255,.10)`, 1.32:1 — correct for a divider |
 | `--line-control` | borders of controls | ≥3:1 against its ground |
 
+Inputs wear it through the `.field` class in `globals.css`, which also
+supplies their focus ring. Measured 2026-09-05: every input in the app was
+still drawing its border in `--line` at 1.32:1, including the two that set how
+much an agent may spend — `--line-control` was introduced for `Button` and the
+fields were missed. They are 3.27:1 now. Their focus ring was Chrome's own
+`auto 1px rgb(0,95,204)`: present, so not an accessibility hole, but browser
+blue in a dark terminal UI. It is 2px `--text`, matching `Button`.
+
 `--line-control` is new. Measured, `--line` gives 1.32:1 on `--panel` and
 1.15:1 on the paused band, so a ghost button's border draws essentially
 nothing — the control is identified by its text alone. That is tolerable for a

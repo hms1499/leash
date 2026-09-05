@@ -340,8 +340,7 @@ export default function Onboard() {
               errors, the leaderboard simply reads zero.
             </p>
             <input
-              className="num w-full mt-2 p-2"
-              style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
+              className="num field w-full mt-2 p-2"
               placeholder="0x…" value={agent} onChange={(e) => setAgent(e.target.value)}
               disabled={agentBusy}
             />
@@ -360,12 +359,10 @@ export default function Onboard() {
             {limitsNote === 'Limits saved.' ? '✓ ' : ''}Step 4 — Set limits (USDC)
           </h2>
             <Label className="block mt-2">Per transaction</Label>
-            <input className="num w-full mt-2 p-2"
-              style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
+            <input className="num field w-full mt-2 p-2"
               value={perTx} onChange={(e) => setPerTx(e.target.value)} disabled={limitsBusy} />
             <Label className="block mt-2">Per day</Label>
-            <input className="num w-full mt-2 p-2"
-              style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
+            <input className="num field w-full mt-2 p-2"
               value={daily} onChange={(e) => setDaily(e.target.value)} disabled={limitsBusy} />
             <Button variant="primary" className="mt-2" disabled={limitsBusy} onClick={() => void setLimits()}>
               {limitsBusy ? 'Saving…' : 'Save limits'}
@@ -414,11 +411,8 @@ export default function Onboard() {
                 sends carries it; there is no untagged path.
               </p>
               <input
-                className="num w-full mb-2 p-2"
-                style={{
-                  background: 'var(--well)', borderRadius: 4,
-                  border: `1px solid ${tagStatus === 'invalid' ? 'var(--bad)' : 'var(--line)'}`,
-                }}
+                className="num field w-full mb-2 p-2"
+                aria-invalid={tagStatus === 'invalid'}
                 placeholder="celo_0123456789ab"
                 value={tag} onChange={(e) => setTag(e.target.value)}
               />

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { PALETTE, contrastRatio, DARK_GROUNDS, BRIGHT_GROUNDS } from '../lib/tokens.js'
 
+const css = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8')
+
 /** WCAG AA: 4.5:1 for body text, 3:1 for non-text UI boundaries. */
 const BODY = 4.5
 const UI = 3
@@ -99,8 +101,42 @@ describe('non-text boundaries clear AA UI contrast', () => {
   })
 })
 
+/**
+ * The .field rule, asserted rather than trusted.
+ *
+ * Every input in the app drew its border in --line at 1.32:1 until
+ * 2026-09-05, including the two that set how much an agent may spend. Found
+ * by measuring a rendered page, which is the only place it could be found:
+ * this suite runs in the node environment and no component-testing dependency
+ * may be added (spec §2.2). So this asserts the CSS text, the same
+ * arrangement the type scale keeps.
+ *
+ * The focus ring is the smaller half. An enabled input was not ringless -- it
+ * fell back to Chrome's `auto 1px rgb(0,95,204)`, which is off-palette rather
+ * than absent. The first reading here claimed it was missing; that reading
+ * was taken on a *disabled* input, where focus never applies and an outline of
+ * `none` means nothing. Recorded because the wrong version is the more
+ * alarming one and would otherwise be repeated.
+ */
+describe('the field treatment', () => {
+  const field = /\.field\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+
+  it('borders controls with --line-control, never the divider', () => {
+    expect(field).toMatch(/border:\s*1px solid var\(--line-control\)/)
+    expect(field).not.toMatch(/var\(--line\)/)
+  })
+
+  it('rings focus in this palette rather than the browser default', () => {
+    expect(css).toMatch(/\.field:focus-visible\s*\{[^}]*outline:\s*2px solid/)
+  })
+
+  // :focus would ring a mouse user who never asked to see where focus is.
+  it('rings the keyboard, not the pointer', () => {
+    expect(css).not.toMatch(/\.field:focus\s*\{/)
+  })
+})
+
 describe('globals.css does not drift from tokens.ts', () => {
-  const css = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8')
   const cssVar: Record<keyof typeof PALETTE, string> = {
     bg: '--bg', panel: '--panel', well: '--well', text: '--text',
     dim: '--dim', celo: '--celo', ok: '--ok', bad: '--bad',

@@ -59,6 +59,38 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/* Text inputs.
+ *
+ * The border is --line-control, not --line. --line is a divider and measures
+ * 1.32:1 against --panel; a control has to clear 3:1 (design-system §4).
+ * Measured 2026-09-05: every input in the app was drawing at 1.32, including
+ * the two fields that set how much an agent may spend. Task 2 introduced
+ * --line-control and moved Button onto it; these were missed.
+ *
+ * The focus ring is ours to build, exactly as it is on Button: no component
+ * library ships in this project (spec §2.2), so nothing supplies one that
+ * belongs to this palette. Measured the same day, an enabled input fell back
+ * to Chrome's own `auto 1px rgb(0,95,204)` -- present, so this is not an
+ * accessibility hole, but 1px of browser blue in a dark terminal UI where
+ * every other control rings 2px in --text. */
+.field {
+  background: var(--well);
+  border: 1px solid var(--line-control);
+  border-radius: 4px;
+}
+
+/* :focus-visible, not :focus, so a pointer click does not draw a ring the
+   mouse user did not ask for. --text is 14.90:1 on --panel. */
+.field:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* An invalid value keeps the ring but states itself in the border. */
+.field[aria-invalid='true'] {
+  border-color: var(--bad);
+}
+
 /* Money is always mono and always tabular, so digits do not change width
    as values update live. */
 .num {

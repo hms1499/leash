@@ -107,16 +107,14 @@ export default function LimitsDrawer({
             <>
               <Label className="block">Per transaction ({symbol})</Label>
               <input
-                className="num w-full mt-2 mb-3 p-2"
-                style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
+                className="num field w-full mt-2 mb-3 p-2"
                 value={perTxInput}
                 onChange={(e) => { setDirty(true); setPerTx(e.target.value) }}
                 disabled={!isOwner || busy}
               />
               <Label className="block">Per day ({symbol})</Label>
               <input
-                className="num w-full mt-2 mb-3 p-2"
-                style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 4 }}
+                className="num field w-full mt-2 mb-3 p-2"
                 value={dailyInput}
                 onChange={(e) => { setDirty(true); setDaily(e.target.value) }}
                 disabled={!isOwner || busy}
