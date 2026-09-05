@@ -173,7 +173,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           <Label style={{ color: state.paused ? 'var(--text)' : undefined }}>↗</Label>
         </a>
         <span className="ml-auto flex items-center gap-3">
-          <NetworkBadge />
+          <NetworkBadge onDangerBand={state.paused} />
           <StopButton
             account={address}
             paused={state.paused}

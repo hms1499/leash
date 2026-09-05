@@ -71,7 +71,14 @@ export default function StopButton({
 
   return (
     <span className="flex items-center gap-2">
-      {note && <Label style={{ color: 'var(--bad)' }}>{note}</Label>}
+      {/* The note lives in the header, whose ground turns --bad the moment the
+          account is paused — and the note was --bad too, so the one message an
+          owner most needs to read (why Resume did nothing) was invisible at
+          1.00:1. Measured 2026-09-05 while testing the wrong-network guard:
+          the guard fired correctly and said so where nobody could see it. */}
+      {note && (
+        <Label style={{ color: paused ? 'var(--bg)' : 'var(--bad)' }}>{note}</Label>
+      )}
       {paused ? (
         <Button variant="ghost" disabled={busy} onClick={() => void send(false)}>
           {busy ? 'Resuming…' : 'Resume'}

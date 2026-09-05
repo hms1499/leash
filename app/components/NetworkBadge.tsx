@@ -14,7 +14,16 @@ import Label from './ui/Label'
  * wallet connected this states the chain being read rather than asking a
  * visitor to do anything.
  */
-export default function NetworkBadge() {
+/**
+ * `onDangerBand` says this is sitting on the paused header, whose ground is
+ * --bad itself. The stop variant is --bad on transparent, so on that band it
+ * renders red on red: a contrast ratio of exactly 1.00, which is not "hard to
+ * read" but invisible. Measured 2026-09-05, after a wrong-network test where
+ * the badge and the warning it points at were both on screen and neither
+ * could be seen. --bg on --bad is 5.10, the same dark-on-bright treatment the
+ * primary button already uses on Celo yellow.
+ */
+export default function NetworkBadge({ onDangerBand = false }: { onDangerBand?: boolean }) {
   const { isConnected, chainId } = useAccount()
   const { switchChain, isPending } = useSwitchChain()
 
@@ -28,7 +37,10 @@ export default function NetworkBadge() {
       // The label type treatment, kept: this reads as a badge in the header
       // band, not as an action of the same weight as Connect. The variant is
       // what supplies the cursor, the focus ring and the disabled state.
-      style={{ padding: '0.25rem 0.5rem', fontSize: '0.6875rem', letterSpacing: '0.16em', textTransform: 'uppercase' }}
+      style={{
+        padding: '0.25rem 0.5rem', fontSize: '0.6875rem', letterSpacing: '0.16em', textTransform: 'uppercase',
+        ...(onDangerBand ? { color: 'var(--bg)', borderColor: 'var(--bg)' } : {}),
+      }}
       disabled={isPending}
       onClick={() => switchChain({ chainId: celo.id })}
     >

@@ -37,7 +37,7 @@ context on decisions already taken.
 | `cd contracts && forge test` | 32/32 |
 | `cd sdk && pnpm run test` | 42/42 |
 | `cd mcp && pnpm run test` | 20/20 |
-| `cd app && pnpm run test` | 134/134 |
+| `cd app && pnpm run test` | 138/138 |
 | `cd app && pnpm run test:e2e` | 6/6 (Playwright, against a local build) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
@@ -49,7 +49,7 @@ and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
 | | |
 |---|---|
 | `SpendPolicyAccount` | `0x7aDa926B021BAef4896F51F237bCA61435E43fd2` (source-verified) |
-| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.040000 USDC**, `remainingToday` 0.990000. Not project infrastructure; use it to exercise the UI, not as the demo account. |
+| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.040000 USDC**, `remainingToday` 0.990000. **Left paused** by the 2026-09-05 wrong-network test; Resume it before using it again. Not project infrastructure; use it to exercise the UI, not as the demo account. |
 | Superseded instance | `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` — **do not use.** It accepted native CELO that could never be recovered; swept to 0 and replaced. See `docs/deployments.md`. |
 | Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.5639 CELO |
 | Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.041078 USDC |
@@ -117,7 +117,7 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    | Limits from the dashboard | **not yet** |
    | Refuel | done 2026-09-05 — `sweep`, tx: 0xb6a9ee9340561dbf56705a50b9cf9064abe78797b37fb0de561a76e518d2e3de |
    | Deliberate rejection in the wallet | **not yet** — free |
-   | Deliberate wrong-chain attempt | **not yet** — free |
+   | Deliberate wrong-chain attempt | ran 2026-09-05, **found a defect, retest pending** — see below |
 
    Do the two free ones first; they cost nothing and exercise error paths
    nobody has run.
@@ -242,6 +242,39 @@ write paths and the UI were both correct. The one defect was in the demo.
   account of it. **When a path can refuse, read what the refusal says, not
   just whether it refused.**
 
+### The wrong-network test, and what it actually found (2026-09-05)
+
+The guard was never the problem. **The message it prints was invisible.**
+
+- **A wallet's network switch may not reach the page at all.** Changing chains
+  in OKX's own UI left `eth_chainId` answering `0xa4ec`: the wallet keeps a
+  per-site network, and the badge reading `Celo` was reporting that honestly.
+  To put the page on another chain, ask for it the way a dapp would —
+  `wallet_switchEthereumChain` from the console — and check `eth_chainId`
+  before concluding anything about the app.
+- **`--bad` on `--bad`, a contrast ratio of exactly 1.00** (fixed). `page.tsx`
+  swaps the header's ground to `--bad` when the account is paused. The
+  "Wrong network — switch to Celo" badge is the `stop` button variant, `--bad`
+  on transparent; `StopButton`'s note is `--bad` too. So on a paused account
+  the warning and the control that fixes it were both drawn in the background
+  colour. Not hard to read — not visible. An owner sees a Resume button that
+  appears to do nothing and no reason why, which is the worst possible moment
+  for the UI to go quiet: the account is stopped and they are trying to
+  recover it.
+
+  Both now use `--bg` on that band, 5.10:1, the same dark-on-bright treatment
+  the primary button uses on Celo yellow.
+- **The contrast test could not have caught it.** Its `grounds` list was
+  `['bg', 'panel']`, and the paused band is neither. It is now covered as the
+  third ground it has always been, asserting what actually renders there
+  rather than every token — `--text` on that band is 3.16 and clears UI
+  contrast but not body, which is a known limit of the band, not an oversight.
+- **Still to confirm:** whether the guard fires reliably *at the moment of the
+  click*. A Stop sent at 09:41:17 reached the wallet while the page had just
+  been switched to Ethereum, which would mean wagmi had not yet processed
+  `chainChanged`; a later Resume did print the warning. With the message now
+  visible the retest is unambiguous and costs nothing.
+
 ### Known and deliberately unfixed
 
 The whole-branch review's remaining findings are listed in
@@ -336,7 +369,7 @@ A pre-commit guard (`scripts/check-secrets.sh`, wired via
 `core.hooksPath` is local config and is not cloned — a fresh clone must set it
 again.
 
-Money spent to date: roughly **$0.099** of gas plus **$0.034** of USDC on two
+Money spent to date: roughly **$0.102** of gas plus **$0.034** of USDC on two
 x402 purchases. The project holds 2.587646 USDC across its four addresses —
 account 2.436567, test account 0.040000, operator 0.041078, owner 0.070001 —
 and 3.5639 CELO in the owner wallet. The rise since 2026-09-04 is 0.10 USDC

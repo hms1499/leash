@@ -32,6 +32,46 @@ describe('every text colour clears AA body contrast', () => {
   }
 })
 
+/**
+ * The paused header is a third ground, and it was not being treated as one.
+ *
+ * `page.tsx` swaps the header's background to --bad the moment the account is
+ * paused, so everything in that band is drawn on red. The loop above only
+ * checks --bg and --panel, so it could never have caught what a wrong-network
+ * test found on 2026-09-05: the "Wrong network" badge and the warning it
+ * points at were both --bad on --bad, a ratio of exactly 1.00. Not hard to
+ * read — invisible. The owner saw an unresponsive Resume button and no reason
+ * why.
+ *
+ * These assert what is actually rendered there, not every token, because
+ * over-constraining would fail on colours that never appear on this band.
+ */
+describe('the paused header band is a ground too', () => {
+  const band = PALETTE.bad
+
+  // Both carry sentences an owner has to read, so both need body contrast.
+  it('the wrong-network badge reads on it', () => {
+    expect(contrastRatio(PALETTE.bg, band)).toBeGreaterThanOrEqual(BODY)
+  })
+
+  it('the stop/resume note reads on it', () => {
+    expect(contrastRatio(PALETTE.bg, band)).toBeGreaterThanOrEqual(BODY)
+  })
+
+  // The regression itself: whatever those two use, it must not be the ground.
+  it('--bad on --bad is the invisibility this guards against', () => {
+    expect(contrastRatio(band, band)).toBeLessThan(UI)
+  })
+
+  // The wordmark and the address are large or bold, so UI contrast is the
+  // bar they have to clear. --text on --bad is 3.16 — it passes here and
+  // would not pass BODY, which is a known limit of this band rather than an
+  // oversight: see the comment in page.tsx's header.
+  it('the wordmark and address clear UI contrast', () => {
+    expect(contrastRatio(PALETTE.text, band)).toBeGreaterThanOrEqual(UI)
+  })
+})
+
 describe('non-text boundaries clear AA UI contrast', () => {
   it('the primary button label reads on Celo yellow', () => {
     expect(contrastRatio(PALETTE.bg, PALETTE.celo)).toBeGreaterThanOrEqual(BODY)
