@@ -12,13 +12,18 @@ test('the dashboard renders live numbers with no wallet connected', async ({ pag
 
   await expect(page.getByText('Remaining today')).toBeVisible()
 
-  // A real amount, not a spinner and not NaN.
-  const amount = page.locator('.num').first()
-  await expect(amount).toContainText(/\d+\.\d{6}\s*\/\s*\d+\.\d{6}\s+USDC/, { timeout: 30_000 })
+  // A real amount, not a spinner and not NaN. Anchored to its own label rather
+  // than to `.num` first: the dominant figure moved to the top of the meter on
+  // 2026-09-05 and a positional locator silently started asserting about a
+  // different number.
+  const remaining = page.getByText('Remaining today').locator('xpath=..').locator('.num')
+  await expect(remaining).toContainText(/\d+\.\d{6}\s*\/\s*\d+\.\d{6}\s+USDC/, { timeout: 30_000 })
 
-  // The wall is stated before money moves.
+  // The wall is stated before money moves. When a ceiling applies, that is the
+  // display figure and the line naming which of the three bounds produced it;
+  // otherwise it is one of the other four state sentences.
   await expect(
-    page.getByText(/will be refused|allowance is spent|Paused by the owner/),
+    page.getByText(/limited by the|allowance is spent|Paused by the owner|holds no/),
   ).toBeVisible()
 
   // And nothing asked for a wallet.

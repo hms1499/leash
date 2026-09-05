@@ -39,7 +39,7 @@ context on decisions already taken.
 | `cd contracts && forge test` | 32/32 |
 | `cd sdk && pnpm run test` | 42/42 |
 | `cd mcp && pnpm run test` | 20/20 |
-| `cd app && pnpm run test` | 150/150 |
+| `cd app && pnpm run test` | 188/188 |
 | `cd app && pnpm run test:e2e` | 6/6 (Playwright, against a local build) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
@@ -51,7 +51,7 @@ and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
 | | |
 |---|---|
 | `SpendPolicyAccount` | `0x7aDa926B021BAef4896F51F237bCA61435E43fd2` (source-verified) |
-| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.040000 USDC**, `remainingToday` 0.990000. **Left paused** by the 2026-09-05 wrong-network test; Resume it before using it again. Not project infrastructure; use it to exercise the UI, not as the demo account. |
+| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.040000 USDC**, `remainingToday` 0.990000. Was left paused by the 2026-09-05 wrong-network test and has since been resumed — read ACTIVE on 2026-09-05. Not project infrastructure; use it to exercise the UI, not as the demo account. |
 | Superseded instance | `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` — **do not use.** It accepted native CELO that could never be recovered; swept to 0 and replaced. See `docs/deployments.md`. |
 | Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.5639 CELO |
 | Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.041078 USDC |
@@ -284,6 +284,57 @@ do not recall it** — the same rule the rest of this repo follows.
 Spec §4.1 is struck and points at the new file. It still described the Van
 Gogh direction, dropped 2026-09-04. That is the third document this week found
 asserting something that had stopped being true.
+
+### The design system was applied to `app/` (2026-09-05)
+
+All nine tasks of `docs/superpowers/plans/2026-09-05-leash-design-system.md`
+are done, on `main`, one commit each: e060f95 (type scale, JetBrains Mono),
+4b494ba (named grounds), bd77186 (landing hierarchy), 0fd6c69 (the dashboard's
+display figure), d325a75 (one `Address` component), 874fd8d (the wizard's
+steps), b545520 (404, error boundary, invalid address), 291e459 (four spacing
+steps), and this one. App suite 150 -> 188, e2e 6/6, `tsc --noEmit` exit 0.
+
+**The plan was wrong in four places, and each was found by looking rather than
+by reading the diff.** Recorded so the next session does not assume the plan
+and the code agree:
+
+- Task 2 missed two elements on the paused band. Forcing the paused state in a
+  browser and measuring every text node against `--bad` found the stop
+  control's non-owner branch drawing "Paused" in `--dim` at 1.20:1 — the branch
+  a stranger opening a shared link sees — and the network badge drawing "Celo"
+  at 3.55. Every text node on that band now measures 5.10.
+- Task 3 placed the "Remaining today" and "Account holds" pairs in `LiveProof`.
+  They are in `Meter`. They were adopted in Task 4, which restructures `Meter`
+  anyway, rather than written twice.
+- Task 4 would have put a 44px figure on the landing, because `Meter` is
+  rendered there too and §7 gives that screen no `--t-display` at all. `Meter`
+  takes a `dominant` prop; only the dashboard passes it.
+- Task 8's spacing sweep broke an e2e test that anchored on `.num` first. That
+  locator had been asserting about the remaining/daily pair by position, and
+  the display figure moved above it. The assertion is anchored to its own
+  label now. **The unit suite did not catch this and could not** — it is a
+  positional claim about rendered markup.
+
+**Two things were changed that the plan did not ask for**, both because the
+design system requires them and leaving them would have made the commit
+messages false. Controls and the wordmark were inheriting the browser's 16px
+system sans — a seventh size, on every screen, in the face §1 reserves for
+prose. Controls are `--t-data` mono now and the wordmark `--t-label`. And the
+prose treatment lives in `components/ui/prose.ts` rather than being typed out
+in five components.
+
+**Not done, and known.** `--t-display` and `--t-heading` are applied where §7
+names them, but nothing mechanical enforces the type scale the way
+`tokens.test.ts` enforces the palette: a component can still set `text-xs` and
+no test objects. Three places still do — `ProofTable`'s hashes, `McpHandoff`'s
+`<pre>`, and `HowItWorks`'s card titles, which are sans where §1 asks for mono.
+The state vocabulary is still enforced by review only, as the plan's closing
+section says; `Meter` now carries a comment saying those four sentences are not
+to be reworded.
+
+The test account `0xA73DB76f…F83982` is **not** paused, contrary to the note in
+the live-state table above: its feed shows "Resumed by the owner" and the
+dashboard reads ACTIVE. Read from the chain 2026-09-05.
 
 ### The landing page handed out a `.mcp.json` that could not start (2026-09-05)
 

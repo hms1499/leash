@@ -22,7 +22,7 @@ Contracts are Foundry and are not part of the workspace.
 ```bash
 pnpm -F @leash/sdk test          # 42 tests
 pnpm -F @leash/mcp test          # 20
-pnpm -F @leash/app test          # 150 (vitest)
+pnpm -F @leash/app test          # 188 (vitest)
 pnpm -F @leash/app test:e2e      # 6 (playwright; builds and serves unless LEASH_E2E_URL is set)
 cd contracts && forge test       # 32
 ```
@@ -88,6 +88,10 @@ decides.
 
 - Money on screen uses the `.num` class (mono, `tabular-nums`) so digits do not reflow as
   values update live.
+- The interface follows `docs/design-system.md`. Six type steps, four spacing
+  steps, and five named grounds — dark grounds take any foreground but `--bg`,
+  bright grounds take only `--bg`. Both scales are asserted against
+  `globals.css` by tests that fail on drift.
 - Comments explain *why*, especially where a line guards a hazard that was paid for. Match
   that density; do not strip those comments when editing nearby code.
 - Commit subjects describe the defect or the change in plain English, not the diff:
