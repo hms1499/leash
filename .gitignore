@@ -3,6 +3,12 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Holds OPERATOR_PK in plaintext, the same way .env does, because that is the
+# shape an agent runtime reads. The repo is public and check-secrets.sh would
+# block it at commit time, but an ignored file cannot be staged by accident in
+# the first place.
+.mcp.json
 out/
 cache/
 broadcast/
