@@ -116,7 +116,7 @@ The code is complete and reviewed. Nothing below is blocked on more building.
    | `setPaused` — Resume | done |
    | Limits from the dashboard | **not yet** |
    | Refuel | done 2026-09-05 — `sweep`, tx: 0xb6a9ee9340561dbf56705a50b9cf9064abe78797b37fb0de561a76e518d2e3de |
-   | Deliberate rejection in the wallet | **not yet** — free |
+   | Deliberate rejection in the wallet | done 2026-09-05 — nothing landed, no gas |
    | Deliberate wrong-chain attempt | done 2026-09-05 with Coinbase Wallet — found a defect, fixed, then passed |
 
    Do the two free ones first; they cost nothing and exercise error paths
@@ -252,6 +252,13 @@ The guard was never the problem. **The message it prints was invisible.**
   was reporting that honestly every time. Two apparent app bugs this session
   were this and nothing else, so: **read `eth_chainId` before concluding
   anything about the badge**, and never reload during the test.
+- **A rejected transaction is reported as one.** Stop, confirm, then Reject
+  in the wallet: the note read "The transaction was not sent.", and the chain
+  agreed — `paused` still false and the operator's balance unchanged to the
+  atomic unit, so nothing was broadcast and no gas was spent. The branch that
+  matters is the one it did *not* take: "Sent, but the chain has not confirmed
+  it yet" would have told an owner their kill switch might have worked while
+  they were the one who cancelled it.
 - **The guard passes — verified with Coinbase Wallet, not OKX.** Coinbase
   switches networks globally rather than per site, so the page stays on the
   wrong chain long enough for the guard to matter. Observed: the badge turned
