@@ -607,7 +607,12 @@ cd /Users/vanhuy/Desktop/celo && node -e "
 const {readFileSync}=require('fs');
 const s=readFileSync('.github/workflows/ci.yml','utf8');
 if(!/^name: CI/m.test(s)) throw new Error('missing name');
-if(/test:gate/.test(s)) throw new Error('CI must never run the gate suites');
+// Match only executed \`run:\` lines. A naive /test:gate/ over the whole
+// file matches the comment that WARNS against the gate suites, so the check
+// fails on a correct workflow and passes on nothing -- a guard that cries
+// wolf gets deleted, and then it guards nothing.
+if(s.split('\n').some(l=>/^\s*-?\s*run:.*test:gate/.test(l)))
+  throw new Error('CI must never run the gate suites');
 console.log('workflow looks sane');
 "
 ```
