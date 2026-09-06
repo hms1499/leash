@@ -1,23 +1,36 @@
 {
-  "name": "@leash/mcp",
+  "name": "leash-agentpay",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
-  "bin": {
-    "leash-mcp": "./src/index.ts"
+  "description": "Give an AI agent a wallet on Celo with spend limits enforced on-chain. MCP server.",
+  "license": "MIT",
+  "keywords": ["mcp", "celo", "agent", "wallet", "x402", "stablecoin", "spend-limit"],
+  "homepage": "https://github.com/hms1499/leash#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hms1499/leash.git",
+    "directory": "mcp"
   },
+  "bin": { "leash-agentpay": "./dist/index.js" },
+  "files": ["dist"],
+  "engines": { "node": ">=20" },
   "scripts": {
-    "test": "vitest run --exclude '**/*.gate.test.ts'",
+    "build": "tsup",
+    "test": "vitest run --exclude '**/*.gate.test.ts' --exclude '**/bundle.test.ts'",
+    "test:bundle": "vitest run bundle",
     "test:gate": "vitest run mainnet.gate",
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@leash/sdk": "workspace:*",
+    "@celo/attribution-tags": "0.3.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "viem": "^2.21.0"
   },
   "devDependencies": {
+    "@leash/sdk": "workspace:*",
     "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"

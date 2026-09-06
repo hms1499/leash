@@ -272,7 +272,7 @@ pnpm install
 |---|---|
 | `cd contracts && forge test` | 32 contract tests |
 | `pnpm -F @leash/sdk test` | 42 SDK tests |
-| `pnpm -F @leash/mcp test` | 20 MCP tests |
+| `pnpm -F leash-agentpay test` | 20 MCP tests |
 | `pnpm -F @leash/app test` | 191 app tests (vitest) |
 | `pnpm -F @leash/app test:e2e` | 7 end-to-end tests (playwright) |
 | `npx tsc --noEmit` | run inside `sdk`, `mcp`, `app`, `examples`, `spikes` |
@@ -294,11 +294,12 @@ the old contract.
 Built for the Celo **Agents at Work** hackathon. Live on mainnet, with every
 claim above backed by a transaction rather than a test's own output.
 
-**Distribution is currently clone-and-run.** `@leash/sdk` and `@leash/mcp` are
-workspace packages and are not published to npm; the `.mcp.json` block points at
-a local path. Publishing them properly — a real build step, a name that is not
-already taken on the registry, and a `npx`-able server binary — is the next step
-toward this being installable rather than merely readable.
+**Distribution is currently clone-and-run.** `@leash/sdk` is a workspace
+package and is not published to npm; the MCP server builds to a bundle
+(`leash-agentpay`) but is not yet published either, and the `.mcp.json` block
+points at a local path. Publishing `leash-agentpay` and pointing `.mcp.json`
+at it is the next step toward this being installable rather than merely
+readable.
 
 Also known and deliberately deferred: continuous integration, an ownership
 transfer path in a future non-upgradeable v2, an owner switch to disable

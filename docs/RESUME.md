@@ -55,7 +55,7 @@ left that way through the session that pushed them — the same staleness this
 file exists to prevent, for the third time in it.
 
 Gate tests are excluded from the ordinary runs. `pnpm -F @leash/sdk test:gate`
-and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
+and `pnpm -F leash-agentpay test:gate` **spend real money** — see Hazards.
 
 ### Live on Celo mainnet
 
