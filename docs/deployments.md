@@ -189,3 +189,64 @@ Read back off the chain rather than taken from the test's own output:
    signed for. `payForResource` draws a buffer on top, sized to cover that gas
    *and* leave a float — an operator below the reserve cannot send even the draw
    that would refill it, and strands until the owner rescues it.
+
+## npm — `leash-agentpay`, published 2026-09-06
+
+The MCP server had never been installable. Until this entry the only way to run
+it was to clone this repository, `pnpm install` under a pinned pnpm, and edit an
+absolute path into `.mcp.json` by hand.
+
+| | |
+|---|---|
+| Package | `leash-agentpay@0.1.0`, public, tag `latest` |
+| Registry | <https://registry.npmjs.org/leash-agentpay> |
+| Contents | 2 files — `dist/index.js` (36.9 kB) and `package.json`. No `src/`, no tests. |
+| Packed size | 11.3 kB (38.0 kB unpacked) |
+| shasum | `643ec7a1c1f4749fe15b8fcd6b6402d5e276d900` |
+| Publisher | npm account `vanhuy1999` |
+
+`@leash/sdk` is bundled in rather than published beside it: it has one consumer,
+and publishing it would commit this project to a public API and a semver
+contract nobody has asked for. It is also a `devDependency` rather than a
+dependency, because `@leash/sdk` on the registry is an **unrelated project** —
+leaving it a real dependency would have made every user's install fetch a
+stranger's code.
+
+### Verified, not assumed
+
+Read back from the registry after publishing, from a temporary directory
+outside this repository and with the npm cache cleared:
+
+```
+$ npm view leash-agentpay version dist-tags
+version = '0.1.0'
+dist-tags = { latest: '0.1.0' }
+
+$ npx -y leash-agentpay
+Error: OPERATOR_PK is not set. The Leash MCP server needs it to start.
+```
+
+That error is the pass condition, not a failure: it proves npm resolved the
+package, linked and executed the bin, and reached `loadConfig` — the real
+entrypoint. A module-resolution error instead would have meant the bundle was
+broken.
+
+The bin was separately verified **by name** rather than by path, since
+`mcp/test/bundle.test.ts` invokes an explicit `dist/index.js` and so proves
+nothing about the command resolving: installing the tarball into a temporary
+prefix created `node_modules/.bin/leash-agentpay`, and running `leash-agentpay`
+with that directory on `PATH` reached the same configuration error.
+
+### Two things that cost a round each
+
+1. **`npm publish --dry-run` warned that the bin had been "invalid and
+   removed".** It had not been: the manifest inside the tarball kept it and the
+   install linked it. npm's normalizer simply prefers `dist/index.js` over
+   `./dist/index.js`. The prefix was dropped anyway — a frightening line printed
+   on every publish teaches whoever runs it to skim publish output.
+
+2. **A `npm login` web session cannot publish on a 2FA account.** It issues a
+   classic token, and npm now refuses those for direct publishing: `403 ...
+   Two-factor authentication or granular access token with bypass 2fa enabled is
+   required`. Supplying `--otp` did not change it. A granular access token with
+   bypass-2FA is what worked.
