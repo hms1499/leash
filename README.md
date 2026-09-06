@@ -273,7 +273,7 @@ pnpm install
 | `cd contracts && forge test` | 32 contract tests |
 | `pnpm -F @leash/sdk test` | 42 SDK tests |
 | `pnpm -F leash-agentpay test` | 20 MCP tests |
-| `pnpm -F @leash/app test` | 191 app tests (vitest) |
+| `pnpm -F @leash/app test` | 193 app tests (vitest) |
 | `pnpm -F @leash/app test:e2e` | 7 end-to-end tests (playwright) |
 | `npx tsc --noEmit` | run inside `sdk`, `mcp`, `app`, `examples`, `spikes` |
 
