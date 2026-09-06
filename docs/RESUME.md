@@ -1,6 +1,6 @@
 # Resume Here — Leash
 
-Session paused 2026-09-05. This file is the entry point for the next session.
+Session paused 2026-09-06. This file is the entry point for the next session.
 Read it before anything else, then read the documents it points at.
 
 ## What this project is
@@ -45,17 +45,77 @@ counted again.
 | `cd contracts && forge test` | 32/32 |
 | `cd sdk && pnpm run test` | 42/42 |
 | `cd mcp && pnpm run test` | 20/20 |
-| `cd app && pnpm run test` | 191/191 |
+| `cd app && pnpm run test` | 193/193 (was 191 before the npm branch) |
 | `cd app && pnpm run test:e2e` | 7/7 local, and 7/7 against the deployed URL (2026-09-06) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
-**Everything is pushed.** `origin/main..main` is empty at `fb616a6`, read on
-2026-09-06. The line here said "Nothing is pushed, 24 commits ahead" and was
-left that way through the session that pushed them — the same staleness this
-file exists to prevent, for the third time in it.
+**NOTHING IS PUSHED.** Read on 2026-09-06 at the end of the npm session:
+
+| ref | at |
+|---|---|
+| `origin/main` | `d7d9921` |
+| `main` (local) | `92a3b8d` — 5 commits ahead |
+| `feat/npm-distribution` | `e7cb8d6` — 8 further commits |
+
+Thirteen commits are unpushed, and **one of them (`1e70f11`) predates that
+session entirely** — it was already sitting here unpushed when it began. The
+line above used to read "Everything is pushed", which is how it was missed.
+That is the **fourth** time this file has asserted a push state that was not
+true. Run `git rev-parse --short main origin/main` before believing any
+sentence in this section, including this one.
 
 Gate tests are excluded from the ordinary runs. `pnpm -F @leash/sdk test:gate`
 and `pnpm -F leash-agentpay test:gate` **spend real money** — see Hazards.
+
+## The MCP server is on npm now, and the branch is not merged
+
+`leash-agentpay@0.1.0` is **published, public, and verified working** — the
+first time any of this was installable. `npx -y leash-agentpay` from a cleared
+cache outside the repo reaches `OPERATOR_PK is not set`, which is the pass
+condition: it proves npm resolved the package, linked the bin, ran it, and got
+to `loadConfig`. Full record and the two things that cost a round each are in
+`docs/deployments.md`.
+
+The work lives on **`feat/npm-distribution`**, eight commits, not merged and
+not pushed. Its plan and spec:
+
+- `docs/superpowers/specs/2026-09-06-leash-npm-distribution-design.md`
+- `docs/superpowers/plans/2026-09-06-leash-npm-distribution.md`
+- Execution ledger, **gitignored, only on this machine**:
+  `.superpowers/sdd/2026-09-06-leash-npm-distribution/progress.md`. It holds
+  every ruling made during execution. `git clean -fdx` destroys it.
+
+Tasks 1-5 are complete and reviewed. **Task 6 is not done and needs a human.**
+
+### Pick up here
+
+1. **A whole-branch review was in flight when the session ended.** Its verdict
+   was never read. Re-run it, or read it, before merging anything.
+2. **Decide about pushing.** The maintainer asked for a push to `main`; it was
+   held because of item 1 and because the push turned out to be 13 commits
+   rather than 8. Nothing was pushed.
+3. **CI has never executed.** `.github/workflows/ci.yml` is committed and was
+   verified by inspection only — YAML parses, every `pnpm -F` filter and
+   `working-directory` resolves, no job invokes a gate suite. Whether it goes
+   green is unknown until the first push.
+4. **Task 6: time the stranger's walk.** Open the hosted wizard, deploy an
+   account with a real wallet, copy the `.mcp.json`, restart an agent, call
+   `leash_status`. If it takes longer than five minutes, **change the number in
+   `README.md`** — do not re-describe the walk to fit the claim.
+5. `git tag -d sdd-prerebase-backup` once the branch is merged. It is a safety
+   tag from rewording one commit message.
+
+### What the branch changed for a user
+
+The `.mcp.json` the app hands out now says `npx -y leash-agentpay` instead of
+`/absolute/path/to/leash/mcp/src/index.ts`, which the reader had to edit by
+hand. `app/lib/mcpJson.ts` is still the only builder; the landing page and
+`/setup` both render through it, so they cannot drift apart.
+
+**`@leash/sdk` is deliberately not published**, and is a `devDependency` rather
+than a dependency, because `@leash/sdk` on the registry is an unrelated
+project — leaving it a real dependency would have made every user's install
+fetch a stranger's code. Do not "fix" that back.
 
 ### Live on Celo mainnet
 
