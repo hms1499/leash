@@ -63,7 +63,9 @@ export function buildMcpJson(h: McpHandoff): string {
       mcpServers: {
         leash: {
           command: 'npx',
-          args: ['-y', 'tsx', '/absolute/path/to/leash/mcp/src/index.ts'],
+          // The published package, not a path on the author's disk. `-y`
+          // skips the install prompt, which an agent's runtime cannot answer.
+          args: ['-y', 'leash-agentpay'],
           env: {
             LEASH_ACCOUNT: h.account,
             OPERATOR_PK: OPERATOR_PK_PLACEHOLDER,

@@ -9,11 +9,9 @@ command line. If you would rather click: run the app (`pnpm --filter @leash/app
 dev`) and open `/setup`, where a wizard does every step below and hands you the
 finished `.mcp.json` at the end.
 
-**Before anything else:** Node >= 20, pnpm 9.12.0 (the root `package.json`
-pins it), and `pnpm install` from the repo root. The MCP server is run
-straight from source through `tsx`, and it imports `@leash/sdk` as a workspace
-package — without `pnpm install` that import does not resolve and the server
-exits before your agent sees it.
+**Before anything else:** Node >= 20, which `npx` needs to run the published
+server. The server installs from npm as `leash-agentpay`, so you do not need
+to clone this repo or run `pnpm install` to follow this guide.
 
 ## 1. Deploy your own account
 
@@ -65,7 +63,7 @@ The account is the agent's budget, not your wallet.
   "mcpServers": {
     "leash": {
       "command": "npx",
-      "args": ["-y", "tsx", "/absolute/path/to/leash/mcp/src/index.ts"],
+      "args": ["-y", "leash-agentpay"],
       "env": {
         "LEASH_ACCOUNT": "0xYourSpendPolicyAccount",
         "OPERATOR_PK": "0xYourAgentOperatorPrivateKey",

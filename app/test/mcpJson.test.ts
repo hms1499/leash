@@ -82,6 +82,22 @@ describe('buildMcpJson', () => {
   it('names the server "leash" so the documented tool names resolve', () => {
     expect(Object.keys(JSON.parse(buildMcpJson(handoff)).mcpServers)).toEqual(['leash'])
   })
+
+  /**
+   * The block used to carry `/absolute/path/to/leash/mcp/src/index.ts`, which
+   * the reader had to edit by hand. Getting it wrong surfaces in the agent as
+   * "server failed to connect" with the real cause buried -- the same shape of
+   * failure as the empty ATTRIBUTION_TAG this file's other tests guard.
+   */
+  it('installs the published package rather than a path only the author has', () => {
+    const server = JSON.parse(buildMcpJson(handoff)).mcpServers.leash
+    expect(server.command).toBe('npx')
+    expect(server.args).toEqual(['-y', 'leash-agentpay'])
+  })
+
+  it('emits no local filesystem path at all', () => {
+    expect(buildMcpJson(handoff)).not.toMatch(/\/absolute\/path|\.ts\b/)
+  })
 })
 
 describe('isAttributionTag', () => {

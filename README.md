@@ -294,12 +294,12 @@ the old contract.
 Built for the Celo **Agents at Work** hackathon. Live on mainnet, with every
 claim above backed by a transaction rather than a test's own output.
 
-**Distribution is currently clone-and-run.** `@leash/sdk` is a workspace
-package and is not published to npm; the MCP server builds to a bundle
-(`leash-agentpay`) but is not yet published either, and the `.mcp.json` block
-points at a local path. Publishing `leash-agentpay` and pointing `.mcp.json`
-at it is the next step toward this being installable rather than merely
-readable.
+**The MCP server is published.** `leash-agentpay` is on npm, and the
+`.mcp.json` block runs it with `npx -y leash-agentpay` — nobody needs to clone
+this repo or edit a local path to use it. `@leash/sdk` stays unpublished by
+choice: it has one consumer, and publishing it would commit this project to a
+public API and a semver contract nobody has asked for, so it is bundled into
+the server instead.
 
 Also known and deliberately deferred: continuous integration, an ownership
 transfer path in a future non-upgradeable v2, an owner switch to disable
