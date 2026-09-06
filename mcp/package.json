@@ -11,7 +11,7 @@
     "url": "git+https://github.com/hms1499/leash.git",
     "directory": "mcp"
   },
-  "bin": { "leash-agentpay": "./dist/index.js" },
+  "bin": { "leash-agentpay": "dist/index.js" },
   "files": ["dist"],
   "engines": { "node": ">=20" },
   "scripts": {
