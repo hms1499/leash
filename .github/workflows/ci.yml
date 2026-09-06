@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge test -vv
+        working-directory: contracts
+
+  packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.12.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      # The gate suites are excluded from these scripts on purpose: they spend
+      # real money on mainnet. Never add `test:gate` to this workflow.
+      - run: pnpm -F @leash/sdk test
+      - run: pnpm -F leash-agentpay test
+      - run: pnpm -F @leash/app test
+
+      - run: npx tsc --noEmit
+        working-directory: sdk
+      - run: npx tsc --noEmit
+        working-directory: mcp
+      - run: npx tsc --noEmit
+        working-directory: app
+      - run: npx tsc --noEmit
+        working-directory: examples
+      - run: npx tsc --noEmit
+        working-directory: spikes
+
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.12.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      # Packs the tarball, installs it into a temp directory and starts the
+      # bin. This is the only job that can catch a bundle whose dynamic
+      # `@leash/sdk` import was left external -- every other suite resolves it
+      # through the workspace symlink and passes regardless.
+      - run: pnpm -F leash-agentpay test:bundle
