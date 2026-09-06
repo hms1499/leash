@@ -52,14 +52,15 @@ The dashboard reads Celo mainnet directly and needs no wallet to look — the
 policy limits, remaining allowance, and activity feed for any account render for
 a stranger with an empty browser.
 
+**<https://leash-app-phi.vercel.app>** — hosted, and reading Celo mainnet. Open
+[`/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2`](https://leash-app-phi.vercel.app/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2):
+that is a live account, and the numbers on it are real.
+
+To run the same thing locally:
+
 ```bash
 pnpm --filter @leash/app dev
 ```
-
-Then open `/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2` — that is the live
-account on Celo mainnet, and the numbers you see are real.
-
-A hosted URL will be added here once the app is deployed.
 
 ## See it spend, and get blocked
 

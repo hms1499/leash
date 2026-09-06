@@ -27,3 +27,7 @@ playwright-report/
 # copy would go stale by design.
 .agents/
 skills-lock.json
+# Written by `vercel link`. `.env*` came with it and was removed: this file is
+# last-match-wins, and that pattern sits below `!.env.example` and re-ignores it.
+.vercel
+.env.local

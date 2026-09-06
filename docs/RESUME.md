@@ -42,13 +42,13 @@ counted again.
 | `cd sdk && pnpm run test` | 42/42 |
 | `cd mcp && pnpm run test` | 20/20 |
 | `cd app && pnpm run test` | 191/191 |
-| `cd app && pnpm run test:e2e` | 7/7 (Playwright, against a local build) |
+| `cd app && pnpm run test:e2e` | 7/7 local, and 7/7 against the deployed URL (2026-09-06) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
-**Nothing is pushed.** `main` is 24 commits ahead of `origin/main` — the 11
-from the design-system session of 2026-09-05, and 13 that were already
-unpushed before it. The repo is public and `README.md` points at it, so what a
-stranger sees on GitHub is older than what is described here.
+**Everything is pushed.** `origin/main..main` is empty at `fb616a6`, read on
+2026-09-06. The line here said "Nothing is pushed, 24 commits ahead" and was
+left that way through the session that pushed them — the same staleness this
+file exists to prevent, for the third time in it.
 
 Gate tests are excluded from the ordinary runs. `pnpm -F @leash/sdk test:gate`
 and `pnpm -F @leash/mcp test:gate` **spend real money** — see Hazards.
@@ -130,18 +130,26 @@ The code is complete and reviewed. Nothing below is blocked on more building.
 
    Only **limits from the dashboard** is left, and it costs gas. The two free
    error paths are both done and both passed — see the 2026-09-05 entries.
-2. **Deploy to Vercel** (`app/`), then run the smoke test against the
-   production URL: `LEASH_E2E_URL=https://… pnpm -F @leash/app test:e2e`. Set
-   `NEXT_PUBLIC_CELO_RPC_URL` there — otherwise every visitor shares public
-   forno, and the dashboard makes 18 `getLogs` calls per load. Then replace
-   the "A hosted URL will be added here" line in `README.md`.
+2. **Deployed. <https://leash-app-phi.vercel.app>** — Vercel project
+   `hms1499s-projects/leash-app`, root directory `app`, production READY since
+   2026-09-05 21:46 ICT. `NEXT_PUBLIC_CELO_RPC_URL` is set on Production and
+   Preview, so visitors do not share public forno at 18 `getLogs` a load.
 
-   Do the social preview in the same pass: checked 2026-09-05, `app/` has no
-   favicon, no `opengraph-image`, and `layout.tsx` sets only `title` and
-   `description` — no `openGraph` block and no `metadataBase`. The submission
-   is a link, so pasted into a chat or a judging sheet it renders as bare text
-   with no tab icon. `metadataBase` needs the production URL, which is why it
-   belongs here rather than earlier.
+   **Verified against the live URL on 2026-09-06**, which the deploy session
+   had not done: `LEASH_E2E_URL=https://leash-app-phi.vercel.app pnpm -F
+   @leash/app test:e2e` → 7/7, and `/`, `/setup`, `/a/0x7aDa926B…3fd2` and
+   `/opengraph-image.png` all answer 200. `README.md` now leads with the
+   hosted link instead of "A hosted URL will be added here".
+
+   The social preview landed earlier in `fb616a6`: `icon.svg`,
+   `opengraph-image.png`, and a `metadataBase` that reads
+   `VERCEL_PROJECT_PRODUCTION_URL`, so the absolute `og:image` resolves to the
+   real domain with nothing to configure. Confirmed in the served HTML.
+
+   Left here: `NEXT_PUBLIC_CELO_RPC_URL` currently points at forno. The
+   Chainstack perk (`AGENTSATWORK`, free for the hackathon, Celo mainnet only)
+   would replace it — but it is a `NEXT_PUBLIC_` value, inlined at build, so
+   changing it needs a redeploy, not just an env edit.
 3. **The demo is proven; what is left is the shoot.** It ran twice on
    2026-09-05 and the second run's output was checked figure by figure against
    the chain. `LEASH_DEMO_SPEND_REAL_MONEY=yes pnpm -F @leash/examples demo`,
