@@ -10,8 +10,12 @@ not in the agent's wallet; the agent can only ask the contract to spend, and the
 contract reverts past its limits. The limits are code on Celo, not a sentence in
 a prompt, so a leaked agent key does not become an unbounded one.
 
-- **Primary track:** `judges-favorite` · **Secondary:** `askbots-growth` (not entered yet)
-- **Deadline:** 2026-09-14 09:00 GMT (16:00 ICT, Monday) — **9 days left**
+- **Submission is PUBLISHED**, 2026-09-06 03:10 UTC. Read back from
+  `GET /submissions/me` as `status: published`, not inferred from the POST.
+  It stays editable until the deadline, so a video or a fix still lands.
+- **Primary track:** `judges-favorite` · **Bounties:** `judges-favorite`,
+  `best-stablecoin-adoption`. `askbots-growth` was never entered.
+- **Deadline:** 2026-09-14 09:00 GMT (16:00 ICT, Monday) — **8 days left**
 - **Repo:** https://github.com/hms1499/leash (public)
 
 ## Read these, in order
