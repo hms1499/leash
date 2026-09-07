@@ -15,12 +15,14 @@ import { PAGE } from '../../../components/ui/page'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
+import AccountSwitcher from '../../../components/AccountSwitcher'
 import { AccountStatus, RecommendedAction, SecurityPolicy } from '../../../components/DashboardOverview'
 import { useAccountState } from '../../../lib/useAccountState.js'
 import { useFeed } from '../../../lib/useFeed.js'
 import { isValidAddress } from '../../../lib/address.js'
 import { canEdit } from '../../../lib/policy.js'
 import { publicClient } from '../../../lib/chain.js'
+import { accountDeployBlock, migrateLegacyAccount } from '../../../lib/accountRegistry.js'
 
 // USDC on Celo mainnet. The token the policy is denominated in; the UI treats
 // stablecoins as 1:1 with the dollar, and that assumption lives here in the UI
@@ -52,11 +54,8 @@ export default function DashboardRoute({ params }: { params: Promise<{ address: 
 function Dashboard({ address }: { address: `0x${string}` }) {
   const state = useAccountState(address, TOKEN)
 
-  // Spec §1.2: the deploy receipt's block is the correct floor for a log
-  // scan, and the wizard has been storing it under `leash.deployBlock` with
-  // nothing reading it. Only honoured when the stored account is the one
-  // being viewed — another account's deploy block would silently hide its
-  // history.
+  // The deploy receipt's block is the correct floor for a log scan. It lives
+  // on the account's registry entry; the legacy singleton is migrated first.
   //
   // The spec also says this can be "carried in the URL". It deliberately is
   // not: a `?fromBlock=` a stranger controls could hide every spend from
@@ -66,24 +65,18 @@ function Dashboard({ address }: { address: `0x${string}` }) {
   // Read in an effect, not during render: localStorage does not exist on the
   // server and touching it in the render body is a hydration mismatch.
   const [deployBlock, setDeployBlock] = useState<bigint | undefined>(undefined)
+  const { address: connected } = useAccount()
   useEffect(() => {
     try {
-      const savedAccount = localStorage.getItem('leash.account')
-      const savedBlock = localStorage.getItem('leash.deployBlock')
-      if (
-        savedAccount && savedBlock &&
-        savedAccount.toLowerCase() === address.toLowerCase() &&
-        /^\d+$/.test(savedBlock)
-      ) {
-        setDeployBlock(BigInt(savedBlock))
-      }
+      const owner = state.owner ?? connected
+      if (owner) migrateLegacyAccount(localStorage, owner)
+      setDeployBlock(accountDeployBlock(localStorage, owner, address))
     } catch {
       // A browser with storage blocked simply scans the whole window.
     }
-  }, [address])
+  }, [address, connected, state.owner])
 
   const feed = useFeed(address, TOKEN, deployBlock)
-  const { address: connected } = useAccount()
   const isOwner = canEdit(state.owner, connected)
 
   // The contract stores operators in a mapping(address => bool), which
@@ -185,6 +178,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           style={{ ...LABEL_STYLE, color: state.paused ? 'var(--bg)' : undefined }}
         />
         <span className="ml-auto flex flex-wrap items-center justify-end gap-3">
+          <AccountSwitcher current={address} />
           <NetworkBadge onDangerBand={state.paused} />
           <StopButton
             account={address}

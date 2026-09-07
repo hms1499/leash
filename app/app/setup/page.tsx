@@ -17,6 +17,12 @@ import { formatAmount, validateLimits } from '../../lib/policy.js'
 import { isAttributionTag } from '../../lib/mcpJson.js'
 import { pollUntil } from '../../lib/confirm.js'
 import { PAGE } from '../../components/ui/page'
+import {
+  announceAccountRegistryChange,
+  migrateLegacyAccount,
+  savePolicyAccount,
+  selectPolicyAccount,
+} from '../../lib/accountRegistry.js'
 
 /**
  * A wizard's job is to say where you are. Every step was a Label -- the same
@@ -107,6 +113,11 @@ export default function Onboard() {
   // no way to mistake someone else's contract for its own.
   useEffect(() => {
     if (!connected) { setAccount(null); return }
+    const accounts = migrateLegacyAccount(localStorage, connected)
+    if (new URLSearchParams(window.location.search).get('new') === '1') {
+      setAccount(null)
+      return
+    }
     const savedAddr = localStorage.getItem('leash.account')
     const savedOwner = localStorage.getItem('leash.accountOwner')
     if (
@@ -114,9 +125,8 @@ export default function Onboard() {
       savedOwner && savedOwner.toLowerCase() === connected.toLowerCase()
     ) {
       setAccount(savedAddr)
-    } else {
-      setAccount(null)
-    }
+    } else if (accounts[0]) setAccount(accounts[0].address)
+    else setAccount(null)
   }, [connected])
 
   // Resume an interrupted setup from chain state. Local storage supplies only
@@ -231,9 +241,12 @@ export default function Onboard() {
           return
         }
         setAccount(receipt.contractAddress)
-        localStorage.setItem('leash.account', receipt.contractAddress)
-        localStorage.setItem('leash.accountOwner', connected!)
-        localStorage.setItem('leash.deployBlock', receipt.blockNumber.toString())
+        savePolicyAccount(localStorage, connected!, {
+          address: receipt.contractAddress,
+          deployBlock: receipt.blockNumber.toString(),
+        })
+        selectPolicyAccount(localStorage, connected!, receipt.contractAddress)
+        announceAccountRegistryChange()
       } catch {
         // forno is load-balanced and this is the likeliest failure right
         // after a transaction. The transaction may still land — never tell
