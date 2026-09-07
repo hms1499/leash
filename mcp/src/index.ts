@@ -47,7 +47,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'leash_pay',
       description:
-        'Pay a Celo address from the agent wallet. The on-chain policy enforces a per-transaction cap, a daily cap and, when enabled, a payee allowlist. A refusal returns the numbers needed to retry correctly.',
+        'Pay a Celo address from the agent wallet. The on-chain policy enforces a per-transaction cap, a daily cap and, when enabled, a payee allowlist. A refusal returns the numbers needed to retry correctly. Waits for the chain before reporting: `ok: true` means a receipt was read and the payment succeeded, `spend_reverted` means it landed and reverted so no money moved, and `sent_unconfirmed` means the transaction was sent but not observed — never retry that one, it would pay twice.',
       inputSchema: {
         type: 'object',
         properties: {

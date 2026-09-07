@@ -45,10 +45,10 @@ somebody adds a file to it.
 | Suite | Status |
 |---|---|
 | `cd contracts && forge test` | 32/32 |
-| `cd sdk && pnpm run test` | 42/42 |
-| `cd mcp && pnpm run test` | 20/20 |
+| `cd sdk && pnpm run test` | 61/61 |
+| `cd mcp && pnpm run test` | 24/24 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 193/193 (was 191 before the npm branch) |
+| `cd app && pnpm run test` | 190/190 (was 193; four pollUntil tests moved to the SDK) |
 | `cd app && pnpm run test:e2e` | 7/7 local, and 7/7 against the deployed URL (2026-09-06) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 

@@ -13,6 +13,7 @@ type PayDeps = {
       token: `0x${string}`, to: `0x${string}`, amount: bigint,
       feeBalances: ReadonlyMap<`0x${string}`, bigint>,
     ): Promise<`0x${string}`>
+    confirm(hash: `0x${string}`): Promise<'success' | 'reverted' | 'unobserved'>
     remainingToday(token: `0x${string}`): Promise<bigint>
   }
   config: LeashConfig
@@ -59,6 +60,19 @@ async function refusal(
   to: `0x${string}`,
   check: PreCheckFailure,
 ): Promise<Record<string, unknown>> {
+  // Not a refusal at all: the node never answered, so no limit was tested.
+  // Saying "refused" here sends an agent hunting for a cap to work around,
+  // and there is none — see classifySimulationError in the SDK.
+  if (check.error === 'policy_unreadable') {
+    return {
+      error: 'policy_unreadable',
+      requested: human(amount),
+      message: 'the account could not be reached, so the policy was never checked',
+      suggestion:
+        'Nothing was sent and no money moved. This is a node or network failure, not a policy decision — do not look for a cap to work around. Retry shortly, or call leash_status to see whether the chain is readable again.',
+    }
+  }
+
   const base = {
     error: check.error,
     message: `the on-chain policy refused a payment of ${human(amount)}`,
@@ -158,10 +172,54 @@ export async function payTool(
   if (!check.ok) return refusal({ leash, config }, amount, to, check)
 
   const transaction = await leash.spend(config.token, to, amount, feeBalances)
+  const explorer = `https://celoscan.io/tx/${transaction}`
+
+  // A hash is not a payment. `spend` resolves as soon as a node accepts the
+  // transaction: it may still revert, and CLAUDE.md records forno rejecting
+  // fee-currency sends non-deterministically. Until this returned, the tool
+  // said `ok: true, paid` about every one of those — the project's own banned
+  // sentence, on the surface an agent actually reads.
+  const outcome = await leash.confirm(transaction)
+
+  if (outcome === 'reverted') {
+    // A clean simulation does not bind the chain. The owner can press Stop, or
+    // another spend can take the last of the day, between the check and the
+    // send. Money did not move, so a retry is safe here — and has to be said
+    // plainly, because the branch below forbids one.
+    return {
+      ok: false,
+      error: 'spend_reverted',
+      transaction,
+      explorer,
+      requested: human(amount),
+      to,
+      message: 'the transaction landed on-chain and reverted — no money moved',
+      suggestion:
+        'Nothing was paid; only gas was spent. The account changed between the check and the send. Call leash_status to see the current caps and pause state before trying again.',
+    }
+  }
+
+  if (outcome === 'unobserved') {
+    // "We stopped waiting" is neither success nor failure, and collapsing it
+    // into either is how an agent pays twice: the transaction may be mined a
+    // second after this returns, and `execute` has no idempotency key.
+    return {
+      ok: false,
+      status: 'sent_unconfirmed',
+      transaction,
+      explorer,
+      requested: human(amount),
+      to,
+      message: 'Sent, but the chain has not confirmed it yet.',
+      suggestion:
+        'DO NOT RETRY. The payment may still land, and a second call would pay twice — there are no refunds. Open the explorer link, or call leash_status once the transaction has had time to settle.',
+    }
+  }
+
   return {
     ok: true,
     transaction,
-    explorer: `https://celoscan.io/tx/${transaction}`,
+    explorer,
     paid: human(amount),
     to,
     token: config.token,

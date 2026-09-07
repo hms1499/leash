@@ -16,16 +16,81 @@ const config = loadConfig(ENV)
 const fees = new Map([[config.feeAdapter, 1_000_000n]])
 const PAYEE = '0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57'
 
+/** A leash whose policy allows the spend, and whose chain answers `outcome`. */
+const sends = (outcome: 'success' | 'reverted' | 'unobserved') => ({
+  preCheck: vi.fn().mockResolvedValue({ ok: true }),
+  spend: vi.fn().mockResolvedValue('0xpaid'),
+  confirm: vi.fn().mockResolvedValue(outcome),
+  remainingToday: vi.fn().mockResolvedValue(1_000_000n),
+})
+
 describe('payTool', () => {
   it('spends and reports the transaction', async () => {
-    const leash = {
-      preCheck: vi.fn().mockResolvedValue({ ok: true }),
-      spend: vi.fn().mockResolvedValue('0xpaid'),
-    } as never
-    const out = await payTool({ leash, config, feeBalances: fees }, { to: PAYEE, amount: '0.25' })
+    const leash = sends('success')
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.25' })
+    expect(out.ok).toBe(true)
     expect(out.transaction).toBe('0xpaid')
-    expect((leash as never as { spend: ReturnType<typeof vi.fn> }).spend)
-      .toHaveBeenCalledWith(config.token, PAYEE, 250_000n, fees)
+    expect(out.paid).toBe('0.250000')
+    expect(leash.spend).toHaveBeenCalledWith(config.token, PAYEE, 250_000n, fees)
+  })
+
+  // A hash is not a payment. `spend` resolves when a node accepts the
+  // transaction, which says nothing about whether it was mined — and
+  // CLAUDE.md records forno rejecting fee-currency sends non-deterministically.
+  // Reporting "paid" here is the project's own banned sentence.
+  it('does not claim a payment it has not seen the chain make', async () => {
+    const leash = sends('success')
+    await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.25' })
+    expect(leash.confirm).toHaveBeenCalledWith('0xpaid')
+  })
+
+  // "We stopped waiting" is not failure and not success. The agent must be
+  // able to tell it from both, and must not retry: x402 has no refunds and
+  // neither does a second `execute` — a retry here pays twice.
+  it('says a transaction it could not observe is unconfirmed, and forbids a retry', async () => {
+    const leash = sends('unobserved')
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.25' })
+    expect(out.ok).not.toBe(true)
+    expect(out.status).toBe('sent_unconfirmed')
+    expect(out.transaction).toBe('0xpaid')
+    expect(out.paid).toBeUndefined()
+    expect(String(out.suggestion)).toMatch(/DO NOT RETRY/)
+  })
+
+  // A transaction can revert after a clean simulation: the owner pauses, or
+  // another spend takes the last of the day, between the check and the send.
+  // Nothing moved, so this one IS safe to retry — and must say so, because
+  // the sentence above forbids it for the other outcome.
+  it('reports a reverted spend as money that did not move', async () => {
+    const leash = sends('reverted')
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.25' })
+    expect(out.ok).not.toBe(true)
+    expect(out.error).toBe('spend_reverted')
+    expect(out.transaction).toBe('0xpaid')
+    expect(out.paid).toBeUndefined()
+    expect(String(out.message)).toMatch(/no money moved|nothing moved/i)
+    expect(String(out.suggestion)).not.toMatch(/DO NOT RETRY/)
+  })
+
+  // forno 500s and times out routinely. Calling that "the on-chain policy
+  // refused a payment" tells an agent a limit was hit by a policy nobody
+  // asked, and sends it looking for a cap to work around.
+  it('does not call an unreachable node a policy refusal', async () => {
+    const leash = {
+      preCheck: vi.fn().mockResolvedValue({
+        ok: false, error: 'policy_unreadable', spent: 0n, cap: 0n,
+      }),
+      spend: vi.fn(),
+      confirm: vi.fn(),
+      remainingToday: vi.fn().mockResolvedValue(1_000_000n),
+    }
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.25' })
+    expect(out.error).toBe('policy_unreadable')
+    expect(String(out.message)).not.toMatch(/refused/i)
+    expect(out.daily_cap).toBeUndefined()
+    expect(out.per_tx_cap).toBeUndefined()
+    expect(leash.spend).not.toHaveBeenCalled()
+    expect(String(out.suggestion)).toMatch(/nothing was sent/i)
   })
 
   // A cap refusal has to arrive as numbers an agent can reason with, or it
