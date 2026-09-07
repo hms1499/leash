@@ -48,8 +48,8 @@ somebody adds a file to it.
 | `cd sdk && pnpm run test` | 66/66 |
 | `cd mcp && pnpm run test` | 27/27 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 192/192 (was 193; four pollUntil tests moved to the SDK, two feed-filter tests added) |
-| `cd app && pnpm run test:e2e` | 8/8 local; 7/7 against the deployed URL before the new mobile-dashboard test (2026-09-06) |
+| `cd app && pnpm run test` | 197/197 (including five local multi-account registry tests) |
+| `cd app && pnpm run test:e2e` | 10/10 local; deployed URL has not yet been updated with the multi-account UI |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
 **Merged and pushed 2026-09-07.** `feat/npm-distribution` went onto `main` by
@@ -245,7 +245,7 @@ The code is complete and reviewed. Nothing below is blocked on more building.
 
    **Verified against the live URL on 2026-09-06**, which the deploy session
    had not done: `LEASH_E2E_URL=https://leash-app-phi.vercel.app pnpm -F
-   @leash/app test:e2e` → 7/7 at that deployment; the local suite is now 8/8, and `/`, `/setup`, `/a/0x7aDa926B…3fd2` and
+   @leash/app test:e2e` → 7/7 at that deployment; the local suite is now 10/10, and `/`, `/setup`, `/accounts`, `/a/0x7aDa926B…3fd2` and
    `/opengraph-image.png` all answer 200. `README.md` now leads with the
    hosted link instead of "A hosted URL will be added here".
 

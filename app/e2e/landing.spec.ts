@@ -5,6 +5,21 @@ test('the wizard answers at /setup', async ({ page }) => {
   await expect(page.getByText('Step 1 — Connect')).toBeVisible()
 })
 
+test('the account directory explains its local scope before wallet connection', async ({ page }) => {
+  await page.goto('/accounts')
+  await expect(page.getByRole('heading', { name: 'My policy accounts' })).toBeVisible()
+  await expect(page.getByText('Accounts saved on this device for the connected owner wallet.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Connect the owner wallet' })).toBeVisible()
+})
+
+test('the account directory does not scroll sideways on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 760 })
+  await page.goto('/accounts')
+  await expect(page.getByRole('heading', { name: 'My policy accounts' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(375)
+})
+
 /**
  * The judge's path, one step earlier than the dashboard spec: open the
  * submitted link and understand what this is, with no wallet, and see that the
