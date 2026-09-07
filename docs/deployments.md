@@ -284,7 +284,66 @@ suite packs a local tarball rather than resolving the published one:
 - **6.8 seconds, 111 packages.** Whatever the wallet half of the walk costs, the
   install is not where the time goes.
 
-**Still unmeasured:** deploying an account, adding an operator, setting limits
-and funding it, at <https://leash-app-phi.vercel.app/setup>. That needs a human
-with a wallet and real CELO. No time claim for the end-to-end walk appears in
-`README.md`, and none should be added until somebody has walked it.
+### The wallet half, walked 2026-09-07
+
+A second `SpendPolicyAccount` was deployed through the hosted wizard and driven
+end to end by a real agent. Read off the chain, not taken from the wizard:
+
+| | |
+|---|---|
+| Account | `0x7757035dd318eF1FC878bD83B06EE46eF3Ae0d9c` |
+| Owner | `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459` |
+| Operator | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6`, `operators()` = true |
+| Per-tx cap | 0.50 USDC · **Daily cap** 5.00 USDC |
+| Account balance | 1.00 USDC · **Operator** 0.041078 USDC, **0 CELO** |
+| Allowlist | disabled · **Paused** false |
+
+Then, through the published package rather than a script — `npx -y
+leash-agentpay` started by the agent's own MCP client, reading the same
+`.mcp.json` the wizard emitted:
+
+- `leash_status` returned the table above. The first time an agent has reached
+  this project's chain state through an install rather than a checkout.
+- `leash_fetch` against `https://usebuy.ai/gcloud/vm` with `quote_only: true`
+  quoted **0.016753 USDC**, `within_max: true`, nothing paid.
+
+That price is the same `16753` recorded in the x402 section below, from the
+purchase that actually settled. Same endpoint, same price, reached this time
+through the registry.
+
+**Why the `leash_fetch` line is the one that matters.** It is the only tool
+whose `@leash/sdk` import is dynamic, and it sits inside that tool's branch
+alone. A bundle that left the import external serves `leash_status` and
+`leash_pay` perfectly and dies only here — on a user's machine, on a path no
+suite in this repository resolves honestly, because vitest reaches `@leash/sdk`
+through the workspace symlink whatever the bundler did. Task 1's `noExternal`,
+Task 2's tarball test and CI's `bundle` job all exist for this one failure.
+This call is the first time the whole chain was exercised as a stranger meets
+it: registry → `npx` → MCP stdio → agent → a real 402 endpoint.
+
+**Two honest limits on this measurement.**
+
+1. **No wall-clock time was recorded.** The walk was not timed, so no duration
+   is claimed here and none is added to `README.md`. Somebody who wants the
+   number has to walk it again with a clock running.
+2. **The operator wallet was reused, not created.** `0xd44daF6D…850D6` is the
+   registered `agentWalletAddress` from `docs/registration.md` — required, since
+   x402 attributes settlements to it. So this walk skipped generating an
+   operator wallet and funding it for gas. A real stranger pays that cost and
+   this measurement does not include it.
+
+### The step the setup guide did not have
+
+The walk failed once, silently, and the cause was not in this project at all.
+
+A project-scoped `.mcp.json` is not trusted on sight: the agent asks before
+running anything the file names. That prompt was answered "no", and the
+consequence is that the tools **simply do not exist** — no error, no warning,
+nothing in the agent's output distinguishing "rejected" from "you edited the
+wrong file". Restarting does not re-ask. `claude mcp list` does not list the
+server at all in that state; only `claude mcp get leash` names it, as
+`✘ Rejected`, and only `claude mcp reset-project-choices` clears it.
+
+`docs/mcp-setup.md` now carries the step and the diagnosis. It is the same
+failure shape as the absolute path the wizard used to emit: the user sees "the
+server does not work" and the real cause is somewhere they are not looking.

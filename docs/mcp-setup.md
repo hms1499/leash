@@ -88,6 +88,30 @@ The account is the agent's budget, not your wallet.
 The server holds no keys of its own and adds no logic. It reads the chain and
 signs with the operator key you gave it.
 
+### Then approve it, and know what a refusal looks like
+
+Put the block in `.mcp.json` at the root of the directory you open the agent
+in, and restart. Agents do not trust a config file on sight: yours will ask
+once, on startup, whether to run what the file names. **Say yes.**
+
+If you say no, the three tools do not appear — and nothing tells you why.
+There is no error and no warning; `leash_status` is simply not a tool your
+agent has, which looks exactly like putting the file in the wrong place.
+Restarting does not ask again. In Claude Code:
+
+```bash
+claude mcp get leash                  # ✘ Rejected, or ⏸ Pending approval
+claude mcp reset-project-choices      # clears it; restart and answer yes
+```
+
+`claude mcp list` does **not** show a rejected server at all, so it is the
+wrong command to check with — use `get`.
+
+Add `.mcp.json` to your `.gitignore` before you paste a key into it, and add
+`.mcp.json.*` alongside it: the natural thing to do before editing that file is
+copy it to `.mcp.json.bak`, and the plain filename pattern does not cover the
+backup.
+
 ## ⚠️ `OPERATOR_PK` is a hot key
 
 It sits in a config file that your agent's runtime reads. Treat it as

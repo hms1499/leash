@@ -1,6 +1,6 @@
 # Resume Here — Leash
 
-Session paused 2026-09-06. This file is the entry point for the next session.
+Session paused 2026-09-07. This file is the entry point for the next session.
 Read it before anything else, then read the documents it points at.
 
 ## What this project is
@@ -33,51 +33,61 @@ a prompt, so a leaked agent key does not become an unbounded one.
    **Both gitignored, living only on this machine.** `git clean -fdx` would
    destroy them.
 
-All five plans in `docs/superpowers/plans/` are **done**; read them only for
-context on decisions already taken. The line above said "three" while five
-files sat in that directory -- it was written when there were three and never
-counted again.
+All **six** plans in `docs/superpowers/plans/` are done; read them only for
+context on decisions already taken. Count the directory rather than trusting
+this sentence: it has now been wrong twice the same way. It said "three" while
+five files sat there, was corrected to five, and was still saying five once the
+npm plan made six. A number written beside a directory goes stale the next time
+somebody adds a file to it.
 
-## State: all five plans complete. Reviewed, and the review's fixes applied.
+## State: all six plans complete. Reviewed, and the review's fixes applied.
 
 | Suite | Status |
 |---|---|
 | `cd contracts && forge test` | 32/32 |
 | `cd sdk && pnpm run test` | 42/42 |
 | `cd mcp && pnpm run test` | 20/20 |
+| `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
 | `cd app && pnpm run test` | 193/193 (was 191 before the npm branch) |
 | `cd app && pnpm run test:e2e` | 7/7 local, and 7/7 against the deployed URL (2026-09-06) |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
-**NOTHING IS PUSHED.** Read on 2026-09-06 at the end of the npm session:
+**Merged and pushed 2026-09-07.** `feat/npm-distribution` went onto `main` by
+fast-forward — `main` was a strict ancestor, so no merge commit and no rewritten
+history — and `d7d9921..f9b9506` reached the remote: 16 commits, five of which
+predated the npm work.
 
 | ref | at |
 |---|---|
-| `origin/main` | `d7d9921` |
-| `main` (local) | `92a3b8d` — 5 commits ahead |
-| `feat/npm-distribution` | `e7cb8d6` — 8 further commits |
+| `origin/main` | `f9b9506` |
+| `main` (local) | `8b4f046` — **1 commit ahead**, the `.mcp.json.*` gitignore fix |
 
-Thirteen commits are unpushed, and **one of them (`1e70f11`) predates that
-session entirely** — it was already sitting here unpushed when it began. The
-line above used to read "Everything is pushed", which is how it was missed.
-That is the **fourth** time this file has asserted a push state that was not
-true. Run `git rev-parse --short main origin/main` before believing any
-sentence in this section, including this one.
+That one commit is unpushed as this is written. This file has now asserted a
+wrong push state four separate times, so the standing instruction has not
+changed: run `git rev-parse --short main origin/main` before believing any
+sentence in this section, **including this one**. It was true when written and
+that is not the same as true now.
 
 Gate tests are excluded from the ordinary runs. `pnpm -F @leash/sdk test:gate`
 and `pnpm -F leash-agentpay test:gate` **spend real money** — see Hazards.
 
-## The MCP server is on npm now, and the branch is not merged
+## The MCP server is on npm, and an agent has now used it
 
-`leash-agentpay@0.1.0` is **published, public, and verified working** — the
-first time any of this was installable. `npx -y leash-agentpay` from a cleared
-cache outside the repo reaches `OPERATOR_PK is not set`, which is the pass
-condition: it proves npm resolved the package, linked the bin, ran it, and got
-to `loadConfig`. Full record and the two things that cost a round each are in
-`docs/deployments.md`.
+`leash-agentpay@0.1.0` is **published, public, and exercised end to end.** A
+second account was deployed through the hosted wizard on 2026-09-07, and an
+agent running `npx -y leash-agentpay` — the published package, started by its
+own MCP client from the `.mcp.json` the wizard emitted — called `leash_status`
+against it, then `leash_fetch` with `quote_only: true` against
+`https://usebuy.ai/gcloud/vm` for a quote of 0.016753 USDC.
 
-The work lives on **`feat/npm-distribution`**, eight commits, not merged and
-not pushed. Its plan and spec:
+That is the same `16753` the settled purchase cost months earlier: same
+endpoint, same price, this time reached through the registry rather than a
+checkout. `leash_fetch` is the load-bearing one — its `@leash/sdk` import is
+dynamic and lives inside that tool's branch alone, so a bundle that left it
+external would serve the other two tools perfectly and die only there. Full
+record, and the two limits on the measurement, in `docs/deployments.md`.
+
+Its plan and spec:
 
 - `docs/superpowers/specs/2026-09-06-leash-npm-distribution-design.md`
 - `docs/superpowers/plans/2026-09-06-leash-npm-distribution.md`
@@ -85,25 +95,33 @@ not pushed. Its plan and spec:
   `.superpowers/sdd/2026-09-06-leash-npm-distribution/progress.md`. It holds
   every ruling made during execution. `git clean -fdx` destroys it.
 
-Tasks 1-5 are complete and reviewed. **Task 6 is not done and needs a human.**
+**All six tasks are done**, with one piece of Task 6 deliberately left open.
+The whole-branch review was read and its one finding fixed (`CLAUDE.md` still
+claimed 191 app tests against an actual 193, and listed no `test:bundle`); both
+minors parked during task reviews were closed at the same time.
+
+**CI has run.** Three jobs green on the first execution in the project's life:
+`bundle` 43s, `packages` 1m9s, `contracts` 16s —
+<https://github.com/hms1499/leash/actions/runs/34072306485>.
 
 ### Pick up here
 
-1. **A whole-branch review was in flight when the session ended.** Its verdict
-   was never read. Re-run it, or read it, before merging anything.
-2. **Decide about pushing.** The maintainer asked for a push to `main`; it was
-   held because of item 1 and because the push turned out to be 13 commits
-   rather than 8. Nothing was pushed.
-3. **CI has never executed.** `.github/workflows/ci.yml` is committed and was
-   verified by inspection only — YAML parses, every `pnpm -F` filter and
-   `working-directory` resolves, no job invokes a gate suite. Whether it goes
-   green is unknown until the first push.
-4. **Task 6: time the stranger's walk.** Open the hosted wizard, deploy an
-   account with a real wallet, copy the `.mcp.json`, restart an agent, call
-   `leash_status`. If it takes longer than five minutes, **change the number in
-   `README.md`** — do not re-describe the walk to fit the claim.
-5. `git tag -d sdd-prerebase-backup` once the branch is merged. It is a safety
-   tag from rewording one commit message.
+1. **Push `8b4f046`.** One commit, the `.mcp.json.*` gitignore fix.
+2. **Nobody has timed the walk.** Task 6 proved the path works; it did not
+   measure it. No duration is claimed in `README.md` or `docs/deployments.md`,
+   and none should be until somebody walks it with a clock running. The walk
+   also reused the registered operator EOA rather than generating one, so even
+   a timed repeat would understate a stranger's cost by that step.
+3. **Three deferred items from the status section still stand**: an ownership
+   transfer path in a v2 (the contract's `owner` is `immutable`, so losing the
+   owner key loses the funds), an owner switch to disable `topUpOperator`, and
+   a factory so account addresses are deterministic and the frontend carries no
+   bytecode.
+4. **The GitHub Actions annotation is cosmetic, for now.** Every job warns that
+   `actions/checkout@v4`, `actions/setup-node@v4` and `pnpm/action-setup@v4`
+   target the deprecated Node 20 *action runtime*. That is not the project's
+   `node-version: 20`, which is correct and must stay. Bumping those three to
+   `@v5` clears it.
 
 ### What the branch changed for a user
 
