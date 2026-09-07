@@ -17,14 +17,28 @@ const res = (status: number, body: unknown, headers: Record<string, string> = {}
     status, headers: { 'content-type': 'application/json', ...headers },
   })
 
-/** A LeashClient stand-in. Only the four members payForResource touches. */
-function fakeLeash(opts: { balance: bigint; preCheck?: unknown }) {
+/**
+ * A LeashClient stand-in that models the one thing that matters here: the
+ * operator's balance rises only once a draw has actually landed.
+ *
+ * `drawLands: false` is the case this file could not express before — the
+ * draw is sent, the hash comes back, and the money is not there yet. That is
+ * the normal state of affairs for the first second or two of every draw.
+ */
+function fakeLeash(opts: { balance: bigint; preCheck?: unknown; drawLands?: boolean }) {
+  let held = opts.balance
   return {
-    operatorBalance: vi.fn().mockResolvedValue(opts.balance),
+    operatorBalance: vi.fn().mockImplementation(async () => held),
     preCheckTopUp: vi.fn().mockResolvedValue(opts.preCheck ?? { ok: true }),
-    topUp: vi.fn().mockResolvedValue('0xtopup'),
+    topUp: vi.fn().mockImplementation(async (_token: unknown, amount: bigint) => {
+      if (opts.drawLands !== false) held += amount
+      return '0xtopup'
+    }),
   } as never
 }
+
+/** Poll fast; the waiting itself is not what these tests are about. */
+const NOW = { attempts: 3, intervalMs: 0 }
 
 const okFetch = () => {
   const settlement = { success: true, network: 'celo', payer: account.address, transaction: '0xpaid' }
@@ -104,6 +118,83 @@ describe('payForResource', () => {
       leash, account, url: URL_, body: BODY, feeBalances: fees,
       maxAmount: 20_000n, fetchImpl: fetchImpl as never,
     })).rejects.toMatchObject({ code: 'daily_cap_exceeded' })
+    expect((leash as never as { topUp: ReturnType<typeof vi.fn> }).topUp).not.toHaveBeenCalled()
+  })
+
+  // The draw returns a hash, not money. Signing the EIP-3009 authorization
+  // before the operator actually holds the price produces a signature the
+  // facilitator cannot settle — and the agent sees the gateway refuse, as
+  // though the gateway were at fault.
+  it('waits for the drawn money to arrive before signing anything', async () => {
+    const leash = fakeLeash({ balance: 6_753n })
+    const fetchImpl = okFetch()
+    const out = await payForResource({
+      leash, account, url: URL_, body: BODY, feeBalances: fees,
+      maxAmount: 20_000n, drawWait: NOW, fetchImpl: fetchImpl as never,
+    })
+    expect(out.result.settlement?.transaction).toBe('0xpaid')
+    // Read once to size the draw, and again to see it land.
+    const balance = (leash as never as { operatorBalance: ReturnType<typeof vi.fn> }).operatorBalance
+    expect(balance.mock.calls.length).toBeGreaterThan(1)
+  })
+
+  // The whole point of failing here rather than one step later: nothing has
+  // been signed, so nothing can settle. `mayHaveSettled` is false as a fact,
+  // not as a guess.
+  it('never signs a payment when the drawn money does not arrive', async () => {
+    const leash = fakeLeash({ balance: 6_753n, drawLands: false })
+    const fetchImpl = okFetch()
+    await expect(payForResource({
+      leash, account, url: URL_, body: BODY, feeBalances: fees,
+      maxAmount: 20_000n, drawWait: NOW, fetchImpl: fetchImpl as never,
+    })).rejects.toMatchObject({ code: 'draw_unconfirmed', mayHaveSettled: false })
+    // Only the free quote. The paid request was never made.
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  // The draw may still land a second later. Its hash is the only way a caller
+  // can find out, and the daily cap has already been charged for it.
+  it('reports the draw that was sent, so the spent allowance can be traced', async () => {
+    const leash = fakeLeash({ balance: 6_753n, drawLands: false })
+    await expect(payForResource({
+      leash, account, url: URL_, body: BODY, feeBalances: fees,
+      maxAmount: 20_000n, drawWait: NOW, fetchImpl: okFetch() as never,
+    })).rejects.toMatchObject({ code: 'draw_unconfirmed', topUpTx: '0xtopup' })
+  })
+
+  // The price is 16753. An operator holding exactly that can afford the
+  // purchase and nothing else: the settlement takes all of it, and a wallet
+  // holding 0 stablecoin and 0 CELO cannot send any transaction at all —
+  // including the topUpOperator that would refill it. It strands until the
+  // owner sweeps to it.
+  it('draws when paying would leave the operator unable to transact again', async () => {
+    const leash = fakeLeash({ balance: 16_753n })
+    const out = await payForResource({
+      leash, account, url: URL_, body: BODY, feeBalances: fees,
+      maxAmount: 20_000n, drawWait: NOW, fetchImpl: okFetch() as never,
+    })
+    expect(out.toppedUp).toBeGreaterThan(0n)
+    // What survives the purchase has to clear the floor below which the
+    // wallet cannot send anything.
+    expect(16_753n + out.toppedUp - 16_753n).toBeGreaterThan(6_700n)
+  })
+
+  // The float is a nicety; the purchase is the job. Refusing to buy something
+  // the wallet can already afford, because the policy will not fund a float
+  // on top, blocks a legitimate payment over a future inconvenience the owner
+  // can fix with sweep.
+  it('still buys what it can afford when the policy will not fund the float', async () => {
+    const leash = fakeLeash({
+      balance: 16_753n,
+      preCheck: { ok: false, error: 'daily_cap_exceeded', spent: 1_000_000n, cap: 1_000_000n },
+    })
+    const out = await payForResource({
+      leash, account, url: URL_, body: BODY, feeBalances: fees,
+      maxAmount: 20_000n, drawWait: NOW, fetchImpl: okFetch() as never,
+    })
+    expect(out.toppedUp).toBe(0n)
+    expect(out.topUpTx).toBeUndefined()
+    expect(out.result.settlement?.transaction).toBe('0xpaid')
     expect((leash as never as { topUp: ReturnType<typeof vi.fn> }).topUp).not.toHaveBeenCalled()
   })
 })

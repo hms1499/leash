@@ -4,12 +4,15 @@ import { human } from '../errors.js'
 
 type FetchDeps = {
   config: LeashConfig
-  quote(args: { url: string; method?: string; body?: string }): Promise<{
+  quote(args: {
+    url: string; method?: string; body?: string; preferAsset?: `0x${string}`
+  }): Promise<{
     terms: { maxAmountRequired: bigint; asset: `0x${string}`; description: string }
     x402Version: number
   }>
   payForResource(args: {
     url: string; method?: string; body?: string; maxAmount: bigint
+    preferAsset?: `0x${string}`
   }): Promise<{
     paid: bigint
     toppedUp: bigint
@@ -23,6 +26,13 @@ type FetchDeps = {
  *
  * `quote_only` exists because an unpaid request returns the price for free, and
  * an agent that has not been told the price should not be committing money.
+ *
+ * `preferAsset` is passed on every call. Without it `selectTerms` falls back to
+ * the challenge's first entry, which lets the GATEWAY decide what this wallet
+ * pays in — and `max_amount` below is parsed at six decimals regardless of what
+ * that turns out to be. The contract fails closed on a token it has no policy
+ * for, so nothing leaked; what leaked was the explanation, which blamed the
+ * owner for not configuring a token the agent never asked to use.
  */
 export async function fetchTool(
   { config, quote, payForResource }: FetchDeps,
@@ -40,7 +50,10 @@ export async function fetchTool(
   }
 
   if (args.quote_only) {
-    const q = await quote({ url: args.url, method: args.method, body: args.body })
+    const q = await quote({
+      url: args.url, method: args.method, body: args.body,
+      preferAsset: config.token,
+    })
     return {
       ok: true,
       price: human(q.terms.maxAmountRequired),
@@ -55,6 +68,7 @@ export async function fetchTool(
   try {
     const out = await payForResource({
       url: args.url, method: args.method, body: args.body, maxAmount,
+      preferAsset: config.token,
     })
     return {
       ok: true,
@@ -69,8 +83,14 @@ export async function fetchTool(
     const e = err as {
       code?: string; message?: string; mayHaveSettled?: boolean
       spent?: bigint; cap?: bigint; status?: number; body?: unknown
+      topUpTx?: `0x${string}`; toppedUp?: bigint
     }
     const mayHaveSettled = e.mayHaveSettled === true
+    // A draw that was already sent is money out of the account and allowance
+    // off the day, even though the purchase never happened. Saying "nothing
+    // moved" here would be false, and would send an agent straight back to a
+    // cap it has already spent.
+    const drew = e.topUpTx !== undefined
     const base: Record<string, unknown> = {
       error: e.code ?? 'x402_failed',
       message: e.message ?? 'the paid request failed',
@@ -79,8 +99,12 @@ export async function fetchTool(
         // x402 has no refund and no idempotency key. A retry here is a second
         // payment, so the instruction has to be unambiguous.
         ? 'DO NOT RETRY. The payment may already have settled. Call leash_status to check the balance, and inspect the resource before spending again.'
-        : 'This failed before any money moved. Fix the request and try again.',
+        : drew
+          ? 'Nothing was paid and nothing was signed, so the resource was not bought. But the draw was already sent: that money has left the account and the daily allowance has been charged for it. Call leash_status before trying again — a second attempt draws a second time.'
+          : 'This failed before any money moved. Fix the request and try again.',
     }
+    if (e.topUpTx !== undefined) base.top_up_transaction = e.topUpTx
+    if (typeof e.toppedUp === 'bigint') base.drawn_from_account = human(e.toppedUp)
     // The gateway's own words, so an agent reporting this to a person has
     // something better than a status code to relay.
     if (e.status !== undefined) base.status = e.status
