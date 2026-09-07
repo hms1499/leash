@@ -41,7 +41,8 @@ test('the meter stops animating when the OS asks it to', async ({ browser }) => 
   const page = await context.newPage()
   try {
     await page.goto(`/a/${ACCOUNT}`)
-    await expect(page.locator('.num').first())
+    const capacity = page.getByText('Maximum next direct payment').locator('xpath=..').locator('.num')
+    await expect(capacity)
       .toContainText(/\d+\.\d{6}/, { timeout: 30_000 })
     await expect(page.locator('.meter animate')).toHaveCount(0)
   } finally {
@@ -52,7 +53,16 @@ test('the meter stops animating when the OS asks it to', async ({ browser }) => 
 // Without this the test above passes even if the meter never animates at all.
 test('the meter animates when the OS has not asked otherwise', async ({ page }) => {
   await page.goto(`/a/${ACCOUNT}`)
-  await expect(page.locator('.num').first())
+  const capacity = page.getByText('Maximum next direct payment').locator('xpath=..').locator('.num')
+  await expect(capacity)
     .toContainText(/\d+\.\d{6}/, { timeout: 30_000 })
   await expect(page.locator('.meter animate')).toHaveCount(1)
+})
+
+test('the dashboard does not scroll sideways on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 760 })
+  await page.goto(`/a/${ACCOUNT}`)
+  await expect(page.getByText('Account status')).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(375)
 })

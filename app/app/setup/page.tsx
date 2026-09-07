@@ -13,7 +13,7 @@ import Button from '../../components/ui/Button'
 import McpHandoff from '../../components/McpHandoff'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
-import { parseAmount } from '../../lib/policy.js'
+import { validateLimits } from '../../lib/policy.js'
 import { isAttributionTag } from '../../lib/mcpJson.js'
 import { pollUntil } from '../../lib/confirm.js'
 import { PAGE } from '../../components/ui/page'
@@ -65,6 +65,14 @@ const SETUP_ABI = [
     outputs: [
       { name: 'perTx', type: 'uint256' }, { name: 'daily', type: 'uint256' },
       { name: 'spentToday', type: 'uint256' }, { name: 'day', type: 'uint64' }] },
+  { type: 'function', name: 'setAllowlist', stateMutability: 'nonpayable',
+    inputs: [{ name: 'payee', type: 'address' }, { name: 'allowed', type: 'bool' }], outputs: [] },
+  { type: 'function', name: 'payeeAllowlist', stateMutability: 'view',
+    inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'bool' }] },
+  { type: 'function', name: 'setAllowlistEnabled', stateMutability: 'nonpayable',
+    inputs: [{ name: 'enabled', type: 'bool' }], outputs: [] },
+  { type: 'function', name: 'allowlistEnabled', stateMutability: 'view',
+    inputs: [], outputs: [{ type: 'bool' }] },
 ] as const
 
 export default function Onboard() {
@@ -78,6 +86,9 @@ export default function Onboard() {
   const [daily, setDaily] = useState('5.00')
   const [limitsBusy, setLimitsBusy] = useState(false)
   const [limitsNote, setLimitsNote] = useState<string | null>(null)
+  const [recipient, setRecipient] = useState('')
+  const [recipientBusy, setRecipientBusy] = useState(false)
+  const [recipientNote, setRecipientNote] = useState<string | null>(null)
   const [tag, setTag] = useState('')
   const [feeAdapter, setFeeAdapter] = useState<`0x${string}` | null>(null)
   const [funded, setFunded] = useState(false)
@@ -188,6 +199,10 @@ export default function Onboard() {
     setError(null)
     setAgentNote(null)
     if (!isValidAddress(agent)) { setError('That is not a Celo address.'); return }
+    if (connected && agent.toLowerCase() === connected.toLowerCase()) {
+      setError('Use a separate agent wallet. The owner wallet should not also be the agent.')
+      return
+    }
     if (chainId !== REQUIRED_CHAIN_ID) { setAgentNote(WRONG_NETWORK); return }
     setAgentBusy(true)
     try {
@@ -216,15 +231,9 @@ export default function Onboard() {
     setError(null)
     setLimitsNote(null)
     if (chainId !== REQUIRED_CHAIN_ID) { setLimitsNote(WRONG_NETWORK); return }
-    let nextPerTx: bigint
-    let nextDaily: bigint
-    try {
-      nextPerTx = parseAmount(perTx, DECIMALS)
-      nextDaily = parseAmount(daily, DECIMALS)
-    } catch (e) {
-      setError((e as Error).message)
-      return
-    }
+    const parsed = validateLimits(perTx, daily, DECIMALS)
+    if (!parsed.ok) { setError(parsed.error); return }
+    const { perTx: nextPerTx, daily: nextDaily } = parsed
     setLimitsBusy(true)
     try {
       await writeContractAsync({
@@ -246,6 +255,77 @@ export default function Onboard() {
       setLimitsNote('The transaction was not sent.')
     } finally {
       setLimitsBusy(false)
+    }
+  }
+
+  async function allowAnyRecipient() {
+    setRecipientNote(null)
+    if (chainId !== REQUIRED_CHAIN_ID) { setRecipientNote(WRONG_NETWORK); return }
+    setRecipientBusy(true)
+    try {
+      const currentlyEnabled = await publicClient.readContract({
+        address: account!, abi: SETUP_ABI, functionName: 'allowlistEnabled',
+      }) as boolean
+      if (!currentlyEnabled) {
+        setRecipientNote('Any recipient selected.')
+        return
+      }
+      await writeContractAsync({
+        address: account!, abi: SETUP_ABI, functionName: 'setAllowlistEnabled',
+        args: [false], chainId: REQUIRED_CHAIN_ID,
+      })
+      const confirmed = await pollUntil(async () => !Boolean(
+        await publicClient.readContract({
+          address: account!, abi: SETUP_ABI, functionName: 'allowlistEnabled',
+        }),
+      ))
+      setRecipientNote(confirmed
+        ? 'Any recipient selected.'
+        : 'Sent, but the chain has not confirmed it yet. Reload in a moment.')
+    } catch {
+      setRecipientNote('The transaction was not sent.')
+    } finally {
+      setRecipientBusy(false)
+    }
+  }
+
+  async function protectRecipient() {
+    setRecipientNote(null)
+    if (!isValidAddress(recipient)) { setRecipientNote('Enter a valid recipient address.'); return }
+    if (chainId !== REQUIRED_CHAIN_ID) { setRecipientNote(WRONG_NETWORK); return }
+    setRecipientBusy(true)
+    try {
+      // The mapping must contain a recipient before protection is enabled;
+      // enabling an empty list would make every direct payment fail.
+      await writeContractAsync({
+        address: account!, abi: SETUP_ABI, functionName: 'setAllowlist',
+        args: [recipient, true], chainId: REQUIRED_CHAIN_ID,
+      })
+      const recipientConfirmed = await pollUntil(async () => Boolean(
+        await publicClient.readContract({
+          address: account!, abi: SETUP_ABI, functionName: 'payeeAllowlist', args: [recipient],
+        }),
+      ))
+      if (!recipientConfirmed) {
+        setRecipientNote('Recipient approval was sent but has not been confirmed. Do not enable protection yet.')
+        return
+      }
+      await writeContractAsync({
+        address: account!, abi: SETUP_ABI, functionName: 'setAllowlistEnabled',
+        args: [true], chainId: REQUIRED_CHAIN_ID,
+      })
+      const enabled = await pollUntil(async () => Boolean(
+        await publicClient.readContract({
+          address: account!, abi: SETUP_ABI, functionName: 'allowlistEnabled',
+        }),
+      ))
+      setRecipientNote(enabled
+        ? 'Recipient protection enabled.'
+        : 'The recipient is approved, but protection has not been confirmed yet.')
+    } catch {
+      setRecipientNote('The requested policy change was not completed.')
+    } finally {
+      setRecipientBusy(false)
     }
   }
 
@@ -295,6 +375,19 @@ export default function Onboard() {
         on Celo, not by a prompt.
       </p>
 
+      <Panel as="section" className="p-6">
+        <h2 style={STEP_HEADING}>Before you start</h2>
+        <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+          Setup takes about 5–10 minutes. Keep these ready before you create the account.
+        </p>
+        <ul className="text-sm mt-3 space-y-2" style={{ color: 'var(--text)' }}>
+          <li>✓ An owner wallet connected to Celo, with a little CELO for deployment gas</li>
+          <li>✓ USDC on Celo to fund the protected account</li>
+          <li>✓ A separate wallet address used by your AI agent</li>
+          <li>✓ Your Celo attribution tag for the MCP configuration</li>
+        </ul>
+      </Panel>
+
       {error && <p style={{ color: 'var(--bad)' }}>{error}</p>}
 
       <Panel as="section" className="p-6">
@@ -332,37 +425,17 @@ export default function Onboard() {
       {account && (
         <>
           <Panel as="section" className="p-6">
-            <h2 style={agentNote === 'Agent added.' ? STEP_HEADING_DONE : STEP_HEADING}>
-            {agentNote === 'Agent added.' ? '✓ ' : ''}Step 3 — Add your agent
-          </h2>
-            <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
-              This must be the wallet you registered as your agentWalletAddress.
-              A different address silently voids your x402 attribution — nothing
-              errors, the leaderboard simply reads zero.
-            </p>
-            <input
-              className="num field w-full mt-2 p-2"
-              placeholder="0x…" value={agent} onChange={(e) => setAgent(e.target.value)}
-              disabled={agentBusy}
-            />
-            <Button variant="primary" className="mt-2" disabled={agentBusy} onClick={() => void addAgent()}>
-              {agentBusy ? 'Adding…' : 'Add agent'}
-            </Button>
-            {agentNote && (
-              <p className="text-sm mt-2" style={{ color: agentNote === 'Agent added.' ? 'var(--ok)' : 'var(--bad)' }}>
-                {agentNote}
-              </p>
-            )}
-          </Panel>
-
-          <Panel as="section" className="p-6">
             <h2 style={limitsNote === 'Limits saved.' ? STEP_HEADING_DONE : STEP_HEADING}>
-            {limitsNote === 'Limits saved.' ? '✓ ' : ''}Step 4 — Set limits (USDC)
-          </h2>
-            <Label className="block mt-2">Per transaction</Label>
+              {limitsNote === 'Limits saved.' ? '✓ ' : ''}Step 3 — Set spending limits
+            </h2>
+            <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+              The daily limit is the total budget until 00:00 UTC. The maximum
+              payment is the most one direct payment may send.
+            </p>
+            <Label className="block mt-3">Maximum direct payment (USDC)</Label>
             <input className="num field w-full mt-2 p-2"
               value={perTx} onChange={(e) => setPerTx(e.target.value)} disabled={limitsBusy} />
-            <Label className="block mt-2">Per day</Label>
+            <Label className="block mt-3">Daily limit (USDC)</Label>
             <input className="num field w-full mt-2 p-2"
               value={daily} onChange={(e) => setDaily(e.target.value)} disabled={limitsBusy} />
             <Button variant="primary" className="mt-2" disabled={limitsBusy} onClick={() => void setLimits()}>
@@ -376,15 +449,76 @@ export default function Onboard() {
           </Panel>
 
           <Panel as="section" className="p-6">
-            <h2 style={Boolean(feeAdapter) ? STEP_HEADING_DONE : STEP_HEADING}>
-            {Boolean(feeAdapter) ? '✓ ' : ''}Step 5 — Fund it
-          </h2>
+            <h2 style={agentNote === 'Agent added.' ? STEP_HEADING_DONE : STEP_HEADING}>
+              {agentNote === 'Agent added.' ? '✓ ' : ''}Step 4 — Add your agent
+            </h2>
             <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-              Send USDC to <Address address={account} copy full className="num" />. Send USDC, not
-              CELO: a native CELO send is rejected outright, on purpose. CELO
-              also has an ERC-20 interface, and a transfer through that does
-              arrive — but the policy is denominated in USDC, so the agent
-              could never spend it and only you could sweep it back.
+              Use a separate wallet controlled by your AI agent. It may request
+              payments, but it cannot change limits, stop the account or withdraw everything.
+            </p>
+            <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
+              For x402 attribution, this must match the agentWalletAddress registered with Celo Builders.
+            </p>
+            <Label className="block mt-3">Agent wallet address</Label>
+            <input
+              className="num field w-full mt-2 p-2"
+              placeholder="0x…" value={agent} onChange={(e) => setAgent(e.target.value)}
+              disabled={agentBusy}
+            />
+            <Button variant="primary" className="mt-2" disabled={agentBusy} onClick={() => void addAgent()}>
+              {agentBusy ? 'Adding…' : 'Add agent'}
+            </Button>
+            {agentNote && (
+              <p role="status" className="text-sm mt-2" style={{ color: agentNote === 'Agent added.' ? 'var(--ok)' : 'var(--bad)' }}>
+                {agentNote}
+              </p>
+            )}
+          </Panel>
+
+          <Panel as="section" className="p-6">
+            <h2 style={recipientNote === 'Recipient protection enabled.' || recipientNote === 'Any recipient selected.'
+              ? STEP_HEADING_DONE : STEP_HEADING}>
+              {(recipientNote === 'Recipient protection enabled.' || recipientNote === 'Any recipient selected.') ? '✓ ' : ''}
+              Step 5 — Choose recipient protection
+            </h2>
+            <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+              Direct payments can be restricted to approved addresses. This does
+              not restrict funds after they move to the agent wallet for gas or x402.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="ghost" disabled={recipientBusy} onClick={() => void allowAnyRecipient()}>
+                Any recipient
+              </Button>
+            </div>
+            <Label className="block mt-4">Approved recipient address — safer</Label>
+            <input
+              className="num field w-full mt-2 p-2"
+              placeholder="0x…" value={recipient} onChange={(e) => setRecipient(e.target.value)}
+              disabled={recipientBusy}
+            />
+            <Button variant="primary" className="mt-2" disabled={recipientBusy} onClick={() => void protectRecipient()}>
+              {recipientBusy ? 'Saving protection…' : 'Approve and turn on protection'}
+            </Button>
+            <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+              The safer option requires two wallet confirmations: approve the address, then turn protection on.
+            </p>
+            {recipientNote && (
+              <p role="status" className="text-sm mt-2" style={{
+                color: recipientNote === 'Recipient protection enabled.' || recipientNote === 'Any recipient selected.'
+                  ? 'var(--ok)' : 'var(--bad)',
+              }}>
+                {recipientNote}
+              </p>
+            )}
+          </Panel>
+
+          <Panel as="section" className="p-6">
+            <h2 style={funded ? STEP_HEADING_DONE : STEP_HEADING}>
+              {funded ? '✓ ' : ''}Step 6 — Add protected funds
+            </h2>
+            <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+              Send USDC on Celo to <Address address={account} copy full className="num" />.
+              These funds remain protected by the limits above. Do not send native CELO.
             </p>
             <Button variant="ghost" className="mt-2" disabled={checkingFunds} onClick={() => void waitForFunding()}>
               {funded ? 'Funded' : checkingFunds ? 'Checking…' : 'Check balance'}
@@ -393,7 +527,7 @@ export default function Onboard() {
 
           {feeAdapter && (
             <section>
-              <h2 className="mb-2" style={STEP_HEADING}>Step 6 — Connect your agent</h2>
+              <h2 className="mb-2" style={STEP_HEADING}>Step 7 — Connect your agent</h2>
               <Label className="block">Attribution tag</Label>
               <p className="text-sm mt-2 mb-2" style={{ color: 'var(--dim)' }}>
                 <code>celo_</code> plus 12 hex characters. It is issued when you
@@ -433,7 +567,27 @@ export default function Onboard() {
                 }}
                 tagStatus={tagStatus}
               />
-              <a className="block mt-3" href={`/a/${account}`}><Label>Open your dashboard</Label></a>
+              <Panel as="section" className="p-6 mt-6">
+                <h2 style={STEP_HEADING}>Step 8 — Verify setup</h2>
+                <ul className="text-sm mt-3 space-y-2">
+                  <li>{account ? '✓' : '○'} Policy account created</li>
+                  <li>{limitsNote === 'Limits saved.' ? '✓' : '○'} Spending limits confirmed</li>
+                  <li>{agentNote === 'Agent added.' ? '✓' : '○'} Agent access confirmed</li>
+                  <li>{recipientNote === 'Recipient protection enabled.' || recipientNote === 'Any recipient selected.' ? '✓' : '○'} Recipient policy selected</li>
+                  <li>{funded ? '✓' : '○'} Protected funds detected</li>
+                  <li>{tagStatus === 'ok' ? '✓' : '○'} MCP configuration ready</li>
+                </ul>
+                <a
+                  className="inline-block rounded px-4 py-2 mt-4"
+                  href={`/a/${account}`}
+                  style={{
+                    background: 'var(--celo)', color: 'var(--bg)', fontWeight: 700,
+                    fontFamily: 'var(--mono)', fontSize: 'var(--t-data)',
+                  }}
+                >
+                  Open dashboard
+                </a>
+              </Panel>
             </section>
           )}
         </>
