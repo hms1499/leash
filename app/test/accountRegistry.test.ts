@@ -30,10 +30,10 @@ describe('policy account registry', () => {
   it('keeps multiple accounts scoped to one owner without duplicates', () => {
     savePolicyAccount(storage, OWNER, { address: A, deployBlock: '10', addedAt: 1 })
     savePolicyAccount(storage, OWNER, { address: B, addedAt: 2 })
-    savePolicyAccount(storage, OWNER, { address: A, verifiedAt: 20, addedAt: 3 })
+    savePolicyAccount(storage, OWNER, { address: A, addedAt: 3 })
 
     expect(listPolicyAccounts(storage, OWNER)).toEqual([
-      { address: A, deployBlock: '10', verifiedAt: 20, addedAt: 1 },
+      { address: A, deployBlock: '10', addedAt: 1 },
       { address: B, deployBlock: undefined, addedAt: 2 },
     ])
     expect(listPolicyAccounts(storage, OTHER_OWNER)).toEqual([])

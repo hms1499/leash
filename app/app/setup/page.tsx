@@ -244,9 +244,6 @@ export default function Onboard() {
         savePolicyAccount(localStorage, connected!, {
           address: receipt.contractAddress,
           deployBlock: receipt.blockNumber.toString(),
-          // This exact artifact was just deployed with `connected` as its
-          // constructor owner, so it has the same assurance as a read-back.
-          verifiedAt: Date.now(),
         })
         selectPolicyAccount(localStorage, connected!, receipt.contractAddress)
         announceAccountRegistryChange()

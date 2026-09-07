@@ -67,7 +67,6 @@ export default function AccountsPage() {
   const [note, setNote] = useState<string | null>(null)
   const [discovering, setDiscovering] = useState(false)
   const [discoveryNote, setDiscoveryNote] = useState<string | null>(null)
-  const verifiedCount = accounts.filter((account) => account.verifiedAt !== undefined).length
 
   useEffect(() => {
     if (!connected) {
@@ -112,14 +111,14 @@ export default function AccountsPage() {
         if (signal?.aborted) return
         for (const { candidate, result } of results) {
           if (result !== 'verified') continue
-          savePolicyAccount(localStorage, owner, { ...candidate, verifiedAt: Date.now() })
+          savePolicyAccount(localStorage, owner, candidate)
           discovered++
         }
       }
       setAccounts(listPolicyAccounts(localStorage, owner))
       announceAccountRegistryChange()
       setDiscoveryNote(
-        `${discovered} ${discovered === 1 ? 'account' : 'accounts'} verified from Celo history.` +
+        `${discovered} compatible policy ${discovered === 1 ? 'account' : 'accounts'} found in Celo history.` +
         (body.historyTruncated ? ' Older history may require manual import.' : ''),
       )
     } catch (error) {
@@ -153,15 +152,15 @@ export default function AccountsPage() {
         return
       }
       if (result === 'incompatible') {
-        setNote('Could not verify this as a compatible Leash policy account on Celo.')
+        setNote('This is not a compatible Leash policy account on Celo.')
         return
       }
-      savePolicyAccount(localStorage, connected, { address: candidate, verifiedAt: Date.now() })
+      savePolicyAccount(localStorage, connected, { address: candidate })
       setCandidate('')
-      setNote('Account verified and saved on this device.')
+      setNote('Account added.')
       refresh()
     } catch {
-      setNote('Could not verify this as a compatible Leash policy account on Celo.')
+      setNote('Could not check this account on Celo.')
     } finally {
       setBusy(false)
     }
@@ -175,7 +174,7 @@ export default function AccountsPage() {
             My policy accounts
           </h1>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-            Leash finds accounts deployed by the connected owner, verifies them on Celo, and caches the list on this device.
+            Leash finds compatible policy accounts deployed by the connected owner and caches the list on this device.
           </p>
         </div>
         <span className="ml-auto flex flex-wrap items-center gap-3">
@@ -195,7 +194,7 @@ export default function AccountsPage() {
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>
-              <Label>{verifiedCount} verified · {accounts.length} total</Label>
+              <Label>{accounts.length} policy {accounts.length === 1 ? 'account' : 'accounts'}</Label>
               {discoveryNote && (
                 <p role="status" className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
                   {discoveryNote}
@@ -220,7 +219,7 @@ export default function AccountsPage() {
             <Panel className="p-6">
               <p className="text-sm">
                 {discovering
-                  ? 'Searching this owner’s deployment history and verifying policy accounts…'
+                  ? 'Searching this owner’s deployment history for compatible policy accounts…'
                   : 'No compatible policy accounts were found. You can create one or import an address manually.'}
               </p>
             </Panel>
@@ -231,18 +230,6 @@ export default function AccountsPage() {
                   key={account.address}
                   account={account}
                   number={index + 1}
-                  checking={discovering && account.verifiedAt === undefined}
-                  onVerify={async () => {
-                    const result = await verifyPolicyAccount(account.address, connected!)
-                    if (result !== 'verified') return false
-                    savePolicyAccount(localStorage, connected!, {
-                      address: account.address,
-                      deployBlock: account.deployBlock,
-                      verifiedAt: Date.now(),
-                    })
-                    refresh()
-                    return true
-                  }}
                 />
               ))}
             </div>
@@ -251,7 +238,7 @@ export default function AccountsPage() {
           <Panel as="section" className="p-6">
             <h2 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>Import an existing account</h2>
             <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-              Use this after changing browser or device. Leash verifies the connected wallet owns the account and that its policy interface is compatible.
+              Use this after changing browser or device. Leash confirms the connected wallet owns the account and that it is compatible.
             </p>
             <Label className="block mt-4">Policy account address</Label>
             <input
@@ -263,11 +250,11 @@ export default function AccountsPage() {
               disabled={busy}
             />
             <Button variant="primary" className="mt-3" disabled={busy} onClick={() => void importAccount()}>
-              {busy ? 'Verifying…' : 'Verify and import'}
+              {busy ? 'Checking…' : 'Add account'}
             </Button>
             {note && (
               <p role="status" className="text-sm mt-3" style={{
-                color: note === 'Account verified and saved on this device.' ? 'var(--ok)' : 'var(--bad)',
+                color: note === 'Account added.' ? 'var(--ok)' : 'var(--bad)',
               }}>
                 {note}
               </p>
@@ -275,7 +262,7 @@ export default function AccountsPage() {
           </Panel>
 
           <p className="text-sm" style={{ color: 'var(--dim)' }}>
-            Discovery uses indexed Celo transaction history, then verifies every result against Celo RPC. Manual import remains available for deployments made through another wallet or relayer. Powered by{' '}
+            Discovery uses indexed Celo transaction history and confirms every result against Celo RPC. Manual import remains available for deployments made through another wallet or relayer. Powered by{' '}
             <a href="https://celoscan.io" target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
               CeloScan
             </a>.
@@ -286,16 +273,10 @@ export default function AccountsPage() {
   )
 }
 
-function AccountRow({ account, number, checking, onVerify }: {
+function AccountRow({ account, number }: {
   account: SavedPolicyAccount
   number: number
-  checking: boolean
-  onVerify: () => Promise<boolean>
 }) {
-  const [verifying, setVerifying] = useState(false)
-  const [verifyFailed, setVerifyFailed] = useState(false)
-  const isChecking = checking || verifying
-
   return (
     <Panel className="p-5">
       <div className="flex flex-wrap items-start gap-4">
@@ -305,37 +286,6 @@ function AccountRow({ account, number, checking, onVerify }: {
           </h2>
           <div className="mt-2"><Address address={account.address} copy full className="num" /></div>
           {account.deployBlock && <Label className="block mt-2">Deployed at block {account.deployBlock}</Label>}
-          <p className="text-sm mt-2" role="status" style={{
-            color: account.verifiedAt !== undefined
-              ? 'var(--ok)'
-              : isChecking ? 'var(--dim)' : 'var(--bad)',
-          }}>
-            {account.verifiedAt !== undefined
-              ? '✓ Verified on Celo'
-              : isChecking ? '○ Checking on Celo…' : verifyFailed
-                ? '! Could not verify this account'
-                : '○ Not verified yet'}
-          </p>
-          {account.verifiedAt === undefined && !checking && (
-            <Button
-              className="mt-3"
-              disabled={verifying}
-              onClick={() => void (async () => {
-                setVerifying(true)
-                setVerifyFailed(false)
-                try {
-                  const ok = await onVerify()
-                  setVerifyFailed(!ok)
-                } catch {
-                  setVerifyFailed(true)
-                } finally {
-                  setVerifying(false)
-                }
-              })()}
-            >
-              {verifying ? 'Verifying…' : 'Verify now'}
-            </Button>
-          )}
         </div>
         <Link
           href={`/a/${account.address}`}
