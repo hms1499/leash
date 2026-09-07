@@ -3,7 +3,6 @@ import { isValidAddress } from './address.js'
 export type SavedPolicyAccount = {
   address: `0x${string}`
   deployBlock?: string
-  label?: string
   addedAt: number
 }
 
@@ -13,19 +12,13 @@ function registryKey(owner: string): string {
   return `leash.accounts.${owner.toLowerCase()}`
 }
 
-function cleanLabel(label: string | undefined): string | undefined {
-  const value = label?.trim().slice(0, 48)
-  return value || undefined
-}
-
 function isSavedAccount(value: unknown): value is SavedPolicyAccount {
   if (!value || typeof value !== 'object') return false
   const item = value as Partial<SavedPolicyAccount>
   return Boolean(
     typeof item.address === 'string' && isValidAddress(item.address) &&
     typeof item.addedAt === 'number' && Number.isFinite(item.addedAt) &&
-    (item.deployBlock === undefined || /^\d+$/.test(item.deployBlock)) &&
-    (item.label === undefined || typeof item.label === 'string'),
+    (item.deployBlock === undefined || /^\d+$/.test(item.deployBlock)),
   )
 }
 
@@ -41,7 +34,13 @@ export function listPolicyAccounts(storage: Storage, owner: string): SavedPolicy
       if (seen.has(key)) return false
       seen.add(key)
       return true
-    })
+    }).map((item) => ({
+      // Build a new object so obsolete fields from an older registry schema,
+      // such as the removed local label, do not remain part of app state.
+      address: item.address,
+      deployBlock: item.deployBlock,
+      addedAt: item.addedAt,
+    }))
   } catch {
     return []
   }
@@ -59,26 +58,10 @@ export function savePolicyAccount(
     address: account.address,
     addedAt: previous?.addedAt ?? account.addedAt ?? Date.now(),
     deployBlock: account.deployBlock ?? previous?.deployBlock,
-    label: cleanLabel(account.label ?? previous?.label),
   }
   const next = index >= 0
     ? current.map((item, i) => i === index ? nextItem : item)
     : [...current, nextItem]
-  storage.setItem(registryKey(owner), JSON.stringify(next))
-  return next
-}
-
-export function updatePolicyAccountLabel(
-  storage: Storage,
-  owner: string,
-  address: string,
-  label: string,
-): SavedPolicyAccount[] {
-  const next = listPolicyAccounts(storage, owner).map((item) =>
-    item.address.toLowerCase() === address.toLowerCase()
-      ? { ...item, label: cleanLabel(label) }
-      : item,
-  )
   storage.setItem(registryKey(owner), JSON.stringify(next))
   return next
 }

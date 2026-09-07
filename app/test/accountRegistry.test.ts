@@ -6,7 +6,6 @@ import {
   migrateLegacyAccount,
   savePolicyAccount,
   selectPolicyAccount,
-  updatePolicyAccountLabel,
 } from '../lib/accountRegistry.js'
 
 const OWNER = '0x1111111111111111111111111111111111111111'
@@ -31,11 +30,11 @@ describe('policy account registry', () => {
   it('keeps multiple accounts scoped to one owner without duplicates', () => {
     savePolicyAccount(storage, OWNER, { address: A, deployBlock: '10', addedAt: 1 })
     savePolicyAccount(storage, OWNER, { address: B, addedAt: 2 })
-    savePolicyAccount(storage, OWNER, { address: A, label: 'Treasury', addedAt: 3 })
+    savePolicyAccount(storage, OWNER, { address: A, addedAt: 3 })
 
     expect(listPolicyAccounts(storage, OWNER)).toEqual([
-      { address: A, deployBlock: '10', label: 'Treasury', addedAt: 1 },
-      { address: B, deployBlock: undefined, label: undefined, addedAt: 2 },
+      { address: A, deployBlock: '10', addedAt: 1 },
+      { address: B, deployBlock: undefined, addedAt: 2 },
     ])
     expect(listPolicyAccounts(storage, OTHER_OWNER)).toEqual([])
   })
@@ -55,12 +54,10 @@ describe('policy account registry', () => {
     expect(migrateLegacyAccount(storage, OWNER)).toEqual([])
   })
 
-  it('updates labels, selects an account, and forgets only the local entry', () => {
+  it('selects an account and forgets only the local entry', () => {
     savePolicyAccount(storage, OWNER, { address: A, deployBlock: '10', addedAt: 1 })
-    updatePolicyAccountLabel(storage, OWNER, A, '  Operations  ')
     selectPolicyAccount(storage, OWNER, A)
 
-    expect(listPolicyAccounts(storage, OWNER)[0].label).toBe('Operations')
     expect(storage.getItem('leash.account')).toBe(A)
     expect(storage.getItem('leash.deployBlock')).toBe('10')
     expect(forgetPolicyAccount(storage, OWNER, A)).toEqual([])
@@ -69,5 +66,14 @@ describe('policy account registry', () => {
   it('ignores corrupt stored data instead of crashing the app', () => {
     storage.setItem(`leash.accounts.${OWNER}`, '{broken')
     expect(listPolicyAccounts(storage, OWNER)).toEqual([])
+  })
+
+  it('drops obsolete local labels while migrating cached entries', () => {
+    storage.setItem(`leash.accounts.${OWNER}`, JSON.stringify([
+      { address: A, deployBlock: '10', addedAt: 1, label: 'Old label' },
+    ]))
+    expect(listPolicyAccounts(storage, OWNER)).toEqual([
+      { address: A, deployBlock: '10', addedAt: 1 },
+    ])
   })
 })

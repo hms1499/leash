@@ -48,7 +48,7 @@ somebody adds a file to it.
 | `cd sdk && pnpm run test` | 66/66 |
 | `cd mcp && pnpm run test` | 27/27 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 200/200 (including multi-account registry and explorer discovery tests) |
+| `cd app && pnpm run test` | 201/201 (including multi-account registry and explorer discovery tests) |
 | `cd app && pnpm run test:e2e` | 10/10 local; deployed URL has not yet been updated with the multi-account UI |
 
 The app's `/accounts` route discovers direct contract deployments through the

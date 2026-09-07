@@ -16,7 +16,6 @@ import {
   listPolicyAccounts,
   migrateLegacyAccount,
   savePolicyAccount,
-  updatePolicyAccountLabel,
   type SavedPolicyAccount,
 } from '../lib/accountRegistry.js'
 import { publicClient } from '../lib/chain.js'
@@ -64,7 +63,6 @@ export default function AccountsPage() {
   const { address: connected, isConnected } = useAccount()
   const [accounts, setAccounts] = useState<SavedPolicyAccount[]>([])
   const [candidate, setCandidate] = useState('')
-  const [importLabel, setImportLabel] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const [discovering, setDiscovering] = useState(false)
@@ -157,9 +155,8 @@ export default function AccountsPage() {
         setNote('Could not verify this as a compatible Leash policy account on Celo.')
         return
       }
-      savePolicyAccount(localStorage, connected, { address: candidate, label: importLabel })
+      savePolicyAccount(localStorage, connected, { address: candidate })
       setCandidate('')
-      setImportLabel('')
       setNote('Account verified and saved on this device.')
       refresh()
     } catch {
@@ -233,10 +230,6 @@ export default function AccountsPage() {
                   key={account.address}
                   account={account}
                   number={index + 1}
-                  onSaveLabel={(label) => {
-                    updatePolicyAccountLabel(localStorage, connected!, account.address, label)
-                    refresh()
-                  }}
                 />
               ))}
             </div>
@@ -254,16 +247,6 @@ export default function AccountsPage() {
               placeholder="0x…"
               value={candidate}
               onChange={(event) => setCandidate(event.target.value)}
-              disabled={busy}
-            />
-            <Label className="block mt-3">Local label — optional</Label>
-            <input
-              className="field w-full mt-2 p-2"
-              aria-label="Local account label"
-              placeholder="e.g. Research agent"
-              maxLength={48}
-              value={importLabel}
-              onChange={(event) => setImportLabel(event.target.value)}
               disabled={busy}
             />
             <Button variant="primary" className="mt-3" disabled={busy} onClick={() => void importAccount()}>
@@ -290,23 +273,16 @@ export default function AccountsPage() {
   )
 }
 
-function AccountRow({
-  account, number, onSaveLabel,
-}: {
+function AccountRow({ account, number }: {
   account: SavedPolicyAccount
   number: number
-  onSaveLabel: (label: string) => void
 }) {
-  const [label, setLabel] = useState(account.label ?? '')
-  useEffect(() => { setLabel(account.label ?? '') }, [account.label])
-
   return (
     <Panel className="p-5">
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
-          <Label>Account {number}</Label>
           <h2 className="mt-1 break-words" style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>
-            {account.label || 'Unnamed policy account'}
+            Policy account {number}
           </h2>
           <div className="mt-2"><Address address={account.address} copy full className="num" /></div>
           {account.deployBlock && <Label className="block mt-2">Deployed at block {account.deployBlock}</Label>}
@@ -318,19 +294,6 @@ function AccountRow({
         >
           Open dashboard
         </Link>
-      </div>
-      <div className="flex flex-wrap items-end gap-2 mt-4">
-        <span className="flex-1" style={{ minWidth: '14rem' }}>
-          <Label className="block">Local label</Label>
-          <input
-            className="field w-full mt-2 p-2"
-            aria-label={`Local label for ${account.address}`}
-            maxLength={48}
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-        </span>
-        <Button onClick={() => onSaveLabel(label)}>Save label</Button>
       </div>
     </Panel>
   )
