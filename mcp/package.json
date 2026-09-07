@@ -1,9 +1,10 @@
 {
   "name": "leash-agentpay",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Give an AI agent a wallet on Celo with spend limits enforced on-chain. MCP server.",
   "license": "MIT",
+  "author": "hms1499",
   "keywords": ["mcp", "celo", "agent", "wallet", "x402", "stablecoin", "spend-limit"],
   "homepage": "https://github.com/hms1499/leash#readme",
   "repository": {
