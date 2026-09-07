@@ -20,6 +20,7 @@
     "test": "vitest run --exclude '**/*.gate.test.ts' --exclude '**/bundle.test.ts'",
     "test:bundle": "vitest run bundle",
     "test:gate": "vitest run mainnet.gate",
+    "verify:published": "node scripts/verify-published.mjs",
     "start": "tsx src/index.ts",
     "prepublishOnly": "pnpm run build"
   },

@@ -156,7 +156,7 @@ fetch a stranger's code. Do not "fix" that back.
 | Attribution tag | `celo_3dec652cd977` |
 | ERC-8004 identity | agentId 9804, owned by the operator |
 | Policy | USDC: perTx 0.50, daily 1.00. `paused` false, allowlist off |
-| Contract holds | 2.436567 USDC · `remainingToday` 0.940000 — the demo ran twice |
+| Contract holds | **0.000000 USDC** · `remainingToday` 1.000000 — read 2026-09-07 through `leash_status` on the published package. **`can_spend` is false: the demo account is empty.** It held 2.436567 on 2026-09-05; nothing in this session moved it, so something between those dates did. Fund it before any take. |
 
 Read back from mainnet on 2026-09-05. The figures above are the state, not a
 recollection of it.

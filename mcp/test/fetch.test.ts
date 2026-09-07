@@ -128,4 +128,43 @@ describe('fetchTool', () => {
       expect.objectContaining({ preferAsset: config.token }),
     )
   })
+
+  // Found by driving the published package against the real gateway: a
+  // request with no body got a 400, `quote` threw `not_paywalled`, and it
+  // escaped this tool entirely. index.ts caught it and told the agent
+  // "internal_error - Check the server logs and the LEASH_* environment
+  // variables", about a URL that simply needed a body. Nothing was wrong with
+  // the configuration, and nothing was paid.
+  it('reports a quote that failed, rather than letting it escape as internal_error', async () => {
+    const deps = {
+      config,
+      quote: vi.fn().mockRejectedValue(Object.assign(
+        new Error('expected 402 from https://usebuy.ai/gcloud/vm, got 400'),
+        { code: 'not_paywalled', status: 400 },
+      )),
+      payForResource: vi.fn(),
+    } as never
+    const out = await fetchTool(deps, { url: URL_, max_amount: '1', quote_only: true })
+    expect(out.error).toBe('not_paywalled')
+    expect(String(out.message)).toMatch(/402/)
+    expect(String(out.suggestion)).not.toMatch(/environment variable|server logs/i)
+    expect(String(out.suggestion)).toMatch(/nothing was paid/i)
+  })
+
+  // Newly reachable: pinning `preferAsset` means selectTerms now rejects a
+  // gateway that will not take this wallet's token, and on the quote path
+  // that rejection had nowhere to go.
+  it('reports a gateway that will not take this wallet token', async () => {
+    const deps = {
+      config,
+      quote: vi.fn().mockRejectedValue(Object.assign(
+        new Error('the gateway accepts 0xdead, not 0xceba'),
+        { code: 'asset_not_accepted' },
+      )),
+      payForResource: vi.fn(),
+    } as never
+    const out = await fetchTool(deps, { url: URL_, max_amount: '1', quote_only: true })
+    expect(out.error).toBe('asset_not_accepted')
+    expect(String(out.suggestion)).toMatch(/nothing was paid/i)
+  })
 })

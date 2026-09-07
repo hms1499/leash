@@ -50,10 +50,29 @@ export async function fetchTool(
   }
 
   if (args.quote_only) {
-    const q = await quote({
-      url: args.url, method: args.method, body: args.body,
-      preferAsset: config.token,
-    })
+    // Guarded, because asking the price is the step most likely to fail on a
+    // URL the caller got slightly wrong — and until this catch existed those
+    // failures escaped the tool entirely. index.ts then reported them as
+    // `internal_error` with "Check the server logs and the LEASH_*
+    // environment variables", which sent an agent to debug a configuration
+    // that was correct. Found against the real gateway: a request with no
+    // body answered 400, and `quote` threw `not_paywalled`.
+    let q
+    try {
+      q = await quote({
+        url: args.url, method: args.method, body: args.body,
+        preferAsset: config.token,
+      })
+    } catch (err) {
+      const e = err as { code?: string; message?: string; status?: number }
+      return {
+        error: e.code ?? 'quote_failed',
+        message: e.message ?? 'the price could not be read',
+        ...(e.status === undefined ? {} : { status: e.status }),
+        suggestion:
+          'Nothing was paid and nothing was sent. Either the URL is not x402-gated, or it needs a request body before it will quote a price, or it does not accept the token this wallet pays in. Check the URL and the body before calling again.',
+      }
+    }
     return {
       ok: true,
       price: human(q.terms.maxAmountRequired),
