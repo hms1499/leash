@@ -15,6 +15,7 @@ import { PAGE } from '../../../components/ui/page'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
+import { AccountStatus, RecommendedAction, SecurityPolicy } from '../../../components/DashboardOverview'
 import { useAccountState } from '../../../lib/useAccountState.js'
 import { useFeed } from '../../../lib/useFeed.js'
 import { isValidAddress } from '../../../lib/address.js'
@@ -167,7 +168,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           borderBottom: '1px solid var(--line)',
         }}
       >
-        <div className={`${PAGE} flex items-center gap-3 py-3`}>
+        <div className={`${PAGE} flex flex-wrap items-center gap-3 py-3`}>
         <strong style={{
           fontFamily: 'var(--mono)', fontSize: 'var(--t-label)',
           color: state.paused ? 'var(--bg)' : 'var(--celo)', letterSpacing: '.26em',
@@ -183,7 +184,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           explorer
           style={{ ...LABEL_STYLE, color: state.paused ? 'var(--bg)' : undefined }}
         />
-        <span className="ml-auto flex items-center gap-3">
+        <span className="ml-auto flex flex-wrap items-center justify-end gap-3">
           <NetworkBadge onDangerBand={state.paused} />
           <StopButton
             account={address}
@@ -197,8 +198,6 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         </div>
       </header>
 
-      {/* The dashboard's dominant element, so the ceiling takes --t-display
-          here and nowhere else. design-system §7. */}
       {state.error && state.updatedAt === null ? (
         <div className={`${PAGE} py-6`} role="alert">
           <Panel className="p-6">
@@ -215,63 +214,105 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           </Panel>
         </div>
       ) : (
-        <Meter
-          daily={state.daily}
-          remaining={state.remaining}
-          perTx={state.perTx}
-          decimals={DECIMALS}
-          symbol={SYMBOL}
-          balance={state.balance}
-          paused={state.paused}
-          loading={state.isLoading}
-          dominant
-        />
-      )}
-
-      <div className={`${PAGE} py-6`}>
-        {state.error && state.updatedAt !== null && (
-          <div role="alert">
-            <Panel className="p-4 mb-3">
-              <p className="text-sm" style={{ color: 'var(--bad)' }}>
-                Could not refresh the account. Showing the last confirmed values.
-              </p>
-            </Panel>
+        <>
+          <div className={`${PAGE} py-6 space-y-3`}>
+            {state.error && state.updatedAt !== null && (
+              <div role="alert">
+                <Panel className="p-4">
+                  <p className="text-sm" style={{ color: 'var(--bad)' }}>
+                    Could not refresh the account. Showing the last confirmed values.
+                  </p>
+                </Panel>
+              </div>
+            )}
+            <AccountStatus
+              account={address}
+              owner={state.owner}
+              connected={connected}
+              paused={state.paused}
+              updatedAt={state.updatedAt}
+            />
+            {!state.isLoading && (
+              <RecommendedAction
+                account={address}
+                paused={state.paused}
+                daily={state.daily}
+                balance={state.balance}
+                operator={operator}
+                allowlistEnabled={state.allowlistEnabled}
+              />
+            )}
           </div>
-        )}
-        <LimitsDrawer
-          account={address}
-          token={TOKEN}
-          decimals={DECIMALS}
-          symbol={SYMBOL}
-          perTx={state.perTx}
-          daily={state.daily}
-          isOwner={isOwner}
-          loading={state.isLoading}
-          onSaved={state.refetch}
-        />
-        {operator && isValidAddress(operator) && (
-          <AgentPanel
-            account={address} operator={operator} token={TOKEN}
-            decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
-            onRefuelled={state.refetch}
+
+          {/* The dashboard's dominant figure is the direct-payment ceiling. */}
+          <Meter
+            daily={state.daily}
+            remaining={state.remaining}
+            perTx={state.perTx}
+            decimals={DECIMALS}
+            symbol={SYMBOL}
+            balance={state.balance}
+            paused={state.paused}
+            loading={state.isLoading}
+            dominant
           />
-        )}
-        {!operator && operatorCheckFailed && (
-          <Label className="block mt-2" style={{ color: 'var(--bad)' }}>
-            Could not verify the agent wallet — still trying.
-          </Label>
-        )}
-        <Feed
-          account={address}
-          rows={feed.rows}
-          decimals={DECIMALS}
-          symbol={SYMBOL}
-          isLoading={feed.isLoading}
-          head={feed.head}
-          hasPolicy={state.isLoading ? null : state.daily > 0n}
-          error={feed.error}
-        />
-      </div>
+
+          <div className={`${PAGE} py-6 space-y-3`}>
+            {!state.isLoading && (
+              <SecurityPolicy
+                daily={state.daily}
+                perTx={state.perTx}
+                allowlistEnabled={state.allowlistEnabled}
+                operator={operator}
+                decimals={DECIMALS}
+                symbol={SYMBOL}
+              />
+            )}
+            <LimitsDrawer
+              account={address}
+              token={TOKEN}
+              decimals={DECIMALS}
+              symbol={SYMBOL}
+              perTx={state.perTx}
+              daily={state.daily}
+              isOwner={isOwner}
+              loading={state.isLoading}
+              onSaved={state.refetch}
+            />
+            {operator && isValidAddress(operator) && (
+              <AgentPanel
+                account={address} operator={operator} token={TOKEN}
+                decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
+                protectedBalance={state.balance}
+                onRefuelled={state.refetch}
+              />
+            )}
+            {!operator && operatorCheckFailed && (
+              <Label className="block" style={{ color: 'var(--bad)' }}>
+                Could not verify the agent wallet — still trying.
+              </Label>
+            )}
+            <section className="pt-3">
+              <div className="flex flex-wrap items-end justify-between gap-2 mb-2">
+                <h2 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>
+                  Recent activity
+                </h2>
+                <Label>Last 24 hours</Label>
+              </div>
+              <Feed
+                account={address}
+                rows={feed.rows}
+                decimals={DECIMALS}
+                symbol={SYMBOL}
+                isLoading={feed.isLoading}
+                head={feed.head}
+                hasPolicy={state.isLoading ? null : state.daily > 0n}
+                error={feed.error}
+              />
+            </section>
+          </div>
+        </>
+      )}
     </main>
   )
 }

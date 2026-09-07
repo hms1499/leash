@@ -7,6 +7,7 @@ import { publicClient } from './chain.js'
 const OWNER_AND_PAUSED_ABI = [
   { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
   { type: 'function', name: 'paused', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
+  { type: 'function', name: 'allowlistEnabled', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
 ] as const
 
 const ERC20_BALANCE_ABI = [
@@ -25,6 +26,7 @@ export type AccountState = {
    */
   balance: bigint
   paused: boolean
+  allowlistEnabled: boolean
   owner: `0x${string}` | null
   isLoading: boolean
   error: Error | null
@@ -45,7 +47,8 @@ export function useAccountState(
   token: `0x${string}`,
 ): AccountState {
   const [state, setState] = useState<Omit<AccountState, 'refetch'>>({
-    daily: 0n, remaining: 0n, perTx: 0n, balance: 0n, paused: false, owner: null,
+    daily: 0n, remaining: 0n, perTx: 0n, balance: 0n, paused: false,
+    allowlistEnabled: false, owner: null,
     isLoading: true, error: null, updatedAt: null,
   })
 
@@ -54,7 +57,7 @@ export function useAccountState(
     // first read there is no snapshot, so the loading state remains explicit.
     setState((s) => ({ ...s, isLoading: s.updatedAt === null, error: null }))
     try {
-      const [limits, remaining, paused, owner, balance] = await Promise.all([
+      const [limits, remaining, paused, allowlistEnabled, owner, balance] = await Promise.all([
         publicClient.readContract({
           address: account, abi: spendPolicyAccountAbi,
           functionName: 'limits', args: [token],
@@ -65,6 +68,9 @@ export function useAccountState(
         }),
         publicClient.readContract({
           address: account, abi: OWNER_AND_PAUSED_ABI, functionName: 'paused',
+        }),
+        publicClient.readContract({
+          address: account, abi: OWNER_AND_PAUSED_ABI, functionName: 'allowlistEnabled',
         }),
         publicClient.readContract({
           address: account, abi: OWNER_AND_PAUSED_ABI, functionName: 'owner',
@@ -80,7 +86,8 @@ export function useAccountState(
       setState({
         perTx, daily, remaining: remaining as bigint,
         balance: balance as bigint,
-        paused: paused as boolean, owner: owner as `0x${string}`,
+        paused: paused as boolean, allowlistEnabled: allowlistEnabled as boolean,
+        owner: owner as `0x${string}`,
         isLoading: false, error: null, updatedAt: Date.now(),
       })
     } catch (e) {

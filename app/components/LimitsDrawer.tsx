@@ -96,9 +96,17 @@ export default function LimitsDrawer({
 
   return (
     <>
-      <Button variant="ghost" onClick={() => setOpen(!open)}>Limits</Button>
+      <Button
+        variant="ghost"
+        aria-expanded={open}
+        aria-controls="policy-editor"
+        onClick={() => setOpen(!open)}
+      >
+        Manage policy
+      </Button>
       {open && (
-        <Panel className="p-6 mt-3">
+        <Panel className="p-6 mt-3" >
+          <div id="policy-editor">
           {loading ? (
             // Never print 0.00 as if it were read. An owner cannot tell a
             // placeholder from a policy that refuses everything.
@@ -129,6 +137,7 @@ export default function LimitsDrawer({
               )}
             </>
           )}
+          </div>
         </Panel>
       )}
     </>

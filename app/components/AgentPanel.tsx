@@ -33,10 +33,11 @@ const SWEEP_ABI = [
  * does.
  */
 export default function AgentPanel({
-  account, operator, token, decimals, symbol, isOwner, onRefuelled,
+  account, operator, token, decimals, symbol, isOwner, protectedBalance, onRefuelled,
 }: {
   account: `0x${string}`; operator: `0x${string}`; token: `0x${string}`
-  decimals: number; symbol: string; isOwner: boolean; onRefuelled: () => void
+  decimals: number; symbol: string; isOwner: boolean; protectedBalance: bigint
+  onRefuelled: () => void
 }) {
   const [float, setFloat] = useState<bigint | null>(null)
   // Set only when a read has actually failed, distinct from float===null on
@@ -136,14 +137,30 @@ export default function AgentPanel({
   }
 
   return (
-    <Panel className="p-6">
-      <Label className="block">Agent wallet</Label>
-      <p className="num text-sm mt-2">{truncateAddress(operator)}</p>
-      <p className="text-sm mt-2" style={{ color: low ? 'var(--bad)' : 'var(--dim)' }}>
-        <span className="num">{formatAmount(float, decimals)} {symbol}</span> — about{' '}
-        <span className="num">{left}</span>{' '}
-        {left === 1 ? 'transaction' : 'transactions'} of gas left
-        {left === 0 && '. The agent has stalled and cannot refuel itself.'}
+    <Panel as="section" className="p-6">
+      <Label className="block">Funds</Label>
+      <div className="grid gap-5 sm:grid-cols-2 mt-3">
+        <div>
+          <p className="text-sm font-semibold">Protected funds</p>
+          <p className="num mt-2">{formatAmount(protectedBalance, decimals)} {symbol}</p>
+          <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+            Held by the policy account and subject to its limits.
+          </p>
+        </div>
+        <div>
+          <p className="text-sm font-semibold">Agent wallet</p>
+          <p className="num text-sm mt-2">{truncateAddress(operator)}</p>
+          <p className="text-sm mt-2" style={{ color: low ? 'var(--bad)' : 'var(--dim)' }}>
+            <span className="num">{formatAmount(float, decimals)} {symbol}</span> — about{' '}
+            <span className="num">{left}</span>{' '}
+            {left === 1 ? 'transaction' : 'transactions'} of gas left
+            {left === 0 && '. The agent has stalled and cannot refuel itself.'}
+          </p>
+        </div>
+      </div>
+      <p className="text-sm mt-4" style={{ color: 'var(--bad)' }}>
+        Funds in the agent wallet are outside recipient restrictions. This is
+        required for gas and x402 payments.
       </p>
       {note && <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>{note}</p>}
       {isOwner && low && (
