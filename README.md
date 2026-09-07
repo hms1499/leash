@@ -301,10 +301,18 @@ choice: it has one consumer, and publishing it would commit this project to a
 public API and a semver contract nobody has asked for, so it is bundled into
 the server instead.
 
-Also known and deliberately deferred: continuous integration, an ownership
-transfer path in a future non-upgradeable v2, an owner switch to disable
-`topUpOperator`, and a factory contract so account addresses are deterministic
-and the frontend never carries bytecode.
+Every suite above runs on GitHub Actions now, on push to `main` and on every
+pull request: the contracts under Foundry, the pnpm suites with typechecking
+across all five packages, and a job that packs the tarball, installs it into a
+temp directory and starts the bin. That last job is the one that earns its
+keep — it is the only place a bundle that failed to inline `@leash/sdk` would
+be caught, because every other suite resolves that import through the workspace
+symlink and passes either way.
+
+Also known and deliberately deferred: an ownership transfer path in a future
+non-upgradeable v2, an owner switch to disable `topUpOperator`, and a factory
+contract so account addresses are deterministic and the frontend never carries
+bytecode.
 
 ---
 

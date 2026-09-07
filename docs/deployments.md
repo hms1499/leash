@@ -250,3 +250,41 @@ with that directory on `PATH` reached the same configuration error.
    Two-factor authentication or granular access token with bypass 2fa enabled is
    required`. Supplying `--otp` did not change it. A granular access token with
    bypass-2FA is what worked.
+
+### The stranger's install, timed (2026-09-07)
+
+Task 6 asks for a measurement rather than a claim. The half that needs a wallet
+and a browser is still unwalked — see below. The half a machine can do was run
+cold: an empty directory, a private npm cache created for the run so nothing on
+this machine could have been serving a warm copy.
+
+```
+[0.0s] clean dir /var/folders/.../leash-registry-6Rewa7, cold cache /var/folders/.../leash-npmcache-vwhuQb
+added 111 packages in 7s
+[6.8s] npm install leash-agentpay (from the registry, cold cache) finished
+bin present: true
+installed version: 0.1.0
+@leash/sdk on disk: false
+[7.6s] server connected over stdio
+tools: leash_status, leash_pay, leash_fetch
+[7.7s] leash_fetch quote_only returned
+payload: { "ok": true, "price": "0.010000", "price_atomic": "10000", ... "within_max": true }
+```
+
+Three things this shows that `mcp/test/bundle.test.ts` cannot, because that
+suite packs a local tarball rather than resolving the published one:
+
+- **`@leash/sdk` is not on disk.** The inlining held all the way through the
+  registry. This is the hazard the whole bundling decision exists for: had
+  `noExternal` failed, npm would have installed the unrelated `@leash/sdk`
+  owned by somebody else, and it would have installed *successfully*.
+- **`leash_fetch` works through a real install.** It is the only tool whose SDK
+  import is dynamic, so it is the only one that can fail while the other two
+  pass. `quote_only` touches no chain and spends nothing.
+- **6.8 seconds, 111 packages.** Whatever the wallet half of the walk costs, the
+  install is not where the time goes.
+
+**Still unmeasured:** deploying an account, adding an operator, setting limits
+and funding it, at <https://leash-app-phi.vercel.app/setup>. That needs a human
+with a wallet and real CELO. No time claim for the end-to-end walk appears in
+`README.md`, and none should be added until somebody has walked it.
