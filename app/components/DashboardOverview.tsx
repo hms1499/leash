@@ -4,12 +4,13 @@ import Panel from './ui/Panel'
 import { formatAmount } from '../lib/policy.js'
 
 export function AccountStatus({
-  account, owner, connected, paused, updatedAt,
+  account, owner, connected, paused, loading, updatedAt,
 }: {
   account: `0x${string}`
   owner: `0x${string}` | null
   connected?: `0x${string}`
   paused: boolean
+  loading: boolean
   updatedAt: number | null
 }) {
   const role = !connected
@@ -24,7 +25,7 @@ export function AccountStatus({
         <div>
           <Label className="block">Account status</Label>
           <p className="mt-2" style={{ fontSize: 'var(--t-heading)', color: paused ? 'var(--bad)' : 'var(--text)' }}>
-            {paused ? 'Agent stopped' : 'Agent active'}
+            {loading ? 'Reading account status' : paused ? 'Agent stopped' : 'Agent active'}
           </p>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>{role}</p>
         </div>

@@ -75,8 +75,8 @@ export function useAccountState(
         publicClient.readContract({
           address: account, abi: OWNER_AND_PAUSED_ABI, functionName: 'owner',
         }),
-        // Batched with the rest: one more call in a Promise.all that already
-        // makes four, not a second round trip.
+        // Batched with the rest rather than introducing another sequential
+        // round trip.
         publicClient.readContract({
           address: token, abi: ERC20_BALANCE_ABI,
           functionName: 'balanceOf', args: [account],

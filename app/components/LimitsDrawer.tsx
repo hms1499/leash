@@ -231,6 +231,7 @@ export default function LimitsDrawer({
               <Label className="block mt-3">Per transaction ({symbol})</Label>
               <input
                 className="num field w-full mt-2 mb-3 p-2"
+                aria-label={`Per transaction limit in ${symbol}`}
                 value={perTxInput}
                 onChange={(e) => { setDirty(true); setPerTx(e.target.value) }}
                 disabled={!isOwner || busy}
@@ -238,6 +239,7 @@ export default function LimitsDrawer({
               <Label className="block">Per day ({symbol})</Label>
               <input
                 className="num field w-full mt-2 mb-3 p-2"
+                aria-label={`Daily limit in ${symbol}`}
                 value={dailyInput}
                 onChange={(e) => { setDirty(true); setDaily(e.target.value) }}
                 disabled={!isOwner || busy}
@@ -271,6 +273,7 @@ export default function LimitsDrawer({
                     <Label className="block mt-4">Check or change one recipient</Label>
                     <input
                       className="num field w-full mt-2 p-2"
+                      aria-label="Recipient address"
                       placeholder="0x…"
                       value={payee}
                       onChange={(e) => { setPayee(e.target.value); setPayeeAllowed(null) }}
@@ -306,6 +309,7 @@ export default function LimitsDrawer({
                     <Label className="block mt-3">Agent wallet address</Label>
                     <input
                       className="num field w-full mt-2 p-2"
+                      aria-label="Agent wallet address"
                       placeholder="0x…"
                       value={agentInput}
                       onChange={(e) => setAgentInput(e.target.value)}

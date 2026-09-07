@@ -35,16 +35,22 @@ export default function LiveProof() {
       </div>
 
       <div className="mt-3">
-        <Meter
-          daily={state.daily}
-          remaining={state.remaining}
-          perTx={state.perTx}
-          decimals={DECIMALS}
-          symbol="USDC"
-          balance={state.balance}
-          paused={state.paused}
-          loading={state.isLoading}
-        />
+        {state.error && state.updatedAt === null ? (
+          <p className="p-6 text-sm" style={{ color: 'var(--bad)' }}>
+            The live account could not be read. No balance is being shown as zero.
+          </p>
+        ) : (
+          <Meter
+            daily={state.daily}
+            remaining={state.remaining}
+            perTx={state.perTx}
+            decimals={DECIMALS}
+            symbol="USDC"
+            balance={state.balance}
+            paused={state.paused}
+            loading={state.isLoading}
+          />
+        )}
       </div>
 
       <div className="p-6 flex flex-col gap-2">

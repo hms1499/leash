@@ -62,7 +62,7 @@ test('the meter animates when the OS has not asked otherwise', async ({ page }) 
 test('the dashboard does not scroll sideways on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 760 })
   await page.goto(`/a/${ACCOUNT}`)
-  await expect(page.getByText('Account status')).toBeVisible()
+  await expect(page.getByText('Account status', { exact: true })).toBeVisible()
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(375)
 })

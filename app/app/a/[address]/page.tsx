@@ -230,6 +230,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
               owner={state.owner}
               connected={connected}
               paused={state.paused}
+              loading={state.isLoading}
               updatedAt={state.updatedAt}
             />
             {!state.isLoading && (

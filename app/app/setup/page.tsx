@@ -493,9 +493,11 @@ export default function Onboard() {
             </p>
             <Label className="block mt-3">Maximum direct payment (USDC)</Label>
             <input className="num field w-full mt-2 p-2"
+              aria-label="Maximum direct payment in USDC"
               value={perTx} onChange={(e) => setPerTx(e.target.value)} disabled={limitsBusy} />
             <Label className="block mt-3">Daily limit (USDC)</Label>
             <input className="num field w-full mt-2 p-2"
+              aria-label="Daily spending limit in USDC"
               value={daily} onChange={(e) => setDaily(e.target.value)} disabled={limitsBusy} />
             <Button variant="primary" className="mt-2" disabled={limitsBusy} onClick={() => void setLimits()}>
               {limitsBusy ? 'Saving…' : 'Save limits'}
@@ -521,6 +523,7 @@ export default function Onboard() {
             <Label className="block mt-3">Agent wallet address</Label>
             <input
               className="num field w-full mt-2 p-2"
+              aria-label="Agent wallet address"
               placeholder="0x…" value={agent} onChange={(e) => setAgent(e.target.value)}
               disabled={agentBusy}
             />
@@ -552,6 +555,7 @@ export default function Onboard() {
             <Label className="block mt-4">Approved recipient address — safer</Label>
             <input
               className="num field w-full mt-2 p-2"
+              aria-label="Approved recipient address"
               placeholder="0x…" value={recipient} onChange={(e) => setRecipient(e.target.value)}
               disabled={recipientBusy}
             />
@@ -606,6 +610,7 @@ export default function Onboard() {
               </p>
               <input
                 className="num field w-full mb-2 p-2"
+                aria-label="Celo attribution tag"
                 aria-invalid={tagStatus === 'invalid'}
                 placeholder="celo_0123456789ab"
                 value={tag} onChange={(e) => {
