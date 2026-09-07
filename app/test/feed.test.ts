@@ -1,11 +1,25 @@
 import { describe, it, expect } from 'vitest'
 import {
-  describeLog, rowKey, relativeAge, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
+  belongsToToken, describeLog, rowKey, relativeAge, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
   tailRange, MAX_LOG_RANGE_BLOCKS, pickOperator,
 } from '../lib/feed.js'
 
 const TX = ('0x' + 'ab'.repeat(32)) as `0x${string}`
 const PAYEE = '0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57'
+
+describe('belongsToToken', () => {
+  const usdc = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C'
+
+  it('keeps token-scoped events only for the dashboard token', () => {
+    expect(belongsToToken('Spent', { token: usdc.toLowerCase() }, usdc)).toBe(true)
+    expect(belongsToToken('Spent', { token: PAYEE }, usdc)).toBe(false)
+  })
+
+  it('keeps account-wide events', () => {
+    expect(belongsToToken('PausedSet', { paused: true }, usdc)).toBe(true)
+    expect(belongsToToken('OperatorChanged', { operator: PAYEE }, usdc)).toBe(true)
+  })
+})
 
 describe('describeLog', () => {
   it('renders a spend with its payee', () => {

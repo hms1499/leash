@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { publicClient } from './chain.js'
 import {
-  describeLog, rowKey, tailRange, pickOperator, MAX_LOG_RANGE_BLOCKS, WINDOW_BLOCKS,
+  belongsToToken, describeLog, rowKey, tailRange, pickOperator, MAX_LOG_RANGE_BLOCKS, WINDOW_BLOCKS,
   type FeedRow, type OperatorChange,
 } from './feed.js'
 
@@ -52,10 +52,13 @@ type RawLog = {
  * split in one place is what stops it becoming a row: `describeLog`'s default
  * branch would happily render it, and spec §1.3 fixes the feed at four events.
  */
-function split(logs: readonly RawLog[]): { rows: FeedRow[]; changes: OperatorChange[] } {
+function split(
+  logs: readonly RawLog[], token: `0x${string}`,
+): { rows: FeedRow[]; changes: OperatorChange[] } {
   const feedRows: FeedRow[] = []
   const changes: OperatorChange[] = []
   for (const l of logs) {
+    if (!belongsToToken(l.eventName, l.args, token)) continue
     if (l.eventName === 'OperatorChanged') {
       changes.push({
         operator: l.args.operator as `0x${string}`,
@@ -80,7 +83,9 @@ function merge(existing: FeedRow[], incoming: FeedRow[]): FeedRow[] {
   })
 }
 
-export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
+export function useFeed(
+  account: `0x${string}`, token: `0x${string}`, fromBlock?: bigint,
+) {
   const [rows, setRows] = useState<FeedRow[]>([])
   const [operatorChanges, setOperatorChanges] = useState<OperatorChange[]>([])
   const [isLoading, setLoading] = useState(true)
@@ -140,7 +145,7 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
             transactionHash: l.transactionHash,
             blockNumber: l.blockNumber,
             logIndex: l.logIndex,
-          })))
+          })), token)
           if (changes.length > 0) setOperatorChanges((prev) => [...prev, ...changes])
           collected += chunkRows.length
           // Merged, never assigned: the live watcher below is already running
@@ -206,7 +211,7 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
           transactionHash: l.transactionHash,
           blockNumber: l.blockNumber,
           logIndex: l.logIndex,
-        })))
+        })), token)
         if (changes.length > 0) setOperatorChanges((prev) => [...prev, ...changes])
         if (tailRows.length > 0) setRows((prev) => merge(prev, tailRows))
       } catch {
@@ -220,7 +225,7 @@ export function useFeed(account: `0x${string}`, fromBlock?: bigint) {
     const timer = setInterval(() => { void tail() }, 4000)
 
     return () => { cancelled = true; clearInterval(timer) }
-  }, [account, fromBlock])
+  }, [account, token, fromBlock])
 
   return { rows, isLoading, error, head, operatorCandidate: pickOperator(operatorChanges) }
 }

@@ -18,7 +18,7 @@ export default function LiveProof() {
   // Two arguments, not three: useAccountState.ts:30 takes (account, token) and
   // returns bigints. DECIMALS below is for formatting only.
   const state = useAccountState(ACCOUNT, TOKEN)
-  const feed = useFeed(ACCOUNT)
+  const feed = useFeed(ACCOUNT, TOKEN)
 
   return (
     <Panel>

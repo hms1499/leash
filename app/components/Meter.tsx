@@ -86,7 +86,7 @@ export default function Meter({
       {band.kind === 'ceiling' && (
         <div className="mb-3">
           <Stat
-            label="Agent can spend up to"
+            label="Maximum next direct payment"
             value={`${formatAmount(band.amount, decimals)} ${symbol}`}
             size={dominant ? 'display' : 'data'}
           />

@@ -101,6 +101,20 @@ export function rowKey(row: FeedRow): string {
 }
 
 /**
+ * The dashboard is a USDC view while the contract is token-agnostic. Global
+ * account events remain relevant; token-scoped events must match the token the
+ * dashboard labels, otherwise a different asset would be rendered as USDC.
+ */
+export function belongsToToken(
+  eventName: string,
+  args: Record<string, unknown>,
+  token: string,
+): boolean {
+  if (eventName === 'PausedSet' || eventName === 'OperatorChanged') return true
+  return typeof args.token === 'string' && args.token.toLowerCase() === token.toLowerCase()
+}
+
+/**
  * Turns one decoded event into a display row.
  *
  * Only on-chain events appear here. A spend the policy refused never became a

@@ -28,6 +28,8 @@ export type AccountState = {
   owner: `0x${string}` | null
   isLoading: boolean
   error: Error | null
+  /** Wall-clock time of the most recent complete, successful read. */
+  updatedAt: number | null
   refetch: () => void
 }
 
@@ -44,10 +46,13 @@ export function useAccountState(
 ): AccountState {
   const [state, setState] = useState<Omit<AccountState, 'refetch'>>({
     daily: 0n, remaining: 0n, perTx: 0n, balance: 0n, paused: false, owner: null,
-    isLoading: true, error: null,
+    isLoading: true, error: null, updatedAt: null,
   })
 
   const read = useCallback(async () => {
+    // Keep a previously observed snapshot visible during refreshes. On the
+    // first read there is no snapshot, so the loading state remains explicit.
+    setState((s) => ({ ...s, isLoading: s.updatedAt === null, error: null }))
     try {
       const [limits, remaining, paused, owner, balance] = await Promise.all([
         publicClient.readContract({
@@ -76,7 +81,7 @@ export function useAccountState(
         perTx, daily, remaining: remaining as bigint,
         balance: balance as bigint,
         paused: paused as boolean, owner: owner as `0x${string}`,
-        isLoading: false, error: null,
+        isLoading: false, error: null, updatedAt: Date.now(),
       })
     } catch (e) {
       setState((s) => ({ ...s, isLoading: false, error: e as Error }))

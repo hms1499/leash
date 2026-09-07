@@ -8,6 +8,8 @@ import ConnectButton from '../../../components/ConnectButton'
 import NetworkBadge from '../../../components/NetworkBadge'
 import Address from '../../../components/ui/Address'
 import Label, { LABEL_STYLE } from '../../../components/ui/Label'
+import Panel from '../../../components/ui/Panel'
+import Button from '../../../components/ui/Button'
 import Shell from '../../../components/ui/Shell'
 import { PAGE } from '../../../components/ui/page'
 import LimitsDrawer from '../../../components/LimitsDrawer'
@@ -79,7 +81,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     }
   }, [address])
 
-  const feed = useFeed(address, deployBlock)
+  const feed = useFeed(address, TOKEN, deployBlock)
   const { address: connected } = useAccount()
   const isOwner = canEdit(state.owner, connected)
 
@@ -197,19 +199,45 @@ function Dashboard({ address }: { address: `0x${string}` }) {
 
       {/* The dashboard's dominant element, so the ceiling takes --t-display
           here and nowhere else. design-system §7. */}
-      <Meter
-        daily={state.daily}
-        remaining={state.remaining}
-        perTx={state.perTx}
-        decimals={DECIMALS}
-        symbol={SYMBOL}
-        balance={state.balance}
-        paused={state.paused}
-        loading={state.isLoading}
-        dominant
-      />
+      {state.error && state.updatedAt === null ? (
+        <div className={`${PAGE} py-6`} role="alert">
+          <Panel className="p-6">
+            <Label className="block" style={{ color: 'var(--bad)' }}>
+              Could not read this policy account
+            </Label>
+            <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+              Celo did not return a complete account state. The account may still
+              be active, so no balance or spending limit is shown as zero.
+            </p>
+            <Button variant="ghost" className="mt-3" onClick={state.refetch}>
+              Try again
+            </Button>
+          </Panel>
+        </div>
+      ) : (
+        <Meter
+          daily={state.daily}
+          remaining={state.remaining}
+          perTx={state.perTx}
+          decimals={DECIMALS}
+          symbol={SYMBOL}
+          balance={state.balance}
+          paused={state.paused}
+          loading={state.isLoading}
+          dominant
+        />
+      )}
 
       <div className={`${PAGE} py-6`}>
+        {state.error && state.updatedAt !== null && (
+          <div role="alert">
+            <Panel className="p-4 mb-3">
+              <p className="text-sm" style={{ color: 'var(--bad)' }}>
+                Could not refresh the account. Showing the last confirmed values.
+              </p>
+            </Panel>
+          </div>
+        )}
         <LimitsDrawer
           account={address}
           token={TOKEN}
