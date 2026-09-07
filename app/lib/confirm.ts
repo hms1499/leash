@@ -1,30 +1,12 @@
 /**
- * Wait for the chain to show a change, and never mistake a failed read for a
- * failed write.
+ * The one `pollUntil` this project has, re-exported so every caller in `app/`
+ * keeps its existing import path.
  *
- * Every write path in this app confirms by polling the value it changed
- * rather than by trusting a receipt — forno is load-balanced and serves stale
- * reads right after a transaction lands. But a poll that throws is a
- * different event from a write that throws: the same load balancer that
- * serves stale reads also returns 500s, and letting one reach the caller's
- * catch reports a landed transaction as "not sent". On the Stop button that
- * means telling an owner their kill switch failed while the agent is, in
- * fact, already paused.
- *
- * So this swallows per-iteration failures and returns whether the change was
- * ACTUALLY OBSERVED. False means "we stopped waiting", never "it failed".
+ * The implementation and its tests live in `@leash/sdk` (`sdk/src/confirm.ts`).
+ * It moved there because the rule it encodes — "wait on the condition, not the
+ * receipt", and never mistake a failed read for a failed write — has to travel
+ * with the code that sends transactions, and this file could not be imported
+ * by `examples/` or `mcp/`. Both went without it, and both shipped a correct
+ * write path with a wrong account of it.
  */
-export async function pollUntil(
-  check: () => Promise<boolean>,
-  { attempts = 20, intervalMs = 3000 }: { attempts?: number; intervalMs?: number } = {},
-): Promise<boolean> {
-  for (let i = 0; i < attempts; i++) {
-    try {
-      if (await check()) return true
-    } catch {
-      // A single node refusing the read says nothing about the transaction.
-    }
-    await new Promise((r) => setTimeout(r, intervalMs))
-  }
-  return false
-}
+export { pollUntil } from '@leash/sdk'
