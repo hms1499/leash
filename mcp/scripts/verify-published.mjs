@@ -91,6 +91,19 @@ try {
   })).content[0].text)
   console.log(`${at()} leash_fetch quote_only (real gateway, nothing paid):`)
   console.log(`        ${JSON.stringify(quote)}`)
+  // The same call with no body, which is how the guard this release exists for
+  // was found: usebuy.ai prices from the body and answers 400 without one. A
+  // named refusal here is the pass condition; `internal_error` would mean the
+  // published bundle still blames the user's configuration for it.
+  const unguarded = JSON.parse((await client.callTool({
+    name: 'leash_fetch',
+    arguments: { url: 'https://usebuy.ai/gcloud/vm', max_amount: '0.05', quote_only: true },
+  })).content[0].text)
+  console.log(`${at()} leash_fetch quote_only with NO body (must name the refusal):`)
+  console.log(`        ${JSON.stringify(unguarded)}`)
+  if (unguarded.error === 'internal_error') {
+    throw new Error('regression: a failed quote is still escaping leash_fetch')
+  }
 } finally {
   await client.close()
   rmSync(dir, { recursive: true, force: true })

@@ -190,6 +190,56 @@ Read back off the chain rather than taken from the test's own output:
    *and* leave a float — an operator below the reserve cannot send even the draw
    that would refill it, and strands until the owner rescues it.
 
+## npm — `leash-agentpay@0.2.1`, published 2026-09-07
+
+| | |
+|---|---|
+| Package | `leash-agentpay@0.2.1`, public, tag `latest` |
+| Contents | 4 files — `dist/index.js` (41.8 kB), `package.json`, `README.md`, `LICENSE` |
+| Packed size | 15.5 kB (49.3 kB unpacked) |
+| shasum | `3aa324e5687ea3800176d729c01e557d5197fd64` |
+| Publisher | npm account `vanhuy1999` |
+
+A patch, published within the hour of 0.2.0, because walking 0.2.0 found a
+defect that no suite had: a failed `quote` escaped `leash_fetch` and was
+reported as `internal_error - Check the server logs and the LEASH_*
+environment variables`, about a configuration that was correct. Only the buying
+branch had been inside a try/catch.
+
+### Walked from the registry, 2026-09-07
+
+`mcp/scripts/verify-published.mjs` — cold npm cache, empty directory, install
+from the registry, bin started **by name**:
+
+```
+[5.9s] npm install leash-agentpay@0.2.1 from the registry finished
+[5.9s] bin linked as a command: true
+[5.9s] installed version: 0.2.1
+[5.9s] @leash/sdk on disk: false
+[6.9s] server connected over stdio
+[6.9s] tools: leash_status, leash_pay, leash_fetch
+[7.4s] leash_status: remaining_today 1.000000, per_tx 0.500000, daily 1.000000
+[8.2s] leash_fetch quote_only            -> price 0.016753, within_max true
+[8.4s] leash_fetch quote_only, NO body   -> not_paywalled, status 400
+```
+
+The last line is the one this release exists for, and it is checked rather than
+read: the script fails the walk if that call comes back `internal_error`.
+
+`shasum` of the tarball fetched back from npm is
+`3aa324e5687ea3800176d729c01e557d5197fd64`, the figure npm printed at publish
+time — so the bytes being served are the bytes that were built.
+
+**Still unproven on 0.2.x:** `leash_pay`. Its three outcomes (`ok: true`,
+`spend_reverted`, `sent_unconfirmed`) are the substance of this release and no
+real transaction has run through them — the walk cannot, because a spend costs
+money and the account holds **0.000000 USDC**. Unit tests cover the branches;
+the chain has not.
+
+**The demo account is empty.** `leash_status` read `account_balance
+0.000000` and `can_spend false` on 2026-09-07, against 2.436567 recorded on
+2026-09-05. Fund it before a take, and before anyone tries to prove `leash_pay`.
+
 ## npm — `leash-agentpay@0.2.0`, published 2026-09-07
 
 Supersedes 0.1.0 below, which stays as the record of the first publish. 0.1.0
@@ -252,11 +302,10 @@ registry's own copy of the bundle — `sent_unconfirmed`, `spend_reverted`,
 `policy_unreadable`, `draw_unconfirmed`, `preferAsset` and `DO NOT RETRY` all
 grep out of `package/dist/index.js`.
 
-**Not yet done for this version:** nobody has run `npx -y leash-agentpay`
-against 0.2.0 from a cold cache and driven a real tool call, the way 0.1.0 was
-exercised below. The bundle test packs a local tarball, and the grep above
-reads bytes rather than behaviour. Until somebody walks it, this entry claims a
-correct publish and nothing about a correct run.
+**Superseded within the hour by 0.2.1.** The walk that would have closed this
+entry's open question was run against 0.2.0 and found a defect instead — see
+the 0.2.1 entry above. `latest` has moved; 0.2.0 remains resolvable by exact
+version and should not be used.
 
 ## npm — `leash-agentpay@0.1.0`, published 2026-09-06
 
