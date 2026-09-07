@@ -9,6 +9,10 @@ node_modules/
 # block it at commit time, but an ignored file cannot be staged by accident in
 # the first place.
 .mcp.json
+# ...and any copy of it. A backup made before editing holds the same plaintext
+# OPERATOR_PK, and `.mcp.json` alone does not cover `.mcp.json.bak`, which is
+# exactly the name a careful person reaches for before changing the original.
+.mcp.json.*
 out/
 cache/
 broadcast/
