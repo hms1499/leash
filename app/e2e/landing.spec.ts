@@ -8,7 +8,7 @@ test('the wizard answers at /setup', async ({ page }) => {
 test('the account directory explains its local scope before wallet connection', async ({ page }) => {
   await page.goto('/accounts')
   await expect(page.getByRole('heading', { name: 'My policy accounts' })).toBeVisible()
-  await expect(page.getByText('Accounts saved on this device for the connected owner wallet.')).toBeVisible()
+  await expect(page.getByText(/finds accounts deployed by the connected owner/)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Connect the owner wallet' })).toBeVisible()
 })
 

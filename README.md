@@ -125,6 +125,12 @@ pnpm install
 pnpm --filter @leash/app dev     # then open http://localhost:3000/setup
 ```
 
+Put `CELOSCAN_KEY` in `app/.env.local` (and in the app's server-side deployment
+environment) to enable automatic discovery of every compatible policy account
+deployed directly by the connected owner. The key stays in the Next.js API
+route; it is never shipped to the browser. Manual import remains available
+when the explorer is unavailable or a relayer created the account.
+
 **From the command line.** [`docs/mcp-setup.md`](docs/mcp-setup.md) does the
 same thing with `forge create` and `cast send`, explains every value it asks
 for, and assumes no knowledge of this repository.
@@ -273,7 +279,7 @@ pnpm install
 | `cd contracts && forge test` | 32 contract tests |
 | `pnpm -F @leash/sdk test` | 66 SDK tests |
 | `pnpm -F leash-agentpay test` | 27 MCP tests |
-| `pnpm -F @leash/app test` | 197 app tests (vitest) |
+| `pnpm -F @leash/app test` | 200 app tests (vitest) |
 | `pnpm -F @leash/app test:e2e` | 8 end-to-end tests (playwright) |
 | `npx tsc --noEmit` | run inside `sdk`, `mcp`, `app`, `examples`, `spikes` |
 

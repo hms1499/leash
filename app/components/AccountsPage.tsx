@@ -13,7 +13,6 @@ import { PAGE } from './ui/page'
 import { isValidAddress } from '../lib/address.js'
 import {
   announceAccountRegistryChange,
-  forgetPolicyAccount,
   listPolicyAccounts,
   migrateLegacyAccount,
   savePolicyAccount,
@@ -21,11 +20,17 @@ import {
   type SavedPolicyAccount,
 } from '../lib/accountRegistry.js'
 import { publicClient } from '../lib/chain.js'
+import type { DiscoveredAccountCandidate } from '../lib/accountDiscovery.js'
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const VERIFY_ABI = [
   { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
   { type: 'function', name: 'paused', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
+  { type: 'function', name: 'allowlistEnabled', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
+  { type: 'function', name: 'remainingToday', stateMutability: 'view',
+    inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'operators', stateMutability: 'view',
+    inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'bool' }] },
   { type: 'function', name: 'limits', stateMutability: 'view',
     inputs: [{ name: '', type: 'address' }],
     outputs: [
@@ -34,6 +39,27 @@ const VERIFY_ABI = [
     ] },
 ] as const
 
+async function verifyPolicyAccount(
+  address: `0x${string}`,
+  expectedOwner: `0x${string}`,
+): Promise<'verified' | 'wrong-owner' | 'incompatible'> {
+  try {
+    const [owner] = await Promise.all([
+      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'owner' }),
+      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'paused' }),
+      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'allowlistEnabled' }),
+      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'limits', args: [TOKEN] }),
+      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'remainingToday', args: [TOKEN] }),
+      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'operators', args: [expectedOwner] }),
+    ])
+    return (owner as string).toLowerCase() === expectedOwner.toLowerCase()
+      ? 'verified'
+      : 'wrong-owner'
+  } catch {
+    return 'incompatible'
+  }
+}
+
 export default function AccountsPage() {
   const { address: connected, isConnected } = useAccount()
   const [accounts, setAccounts] = useState<SavedPolicyAccount[]>([])
@@ -41,11 +67,70 @@ export default function AccountsPage() {
   const [importLabel, setImportLabel] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  const [discovering, setDiscovering] = useState(false)
+  const [discoveryNote, setDiscoveryNote] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!connected) { setAccounts([]); return }
+    if (!connected) {
+      setAccounts([])
+      setDiscoveryNote(null)
+      setDiscovering(false)
+      return
+    }
     setAccounts(migrateLegacyAccount(localStorage, connected))
+    const controller = new AbortController()
+    void discoverAccounts(connected, controller.signal)
+    return () => controller.abort()
   }, [connected])
+
+  async function discoverAccounts(owner: `0x${string}`, signal?: AbortSignal) {
+    setDiscovering(true)
+    setDiscoveryNote(null)
+    try {
+      const response = await fetch(`/api/accounts/discover?owner=${encodeURIComponent(owner)}`, { signal })
+      const body = await response.json() as {
+        accounts?: DiscoveredAccountCandidate[]
+        historyTruncated?: boolean
+        code?: string
+      }
+      if (!response.ok || !Array.isArray(body.accounts)) {
+        setDiscoveryNote(body.code === 'DISCOVERY_NOT_CONFIGURED'
+          ? 'Automatic discovery needs an explorer API key. Saved accounts and manual import still work.'
+          : 'Could not refresh account history. Showing the last saved list.')
+        return
+      }
+
+      let discovered = 0
+      // Bound RPC concurrency: an active owner can have many unrelated
+      // deployments, and they are only candidates until each one passes all
+      // three Leash reads and owner verification.
+      for (let start = 0; start < body.accounts.length; start += 5) {
+        const batch = body.accounts.slice(start, start + 5)
+        const results = await Promise.all(batch.map(async (candidate) => ({
+          candidate,
+          result: await verifyPolicyAccount(candidate.address, owner),
+        })))
+        if (signal?.aborted) return
+        for (const { candidate, result } of results) {
+          if (result !== 'verified') continue
+          savePolicyAccount(localStorage, owner, candidate)
+          discovered++
+        }
+      }
+      setAccounts(listPolicyAccounts(localStorage, owner))
+      announceAccountRegistryChange()
+      setDiscoveryNote(
+        `${discovered} ${discovered === 1 ? 'account' : 'accounts'} verified from Celo history.` +
+        (body.historyTruncated ? ' Older history may require manual import.' : ''),
+      )
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        setDiscoveryNote('Could not refresh account history. Showing the last saved list.')
+      }
+    } finally {
+      if (!signal?.aborted) setDiscovering(false)
+    }
+  }
 
   function refresh() {
     if (!connected) return
@@ -63,13 +148,13 @@ export default function AccountsPage() {
     }
     setBusy(true)
     try {
-      const [owner] = await Promise.all([
-        publicClient.readContract({ address: candidate, abi: VERIFY_ABI, functionName: 'owner' }),
-        publicClient.readContract({ address: candidate, abi: VERIFY_ABI, functionName: 'paused' }),
-        publicClient.readContract({ address: candidate, abi: VERIFY_ABI, functionName: 'limits', args: [TOKEN] }),
-      ])
-      if ((owner as string).toLowerCase() !== connected.toLowerCase()) {
+      const result = await verifyPolicyAccount(candidate, connected)
+      if (result === 'wrong-owner') {
         setNote('The connected wallet does not own this policy account.')
+        return
+      }
+      if (result === 'incompatible') {
+        setNote('Could not verify this as a compatible Leash policy account on Celo.')
         return
       }
       savePolicyAccount(localStorage, connected, { address: candidate, label: importLabel })
@@ -92,7 +177,7 @@ export default function AccountsPage() {
             My policy accounts
           </h1>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-            Accounts saved on this device for the connected owner wallet.
+            Leash finds accounts deployed by the connected owner, verifies them on Celo, and caches the list on this device.
           </p>
         </div>
         <span className="ml-auto flex flex-wrap items-center gap-3">
@@ -111,7 +196,18 @@ export default function AccountsPage() {
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Label>{accounts.length} saved {accounts.length === 1 ? 'account' : 'accounts'}</Label>
+            <span>
+              <Label>{accounts.length} verified {accounts.length === 1 ? 'account' : 'accounts'}</Label>
+              {discoveryNote && (
+                <p role="status" className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+                  {discoveryNote}
+                </p>
+              )}
+            </span>
+            <span className="flex flex-wrap gap-2">
+              <Button disabled={discovering} onClick={() => void discoverAccounts(connected!)}>
+                {discovering ? 'Discovering…' : 'Refresh from Celo'}
+              </Button>
             <Link
               href="/setup?new=1"
               className="rounded px-4 py-2"
@@ -119,11 +215,16 @@ export default function AccountsPage() {
             >
               Create another account
             </Link>
+            </span>
           </div>
 
           {accounts.length === 0 ? (
             <Panel className="p-6">
-              <p className="text-sm">No policy accounts are saved for this wallet on this device yet.</p>
+              <p className="text-sm">
+                {discovering
+                  ? 'Searching this owner’s deployment history and verifying policy accounts…'
+                  : 'No compatible policy accounts were found. You can create one or import an address manually.'}
+              </p>
             </Panel>
           ) : (
             <div className="space-y-3">
@@ -134,11 +235,6 @@ export default function AccountsPage() {
                   number={index + 1}
                   onSaveLabel={(label) => {
                     updatePolicyAccountLabel(localStorage, connected!, account.address, label)
-                    refresh()
-                  }}
-                  onForget={() => {
-                    if (!window.confirm('Forget this account on this device? The on-chain account and its funds will not be changed.')) return
-                    forgetPolicyAccount(localStorage, connected!, account.address)
                     refresh()
                   }}
                 />
@@ -183,7 +279,10 @@ export default function AccountsPage() {
           </Panel>
 
           <p className="text-sm" style={{ color: 'var(--dim)' }}>
-            This is not a global account directory. Clearing browser storage removes this list, but never changes or deletes an on-chain account.
+            Discovery uses indexed Celo transaction history, then verifies every result against Celo RPC. Manual import remains available for deployments made through another wallet or relayer. Powered by{' '}
+            <a href="https://celoscan.io" target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+              CeloScan
+            </a>.
           </p>
         </>
       )}
@@ -192,12 +291,11 @@ export default function AccountsPage() {
 }
 
 function AccountRow({
-  account, number, onSaveLabel, onForget,
+  account, number, onSaveLabel,
 }: {
   account: SavedPolicyAccount
   number: number
   onSaveLabel: (label: string) => void
-  onForget: () => void
 }) {
   const [label, setLabel] = useState(account.label ?? '')
   useEffect(() => { setLabel(account.label ?? '') }, [account.label])
@@ -233,7 +331,6 @@ function AccountRow({
           />
         </span>
         <Button onClick={() => onSaveLabel(label)}>Save label</Button>
-        <Button variant="stop" onClick={onForget}>Forget on this device</Button>
       </div>
     </Panel>
   )
