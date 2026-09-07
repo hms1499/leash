@@ -247,6 +247,10 @@ export default function Onboard() {
         })
         selectPolicyAccount(localStorage, connected!, receipt.contractAddress)
         announceAccountRegistryChange()
+        // `?new=1` is an entry instruction, not durable setup state. Leaving
+        // it in the URL would hide this freshly deployed account if the owner
+        // disconnected and reconnected during the remaining steps.
+        window.history.replaceState(null, '', '/setup')
       } catch {
         // forno is load-balanced and this is the likeliest failure right
         // after a transaction. The transaction may still land — never tell
