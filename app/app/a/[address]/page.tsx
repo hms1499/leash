@@ -130,7 +130,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
       // yet used — what the wizard leaves behind — never showed its agent at
       // all. The query parameter stays last and stays untrusted; operators()
       // below is what decides, either way.
-      const candidate = fromFeed ?? feed.operatorCandidate ?? fromQuery
+      const candidate = feed.operatorCandidate ?? fromFeed ?? fromQuery
       if (!candidate || !isValidAddress(candidate)) {
         if (!cancelled) { setOperator(null); setOperatorCheckFailed(false) }
         return
@@ -268,17 +268,21 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 symbol={SYMBOL}
               />
             )}
-            <LimitsDrawer
-              account={address}
-              token={TOKEN}
-              decimals={DECIMALS}
-              symbol={SYMBOL}
-              perTx={state.perTx}
-              daily={state.daily}
-              isOwner={isOwner}
-              loading={state.isLoading}
-              onSaved={state.refetch}
-            />
+            {isOwner && (
+              <LimitsDrawer
+                account={address}
+                token={TOKEN}
+                decimals={DECIMALS}
+                symbol={SYMBOL}
+                perTx={state.perTx}
+                daily={state.daily}
+                allowlistEnabled={state.allowlistEnabled}
+                operator={operator}
+                isOwner={isOwner}
+                loading={state.isLoading}
+                onSaved={state.refetch}
+              />
+            )}
             {operator && isValidAddress(operator) && (
               <AgentPanel
                 account={address} operator={operator} token={TOKEN}
