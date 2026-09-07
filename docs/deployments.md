@@ -230,15 +230,39 @@ read: the script fails the walk if that call comes back `internal_error`.
 `3aa324e5687ea3800176d729c01e557d5197fd64`, the figure npm printed at publish
 time — so the bytes being served are the bytes that were built.
 
-**Still unproven on 0.2.x:** `leash_pay`. Its three outcomes (`ok: true`,
-`spend_reverted`, `sent_unconfirmed`) are the substance of this release and no
-real transaction has run through them — the walk cannot, because a spend costs
-money and the account holds **0.000000 USDC**. Unit tests cover the branches;
-the chain has not.
+### `leash_pay` proven on mainnet, 2026-09-07
 
-**The demo account is empty.** `leash_status` read `account_balance
-0.000000` and `can_spend false` on 2026-09-07, against 2.436567 recorded on
-2026-09-05. Fund it before a take, and before anyone tries to prove `leash_pay`.
+`mcp/scripts/prove-pay.mjs`, run against 0.2.1 installed from the registry: a
+real 0.01 USDC payment, then every figure checked at that transaction's own
+block rather than at head.
+
+```
+BEFORE  remaining 1000000  account 200000  payee 0
+leash_pay returned after 7.4s (it waited for the chain)
+receipt.status = success   block 76852175
+AFTER   remaining  990000  account 190000  payee 10000
+
+PASS  the tool reported ok
+PASS  the receipt says the transaction succeeded
+PASS  the allowance fell by exactly 10000
+PASS  the account fell by exactly 10000
+PASS  the payee rose by exactly 10000
+```
+
+tx: 0x0786b9796e73feee95e3ce5e19a1ad0b63559512bbbace3ee3e165be11628b21
+
+**The 7.4s is the point.** Before this release `leash_pay` returned the instant
+a node accepted the transaction — it could not have taken that long, because it
+waited for nothing. The elapsed time is the fix, visible from outside.
+
+Reads are pinned to `receipt.blockNumber`. A read at head would race the load
+balancer and prove nothing in either direction; that is exactly what made the
+demo print a counter which had not moved on 2026-09-05.
+
+**Still unproven:** `spend_reverted` and `sent_unconfirmed`. Both need a chain
+that misbehaves on cue — a transaction that reverts after a clean simulation,
+or one that stays unmined past the window. Unit tests cover both branches. The
+chain has not, and this document does not claim it has.
 
 ## npm — `leash-agentpay@0.2.0`, published 2026-09-07
 

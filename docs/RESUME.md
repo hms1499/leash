@@ -81,10 +81,17 @@ as of 2026-09-07: cold cache, empty directory, bin started by name,
 `leash_status` and two `leash_fetch` quotes against the live gateway. Repeat it
 with `pnpm -F leash-agentpay verify:published <version>` (costs nothing).
 
-**`leash_pay` is the exception.** Its three outcomes are the substance of this
-release and no real transaction has run through them; the walk cannot spend,
-and the account holds 0.000000 USDC. Unit tests cover the branches, the chain
-has not. See `docs/deployments.md`.
+**`leash_pay` was proven on mainnet the same day**, through the published
+package: a real 0.01 USDC payment, `ok: true` returned only after 7.4s of
+waiting for the chain, and the allowance, the account and the payee each moved
+by exactly 10000 read at that transaction's own block.
+`pnpm -F leash-agentpay prove:pay` repeats it — **it spends real money**, so it
+is guarded by `LEASH_PROVE_SPEND_REAL_MONEY=yes` like the demo.
+tx: 0x0786b9796e73feee95e3ce5e19a1ad0b63559512bbbace3ee3e165be11628b21
+
+Its other two outcomes, `spend_reverted` and `sent_unconfirmed`, are covered by
+unit tests and have **not** been observed on-chain. Both need a chain that
+misbehaves on cue. Do not claim them.
 
 The 0.1.0 record, which still stands as written: it was **published, public,
 and exercised end to end.** A
@@ -160,7 +167,7 @@ fetch a stranger's code. Do not "fix" that back.
 | Attribution tag | `celo_3dec652cd977` |
 | ERC-8004 identity | agentId 9804, owned by the operator |
 | Policy | USDC: perTx 0.50, daily 1.00. `paused` false, allowlist off |
-| Contract holds | **0.000000 USDC** · `remainingToday` 1.000000 — read 2026-09-07 through `leash_status` on the published package. **`can_spend` is false: the demo account is empty.** It held 2.436567 on 2026-09-05; nothing in this session moved it, so something between those dates did. Fund it before any take. |
+| Contract holds | 0.190000 USDC · `remainingToday` 0.990000 — read 2026-09-07 at block 76852175. It was found **empty** earlier that day (0.000000, `can_spend` false) against 2.436567 recorded on 2026-09-05; the owner refunded it, and `prove:pay` then spent 0.010000 of it. **Roughly six takes at ~0.03 each — top up before filming.** |
 
 Read back from mainnet on 2026-09-05. The figures above are the state, not a
 recollection of it.
@@ -189,6 +196,12 @@ recollection of it.
   tx: 0xc79bb210dadee142a43cf1408a767665285ebf0cc7f99cb243e7696ae0e5a1e3
   tx: 0x2d915b730cb0a08486656213ce85532a72cf5371d209c99411b670ece19d1e7a
   tx: 0x2b364957bcc15dc68c085eb898fc12e13088fc64ba8bb5aefbd246cc8436aadf
+- **`leash_pay` waits for the chain before it says "paid".** 2026-09-07,
+  through `leash-agentpay@0.2.1` installed from npm: `ok: true` came back only
+  after 7.4 seconds, and the allowance, the account and the payee each moved by
+  exactly 10000 read at that transaction's own block. Before this release the
+  tool answered instantly, because it waited for nothing.
+  tx: 0x0786b9796e73feee95e3ce5e19a1ad0b63559512bbbace3ee3e165be11628b21
 - **A real MCP agent spent through the policy.** 2026-09-05, `leash_pay`
   called by a second Claude session with the Leash MCP server attached — no
   human typed an amount or a payee. Test account 0.050000 → 0.040000,
