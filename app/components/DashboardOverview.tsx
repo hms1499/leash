@@ -42,14 +42,14 @@ export function AccountStatus({
 }
 
 export function RecommendedAction({
-  account, paused, daily, balance, operator, allowlistEnabled,
+  account, paused, daily, balance, operator, operatorLoading,
 }: {
   account: `0x${string}`
   paused: boolean
   daily: bigint
   balance: bigint
   operator: string | null
-  allowlistEnabled: boolean
+  operatorLoading: boolean
 }) {
   let title = 'Everything is ready'
   let body = 'The agent can make direct payments within the limits below.'
@@ -63,6 +63,9 @@ export function RecommendedAction({
     title = 'Set spending limits'
     body = 'The account refuses every payment until a daily and per-payment limit are configured.'
     tone = 'bad'
+  } else if (operatorLoading) {
+    title = 'Verifying the agent wallet'
+    body = 'Reading recent account history and checking agent access on chain.'
   } else if (!operator) {
     title = 'Verify the agent wallet'
     body = 'No active agent was found in the recent account history. Return to setup to add or verify one.'
@@ -70,10 +73,6 @@ export function RecommendedAction({
   } else if (balance === 0n) {
     title = 'Add protected funds'
     body = `Send USDC on Celo to ${account}. The agent cannot make a direct payment while the policy account is empty.`
-    tone = 'bad'
-  } else if (!allowlistEnabled) {
-    title = 'Review recipient protection'
-    body = 'Approved recipients are off. The limits still apply, but direct payments may go to any address.'
     tone = 'bad'
   }
 
@@ -89,12 +88,13 @@ export function RecommendedAction({
 }
 
 export function SecurityPolicy({
-  daily, perTx, allowlistEnabled, operator, decimals, symbol,
+  daily, perTx, allowlistEnabled, operator, operatorLoading, decimals, symbol,
 }: {
   daily: bigint
   perTx: bigint
   allowlistEnabled: boolean
   operator: string | null
+  operatorLoading: boolean
   decimals: number
   symbol: string
 }) {
@@ -102,7 +102,7 @@ export function SecurityPolicy({
     ['Daily limit', daily === 0n ? 'Not set' : `${formatAmount(daily, decimals, 2)} ${symbol}`],
     ['Maximum direct payment', perTx === 0n ? 'Not set' : `${formatAmount(perTx, decimals, 2)} ${symbol}`],
     ['Approved recipients', allowlistEnabled ? 'On' : 'Off — any address'],
-    ['Primary agent', operator ?? 'Not discovered'],
+    ['Primary agent', operator ?? (operatorLoading ? 'Checking…' : 'Not discovered')],
   ]
 
   return (

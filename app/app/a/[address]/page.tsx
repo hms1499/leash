@@ -239,7 +239,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 daily={state.daily}
                 balance={state.balance}
                 operator={operator}
-                allowlistEnabled={state.allowlistEnabled}
+                operatorLoading={feed.isLoading}
               />
             )}
           </div>
@@ -264,6 +264,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 perTx={state.perTx}
                 allowlistEnabled={state.allowlistEnabled}
                 operator={operator}
+                operatorLoading={feed.isLoading}
                 decimals={DECIMALS}
                 symbol={SYMBOL}
               />

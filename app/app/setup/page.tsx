@@ -13,7 +13,7 @@ import Button from '../../components/ui/Button'
 import McpHandoff from '../../components/McpHandoff'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
-import { validateLimits } from '../../lib/policy.js'
+import { formatAmount, validateLimits } from '../../lib/policy.js'
 import { isAttributionTag } from '../../lib/mcpJson.js'
 import { pollUntil } from '../../lib/confirm.js'
 import { PAGE } from '../../components/ui/page'
@@ -119,6 +119,61 @@ export default function Onboard() {
     }
   }, [connected])
 
+  // Resume an interrupted setup from chain state. Local storage supplies only
+  // the candidate agent and the user's explicit recipient choice; every
+  // permission and balance is verified again before a step is marked done.
+  useEffect(() => {
+    if (!account) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const [limits, balance, listEnabled] = await Promise.all([
+          publicClient.readContract({
+            address: account, abi: SETUP_ABI, functionName: 'limits', args: [TOKEN],
+          }) as Promise<readonly [bigint, bigint, bigint, bigint]>,
+          publicClient.readContract({
+            address: TOKEN,
+            abi: [{ type: 'function', name: 'balanceOf', stateMutability: 'view',
+                    inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] }] as const,
+            functionName: 'balanceOf', args: [account],
+          }) as Promise<bigint>,
+          publicClient.readContract({
+            address: account, abi: SETUP_ABI, functionName: 'allowlistEnabled',
+          }) as Promise<boolean>,
+        ])
+        if (cancelled) return
+        if (limits[1] > 0n) {
+          setPerTx(formatAmount(limits[0], DECIMALS, 2))
+          setDaily(formatAmount(limits[1], DECIMALS, 2))
+          setLimitsNote('Limits saved.')
+        }
+        setFunded(balance > 0n)
+
+        const choice = localStorage.getItem(`leash.recipientMode.${account.toLowerCase()}`)
+        if (listEnabled) setRecipientNote('Recipient protection enabled.')
+        else if (choice === 'any') setRecipientNote('Any recipient selected.')
+
+        const savedAgent = localStorage.getItem(`leash.agent.${account.toLowerCase()}`)
+        if (savedAgent && isValidAddress(savedAgent)) {
+          const active = await publicClient.readContract({
+            address: account, abi: SETUP_ABI, functionName: 'operators', args: [savedAgent],
+          }) as boolean
+          if (!cancelled && active) {
+            setAgent(savedAgent)
+            setAgentNote('Agent added.')
+          }
+        }
+
+        const savedTag = localStorage.getItem(`leash.tag.${account.toLowerCase()}`)
+        if (!cancelled && savedTag) setTag(savedTag)
+      } catch {
+        // Resuming is a convenience. Individual actions still perform their
+        // own reads and surface errors if this best-effort restore cannot run.
+      }
+    })()
+    return () => { cancelled = true }
+  }, [account])
+
   // Never trust a fee adapter from memory: assert this one is on the
   // directory's live whitelist before putting it in someone's config.
   useEffect(() => {
@@ -220,6 +275,7 @@ export default function Onboard() {
       setAgentNote(confirmed
         ? 'Agent added.'
         : 'Sent, but the chain has not confirmed it yet. Reload in a moment.')
+      if (confirmed) localStorage.setItem(`leash.agent.${account!.toLowerCase()}`, agent)
     } catch {
       setAgentNote('The transaction was not sent.')
     } finally {
@@ -268,6 +324,7 @@ export default function Onboard() {
       }) as boolean
       if (!currentlyEnabled) {
         setRecipientNote('Any recipient selected.')
+        localStorage.setItem(`leash.recipientMode.${account!.toLowerCase()}`, 'any')
         return
       }
       await writeContractAsync({
@@ -282,6 +339,7 @@ export default function Onboard() {
       setRecipientNote(confirmed
         ? 'Any recipient selected.'
         : 'Sent, but the chain has not confirmed it yet. Reload in a moment.')
+      if (confirmed) localStorage.setItem(`leash.recipientMode.${account!.toLowerCase()}`, 'any')
     } catch {
       setRecipientNote('The transaction was not sent.')
     } finally {
@@ -322,6 +380,7 @@ export default function Onboard() {
       setRecipientNote(enabled
         ? 'Recipient protection enabled.'
         : 'The recipient is approved, but protection has not been confirmed yet.')
+      if (enabled) localStorage.setItem(`leash.recipientMode.${account!.toLowerCase()}`, 'protected')
     } catch {
       setRecipientNote('The requested policy change was not completed.')
     } finally {
@@ -549,7 +608,10 @@ export default function Onboard() {
                 className="num field w-full mb-2 p-2"
                 aria-invalid={tagStatus === 'invalid'}
                 placeholder="celo_0123456789ab"
-                value={tag} onChange={(e) => setTag(e.target.value)}
+                value={tag} onChange={(e) => {
+                  setTag(e.target.value)
+                  localStorage.setItem(`leash.tag.${account.toLowerCase()}`, e.target.value)
+                }}
               />
               <p className="text-sm mb-3" style={{ color: 'var(--bad)', minHeight: '1rem' }}>
                 {tagStatus === 'invalid' && 'Not a valid tag — expected celo_ and 12 hex characters.'}
