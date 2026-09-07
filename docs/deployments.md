@@ -190,7 +190,75 @@ Read back off the chain rather than taken from the test's own output:
    *and* leave a float — an operator below the reserve cannot send even the draw
    that would refill it, and strands until the owner rescues it.
 
-## npm — `leash-agentpay`, published 2026-09-06
+## npm — `leash-agentpay@0.2.0`, published 2026-09-07
+
+Supersedes 0.1.0 below, which stays as the record of the first publish. 0.1.0
+is still resolvable by exact version; `latest` now points here.
+
+| | |
+|---|---|
+| Package | `leash-agentpay@0.2.0`, public, tag `latest` |
+| Contents | 4 files — `dist/index.js` (41.3 kB), `package.json`, **`README.md`**, **`LICENSE`** |
+| Packed size | 15.3 kB (48.7 kB unpacked) |
+| shasum | `244857ec48798f46bf122d3dd3ad1537fb2aa39a` |
+| Publisher | npm account `vanhuy1999` |
+
+Two reasons for the release.
+
+**The package page was blank.** `files: ["dist"]` shipped two files and nothing
+else, so `npm view leash-agentpay readme` answered *"No README data found!"* —
+a stranger reaching the registry page learned nothing about what the server
+does, how to configure it, or that `OPERATOR_PK` is a hot key. npm only picks
+up a README that sits in the package directory, and the repo's 15 kB root
+README is not that. `"license": "MIT"` was declared with no LICENSE text
+beside it, and there was no `author`.
+
+**Three reporting defects were fixed.** `leash_pay` claimed `ok: true, paid`
+the instant a transaction was sent; a node that could not be reached was
+reported as a policy refusal; and the x402 draw was signed against before the
+money it drew had arrived. All three are in the commits between `adc9db4` and
+`aed917f`.
+
+Minor rather than patch because `leash_pay`'s return shape changed: `ok: true`
+is no longer given on send, and `spend_reverted`, `sent_unconfirmed` and
+`policy_unreadable` are new. Pre-1.0, a breaking change is a minor bump.
+
+### Verified, not assumed
+
+Read back from the registry, and the tarball fetched from it rather than
+trusting the publish output:
+
+```
+$ npm view leash-agentpay version dist-tags
+version = '0.2.0'
+dist-tags = { latest: '0.2.0' }
+
+$ npm view leash-agentpay readme | head -1
+# leash-agentpay
+
+$ npm pack leash-agentpay@0.2.0 && tar tzf leash-agentpay-0.2.0.tgz
+package/LICENSE
+package/dist/index.js
+package/package.json
+package/README.md
+
+$ shasum leash-agentpay-0.2.0.tgz
+244857ec48798f46bf122d3dd3ad1537fb2aa39a
+```
+
+That shasum is the one npm printed at publish time, so the bytes on the
+registry are the bytes that were built. Every new branch is present in the
+registry's own copy of the bundle — `sent_unconfirmed`, `spend_reverted`,
+`policy_unreadable`, `draw_unconfirmed`, `preferAsset` and `DO NOT RETRY` all
+grep out of `package/dist/index.js`.
+
+**Not yet done for this version:** nobody has run `npx -y leash-agentpay`
+against 0.2.0 from a cold cache and driven a real tool call, the way 0.1.0 was
+exercised below. The bundle test packs a local tarball, and the grep above
+reads bytes rather than behaviour. Until somebody walks it, this entry claims a
+correct publish and nothing about a correct run.
+
+## npm — `leash-agentpay@0.1.0`, published 2026-09-06
 
 The MCP server had never been installable. Until this entry the only way to run
 it was to clone this repository, `pnpm install` under a pinned pnpm, and edit an

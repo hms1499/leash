@@ -76,7 +76,14 @@ and `pnpm -F leash-agentpay test:gate` **spend real money** — see Hazards.
 
 ## The MCP server is on npm, and an agent has now used it
 
-`leash-agentpay@0.1.0` is **published, public, and exercised end to end.** A
+`leash-agentpay@0.2.0` is **published and public** as of 2026-09-07, carrying
+the three reporting fixes and the README the package page had never had. It has
+**not** been exercised end to end — the walk below was done against 0.1.0, and
+nobody has driven a real tool call through 0.2.0 from the registry. See
+`docs/deployments.md` for what was and was not verified.
+
+The 0.1.0 record, which still stands as written: it was **published, public,
+and exercised end to end.** A
 second account was deployed through the hosted wizard on 2026-09-07, and an
 agent running `npx -y leash-agentpay` — the published package, started by its
 own MCP client from the `.mcp.json` the wizard emitted — called `leash_status`
