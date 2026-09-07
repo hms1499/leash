@@ -17,6 +17,7 @@ out/
 cache/
 broadcast/
 .next/
+.next-dev/
 dist/
 *.tsbuildinfo
 next-env.d.ts
