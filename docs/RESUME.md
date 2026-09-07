@@ -57,16 +57,19 @@ fast-forward — `main` was a strict ancestor, so no merge commit and no rewritt
 history — and `d7d9921..f9b9506` reached the remote: 16 commits, five of which
 predated the npm work.
 
-| ref | at |
-|---|---|
-| `origin/main` | `f9b9506` |
-| `main` (local) | `8b4f046` — **1 commit ahead**, the `.mcp.json.*` gitignore fix |
+Everything through that merge is on the remote, and the docs commit describing
+it went up too.
 
-That one commit is unpushed as this is written. This file has now asserted a
-wrong push state four separate times, so the standing instruction has not
-changed: run `git rev-parse --short main origin/main` before believing any
-sentence in this section, **including this one**. It was true when written and
-that is not the same as true now.
+**No ref hashes are written here any more.** This file has asserted a wrong
+push state four separate times, and each correction was itself a commit that
+made the table it had just fixed stale again -- a snapshot of "how far ahead is
+local" cannot survive the act of recording it. Ask git instead, which is the
+only answer that is true when you read it rather than when it was typed:
+
+```bash
+git rev-parse --short main origin/main   # two identical hashes = nothing pending
+git log --oneline origin/main..main      # empty = nothing pending
+```
 
 Gate tests are excluded from the ordinary runs. `pnpm -F @leash/sdk test:gate`
 and `pnpm -F leash-agentpay test:gate` **spend real money** — see Hazards.
@@ -106,18 +109,17 @@ minors parked during task reviews were closed at the same time.
 
 ### Pick up here
 
-1. **Push `8b4f046`.** One commit, the `.mcp.json.*` gitignore fix.
-2. **Nobody has timed the walk.** Task 6 proved the path works; it did not
+1. **Nobody has timed the walk.** Task 6 proved the path works; it did not
    measure it. No duration is claimed in `README.md` or `docs/deployments.md`,
    and none should be until somebody walks it with a clock running. The walk
    also reused the registered operator EOA rather than generating one, so even
    a timed repeat would understate a stranger's cost by that step.
-3. **Three deferred items from the status section still stand**: an ownership
+2. **Three deferred items from the status section still stand**: an ownership
    transfer path in a v2 (the contract's `owner` is `immutable`, so losing the
    owner key loses the funds), an owner switch to disable `topUpOperator`, and
    a factory so account addresses are deterministic and the frontend carries no
    bytecode.
-4. **The GitHub Actions annotation is cosmetic, for now.** Every job warns that
+3. **The GitHub Actions annotation is cosmetic, for now.** Every job warns that
    `actions/checkout@v4`, `actions/setup-node@v4` and `pnpm/action-setup@v4`
    target the deprecated Node 20 *action runtime*. That is not the project's
    `node-version: 20`, which is correct and must stay. Bumping those three to
