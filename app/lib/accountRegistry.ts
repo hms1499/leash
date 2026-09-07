@@ -3,6 +3,8 @@ import { isValidAddress } from './address.js'
 export type SavedPolicyAccount = {
   address: `0x${string}`
   deployBlock?: string
+  /** Last successful owner + interface verification against Celo RPC. */
+  verifiedAt?: number
   addedAt: number
 }
 
@@ -18,7 +20,9 @@ function isSavedAccount(value: unknown): value is SavedPolicyAccount {
   return Boolean(
     typeof item.address === 'string' && isValidAddress(item.address) &&
     typeof item.addedAt === 'number' && Number.isFinite(item.addedAt) &&
-    (item.deployBlock === undefined || /^\d+$/.test(item.deployBlock)),
+    (item.deployBlock === undefined || /^\d+$/.test(item.deployBlock)) &&
+    (item.verifiedAt === undefined ||
+      (typeof item.verifiedAt === 'number' && Number.isFinite(item.verifiedAt))),
   )
 }
 
@@ -40,6 +44,7 @@ export function listPolicyAccounts(storage: Storage, owner: string): SavedPolicy
       address: item.address,
       deployBlock: item.deployBlock,
       addedAt: item.addedAt,
+      ...(item.verifiedAt === undefined ? {} : { verifiedAt: item.verifiedAt }),
     }))
   } catch {
     return []
@@ -58,6 +63,7 @@ export function savePolicyAccount(
     address: account.address,
     addedAt: previous?.addedAt ?? account.addedAt ?? Date.now(),
     deployBlock: account.deployBlock ?? previous?.deployBlock,
+    verifiedAt: account.verifiedAt ?? previous?.verifiedAt,
   }
   const next = index >= 0
     ? current.map((item, i) => i === index ? nextItem : item)

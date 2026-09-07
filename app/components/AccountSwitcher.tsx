@@ -52,7 +52,7 @@ export default function AccountSwitcher({ current }: { current: `0x${string}` })
           )}
           {accounts.map((item) => (
             <option key={item.address} value={item.address.toLowerCase()}>
-              {truncateAddress(item.address)}
+              {item.verifiedAt !== undefined ? '✓' : '○'} {truncateAddress(item.address)}
             </option>
           ))}
         </select>

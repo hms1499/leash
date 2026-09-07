@@ -67,6 +67,7 @@ export default function AccountsPage() {
   const [note, setNote] = useState<string | null>(null)
   const [discovering, setDiscovering] = useState(false)
   const [discoveryNote, setDiscoveryNote] = useState<string | null>(null)
+  const verifiedCount = accounts.filter((account) => account.verifiedAt !== undefined).length
 
   useEffect(() => {
     if (!connected) {
@@ -111,7 +112,7 @@ export default function AccountsPage() {
         if (signal?.aborted) return
         for (const { candidate, result } of results) {
           if (result !== 'verified') continue
-          savePolicyAccount(localStorage, owner, candidate)
+          savePolicyAccount(localStorage, owner, { ...candidate, verifiedAt: Date.now() })
           discovered++
         }
       }
@@ -155,7 +156,7 @@ export default function AccountsPage() {
         setNote('Could not verify this as a compatible Leash policy account on Celo.')
         return
       }
-      savePolicyAccount(localStorage, connected, { address: candidate })
+      savePolicyAccount(localStorage, connected, { address: candidate, verifiedAt: Date.now() })
       setCandidate('')
       setNote('Account verified and saved on this device.')
       refresh()
@@ -194,7 +195,7 @@ export default function AccountsPage() {
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>
-              <Label>{accounts.length} verified {accounts.length === 1 ? 'account' : 'accounts'}</Label>
+              <Label>{verifiedCount} verified · {accounts.length} total</Label>
               {discoveryNote && (
                 <p role="status" className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
                   {discoveryNote}
@@ -230,6 +231,18 @@ export default function AccountsPage() {
                   key={account.address}
                   account={account}
                   number={index + 1}
+                  checking={discovering && account.verifiedAt === undefined}
+                  onVerify={async () => {
+                    const result = await verifyPolicyAccount(account.address, connected!)
+                    if (result !== 'verified') return false
+                    savePolicyAccount(localStorage, connected!, {
+                      address: account.address,
+                      deployBlock: account.deployBlock,
+                      verifiedAt: Date.now(),
+                    })
+                    refresh()
+                    return true
+                  }}
                 />
               ))}
             </div>
@@ -273,10 +286,16 @@ export default function AccountsPage() {
   )
 }
 
-function AccountRow({ account, number }: {
+function AccountRow({ account, number, checking, onVerify }: {
   account: SavedPolicyAccount
   number: number
+  checking: boolean
+  onVerify: () => Promise<boolean>
 }) {
+  const [verifying, setVerifying] = useState(false)
+  const [verifyFailed, setVerifyFailed] = useState(false)
+  const isChecking = checking || verifying
+
   return (
     <Panel className="p-5">
       <div className="flex flex-wrap items-start gap-4">
@@ -286,6 +305,37 @@ function AccountRow({ account, number }: {
           </h2>
           <div className="mt-2"><Address address={account.address} copy full className="num" /></div>
           {account.deployBlock && <Label className="block mt-2">Deployed at block {account.deployBlock}</Label>}
+          <p className="text-sm mt-2" role="status" style={{
+            color: account.verifiedAt !== undefined
+              ? 'var(--ok)'
+              : isChecking ? 'var(--dim)' : 'var(--bad)',
+          }}>
+            {account.verifiedAt !== undefined
+              ? '✓ Verified on Celo'
+              : isChecking ? '○ Checking on Celo…' : verifyFailed
+                ? '! Could not verify this account'
+                : '○ Not verified yet'}
+          </p>
+          {account.verifiedAt === undefined && !checking && (
+            <Button
+              className="mt-3"
+              disabled={verifying}
+              onClick={() => void (async () => {
+                setVerifying(true)
+                setVerifyFailed(false)
+                try {
+                  const ok = await onVerify()
+                  setVerifyFailed(!ok)
+                } catch {
+                  setVerifyFailed(true)
+                } finally {
+                  setVerifying(false)
+                }
+              })()}
+            >
+              {verifying ? 'Verifying…' : 'Verify now'}
+            </Button>
+          )}
         </div>
         <Link
           href={`/a/${account.address}`}
