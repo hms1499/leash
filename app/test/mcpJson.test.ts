@@ -95,8 +95,17 @@ describe('buildMcpJson', () => {
     expect(server.args).toEqual(['-y', 'leash-agentpay'])
   })
 
-  it('emits no local filesystem path at all', () => {
-    expect(buildMcpJson(handoff)).not.toMatch(/\/absolute\/path|\.ts\b/)
+  /**
+   * Matching the two literals that happened to be there would only catch the
+   * path we already removed. Every value this block emits is an address, a
+   * placeholder or a package name, so none of them can legitimately contain a
+   * path separator -- which makes "no separator anywhere" the assertion that
+   * catches the next path, whatever shape it arrives in.
+   */
+  it('emits no local filesystem path at all, in any field', () => {
+    const server = JSON.parse(buildMcpJson(handoff)).mcpServers.leash
+    const values: string[] = [server.command, ...server.args, ...Object.values(server.env)]
+    for (const v of values) expect(v).not.toMatch(/[/\\]/)
   })
 })
 
