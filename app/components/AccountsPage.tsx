@@ -10,7 +10,6 @@ import Button from './ui/Button'
 import Label from './ui/Label'
 import Panel from './ui/Panel'
 import { PAGE } from './ui/page'
-import { isValidAddress } from '../lib/address.js'
 import {
   announceAccountRegistryChange,
   listPolicyAccounts,
@@ -62,9 +61,6 @@ async function verifyPolicyAccount(
 export default function AccountsPage() {
   const { address: connected, isConnected } = useAccount()
   const [accounts, setAccounts] = useState<SavedPolicyAccount[]>([])
-  const [candidate, setCandidate] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [note, setNote] = useState<string | null>(null)
   const [discovering, setDiscovering] = useState(false)
   const [discoveryNote, setDiscoveryNote] = useState<string | null>(null)
 
@@ -93,7 +89,7 @@ export default function AccountsPage() {
       }
       if (!response.ok || !Array.isArray(body.accounts)) {
         setDiscoveryNote(body.code === 'DISCOVERY_NOT_CONFIGURED'
-          ? 'Automatic discovery needs an explorer API key. Saved accounts and manual import still work.'
+          ? 'Automatic discovery is not configured. Add the explorer API key and refresh.'
           : 'Could not refresh account history. Showing the last saved list.')
         return
       }
@@ -119,7 +115,7 @@ export default function AccountsPage() {
       announceAccountRegistryChange()
       setDiscoveryNote(
         `${discovered} compatible policy ${discovered === 1 ? 'account' : 'accounts'} found in Celo history.` +
-        (body.historyTruncated ? ' Older history may require manual import.' : ''),
+        (body.historyTruncated ? ' Some older deployments may not be shown.' : ''),
       )
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
@@ -134,36 +130,6 @@ export default function AccountsPage() {
     if (!connected) return
     setAccounts(listPolicyAccounts(localStorage, connected))
     announceAccountRegistryChange()
-  }
-
-  async function importAccount() {
-    setNote(null)
-    if (!connected) { setNote('Connect the owner wallet first.'); return }
-    if (!isValidAddress(candidate)) { setNote('Enter a valid Celo address.'); return }
-    if (accounts.some((item) => item.address.toLowerCase() === candidate.toLowerCase())) {
-      setNote('This account is already saved on this device.')
-      return
-    }
-    setBusy(true)
-    try {
-      const result = await verifyPolicyAccount(candidate, connected)
-      if (result === 'wrong-owner') {
-        setNote('The connected wallet does not own this policy account.')
-        return
-      }
-      if (result === 'incompatible') {
-        setNote('This is not a compatible Leash policy account on Celo.')
-        return
-      }
-      savePolicyAccount(localStorage, connected, { address: candidate })
-      setCandidate('')
-      setNote('Account added.')
-      refresh()
-    } catch {
-      setNote('Could not check this account on Celo.')
-    } finally {
-      setBusy(false)
-    }
   }
 
   return (
@@ -220,7 +186,7 @@ export default function AccountsPage() {
               <p className="text-sm">
                 {discovering
                   ? 'Searching this owner’s deployment history for compatible policy accounts…'
-                  : 'No compatible policy accounts were found. You can create one or import an address manually.'}
+                  : 'No compatible policy accounts were found. You can create one to get started.'}
               </p>
             </Panel>
           ) : (
@@ -235,34 +201,8 @@ export default function AccountsPage() {
             </div>
           )}
 
-          <Panel as="section" className="p-6">
-            <h2 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>Import an existing account</h2>
-            <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-              Use this after changing browser or device. Leash confirms the connected wallet owns the account and that it is compatible.
-            </p>
-            <Label className="block mt-4">Policy account address</Label>
-            <input
-              className="field num w-full mt-2 p-2"
-              aria-label="Policy account address"
-              placeholder="0x…"
-              value={candidate}
-              onChange={(event) => setCandidate(event.target.value)}
-              disabled={busy}
-            />
-            <Button variant="primary" className="mt-3" disabled={busy} onClick={() => void importAccount()}>
-              {busy ? 'Checking…' : 'Add account'}
-            </Button>
-            {note && (
-              <p role="status" className="text-sm mt-3" style={{
-                color: note === 'Account added.' ? 'var(--ok)' : 'var(--bad)',
-              }}>
-                {note}
-              </p>
-            )}
-          </Panel>
-
           <p className="text-sm" style={{ color: 'var(--dim)' }}>
-            Discovery uses indexed Celo transaction history and confirms every result against Celo RPC. Manual import remains available for deployments made through another wallet or relayer. Powered by{' '}
+            Discovery uses indexed Celo transaction history and confirms every result against Celo RPC. It currently finds accounts deployed directly by the connected owner. Powered by{' '}
             <a href="https://celoscan.io" target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
               CeloScan
             </a>.

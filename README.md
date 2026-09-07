@@ -128,8 +128,8 @@ pnpm --filter @leash/app dev     # then open http://localhost:3000/setup
 Put `CELOSCAN_KEY` in `app/.env.local` (and in the app's server-side deployment
 environment) to enable automatic discovery of every compatible policy account
 deployed directly by the connected owner. The key stays in the Next.js API
-route; it is never shipped to the browser. Manual import remains available
-when the explorer is unavailable or a relayer created the account.
+route; it is never shipped to the browser. Relayer and factory deployments are
+outside the current MVP flow.
 
 **From the command line.** [`docs/mcp-setup.md`](docs/mcp-setup.md) does the
 same thing with `forge create` and `cast send`, explains every value it asks
