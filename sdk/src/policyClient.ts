@@ -6,6 +6,7 @@ import { celo } from 'viem/chains'
 import { spendPolicyAccountAbi } from './abi.js'
 import { withAttribution } from './attribution.js'
 import { pickFeeAdapter } from './feeCurrency.js'
+import { confirmTransaction, type TxOutcome } from './confirm.js'
 
 // Typed via ReturnType rather than the bare `PublicClient`/`WalletClient`
 // generics: annotating the fields with the bare imported types produced a
@@ -63,6 +64,43 @@ export function describePreCheckFailure(
     default:
       return { ok: false, error: 'unknown_policy_error', spent: 0n, cap: 0n }
   }
+}
+
+/**
+ * Decides whether the chain refused, or whether we never heard from it.
+ *
+ * These are different events and they were collapsed into one until now: any
+ * error whose decoded revert data was missing became `unknown_policy_error`,
+ * which `leash_pay` then reported to an agent as "the on-chain policy refused
+ * a payment". forno 500s and times out routinely, so that sentence was
+ * regularly said about a policy nobody had asked.
+ *
+ * The discriminator is whether viem produced a `ContractFunctionRevertedError`.
+ * If it did, the node executed the call and the contract reverted — a real
+ * refusal, even when the revert cannot be named. If it did not, the failure is
+ * transport: unreachable node, timeout, malformed response. That is
+ * `policy_unreadable`, and the caller must not act as though a limit was hit.
+ *
+ * Matched on `.name` rather than `instanceof`: `mcp/` bundles this SDK through
+ * tsup while keeping viem external, so the class identity an `instanceof`
+ * compares against is not guaranteed to be the same object at runtime. The
+ * name is. Confirmed against viem 2.56.1, whose `ContractFunctionRevertedError`
+ * sets `name = 'ContractFunctionRevertedError'` and carries the decoded revert
+ * as `.data = { errorName, args }` — and only when the ABI passed to
+ * `simulateContract` includes the `error` entries (see abi.ts). A
+ * function-only ABI leaves `.data` undefined and every refusal would fall
+ * through to `unknown_policy_error`.
+ */
+export function classifySimulationError(err: unknown): PreCheckResult {
+  const cause = (err as { cause?: { name?: string; data?: { errorName?: string; args?: readonly unknown[] } } })
+    .cause
+  if (cause?.name !== 'ContractFunctionRevertedError') {
+    return { ok: false, error: 'policy_unreadable', spent: 0n, cap: 0n }
+  }
+  return describePreCheckFailure({
+    name: cause.data?.errorName ?? 'unknown',
+    args: cause.data?.args ?? [],
+  })
 }
 
 /**
@@ -139,6 +177,24 @@ export class LeashClient {
     })
   }
 
+  /**
+   * What the chain was actually seen to do with a transaction.
+   *
+   * A hash is not a payment: `spend` and `topUp` resolve as soon as a node
+   * accepts the transaction. Anything that reports money as moved must call
+   * this first and act on all three answers — `unobserved` in particular is
+   * not failure, and a caller that retries on it pays twice.
+   */
+  async confirm(
+    hash: `0x${string}`,
+    opts?: { attempts?: number; intervalMs?: number },
+  ): Promise<TxOutcome> {
+    return confirmTransaction(
+      async () => this.#pub.getTransactionReceipt({ hash }),
+      opts,
+    )
+  }
+
   /** Simulates the spend so a rejected call costs no gas. */
   async preCheck(
     token: `0x${string}`, to: `0x${string}`, amount: bigint,
@@ -153,21 +209,7 @@ export class LeashClient {
       })
       return { ok: true }
     } catch (err) {
-      // viem 2.x throws `ContractFunctionExecutionError` from a failed
-      // `simulateContract`, whose `.cause` is a `ContractFunctionRevertedError`
-      // carrying the decoded revert as `.data = { errorName, args, abiItem }`
-      // — confirmed against the installed viem@2.56.1 by driving a mocked
-      // JSON-RPC "execution reverted" response through the real
-      // `simulateContract` pipeline. `.data` only decodes when the ABI passed
-      // to `simulateContract` includes the `error` entries (see abi.ts) — a
-      // function-only ABI leaves `.data` undefined and every rejection would
-      // fall through to `unknown_policy_error`.
-      const data = (err as { cause?: { data?: { errorName?: string; args?: readonly unknown[] } } })
-        .cause?.data
-      return describePreCheckFailure({
-        name: data?.errorName ?? 'unknown',
-        args: data?.args ?? [],
-      })
+      return classifySimulationError(err)
     }
   }
 
@@ -255,12 +297,7 @@ export class LeashClient {
       })
       return { ok: true }
     } catch (err) {
-      const data = (err as { cause?: { data?: { errorName?: string; args?: readonly unknown[] } } })
-        .cause?.data
-      return describePreCheckFailure({
-        name: data?.errorName ?? 'unknown',
-        args: data?.args ?? [],
-      })
+      return classifySimulationError(err)
     }
   }
 

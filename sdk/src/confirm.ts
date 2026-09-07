@@ -34,3 +34,40 @@ export async function pollUntil(
   }
   return false
 }
+
+/** What the chain was actually seen to do with a transaction. */
+export type TxOutcome = 'success' | 'reverted' | 'unobserved'
+
+/**
+ * Turns a transaction hash into one of three answers, and never into two.
+ *
+ * A hash is not a payment. `sendTransaction` resolves as soon as a node accepts
+ * the transaction, which says nothing about whether it was mined, and
+ * `waitForTransactionReceipt` resolves on revert — so neither is evidence that
+ * money moved. The three outcomes here are deliberately not collapsible:
+ *
+ * - `success`    — a receipt was read and it says the transaction succeeded.
+ * - `reverted`   — a receipt was read and it says the transaction reverted.
+ *                  Nothing moved; only gas was spent.
+ * - `unobserved` — no receipt was read inside the window. This is NOT failure.
+ *                  The transaction may be mined a second later, so a caller
+ *                  that retries here pays twice.
+ *
+ * `getReceipt` is expected to throw while the transaction is still pending —
+ * that is how viem reports a missing receipt — and forno's load balancer
+ * throws for its own reasons too. Both are polled through, not surfaced.
+ *
+ * The default window is 60s: Celo produces one block per second, so a
+ * transaction that is going to land has landed long before that.
+ */
+export async function confirmTransaction(
+  getReceipt: () => Promise<{ status: 'success' | 'reverted' }>,
+  { attempts = 30, intervalMs = 2000 }: { attempts?: number; intervalMs?: number } = {},
+): Promise<TxOutcome> {
+  let seen: 'success' | 'reverted' | undefined
+  await pollUntil(async () => {
+    seen = (await getReceipt()).status
+    return true
+  }, { attempts, intervalMs })
+  return seen ?? 'unobserved'
+}
