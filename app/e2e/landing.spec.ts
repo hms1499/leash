@@ -58,7 +58,22 @@ test('the landing page explains itself and shows live mainnet numbers', async ({
   await expect(page.getByText('The contract has not been audited.', { exact: false })).toBeVisible()
   await expect(page.getByText(/mcpServers/)).toHaveCount(0)
   await expect(page.getByRole('link', { name: /create protected account/i }).first()).toBeVisible()
+  const dashboardPreviews = page.getByRole('link', { name: 'View live dashboard' })
+  await expect(dashboardPreviews).toHaveCount(2)
+  await expect(dashboardPreviews.first()).toHaveAttribute('href', '#live-proof')
+  await expect(page.getByRole('link', { name: 'Open full dashboard' })).toHaveAttribute(
+    'href',
+    '/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2',
+  )
   await expect(page.locator('a button, button a')).toHaveCount(0)
+})
+
+test('the live dashboard preview stays on the homepage until the user opens the full view', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'View live dashboard' }).first().click()
+
+  await expect(page).toHaveURL(/\/#live-proof$/)
+  await expect(page.getByRole('heading', { name: 'A real account, not a mockup' })).toBeInViewport()
 })
 
 test('the primary journey links landing, setup and the account directory without dead ends', async ({ page }) => {

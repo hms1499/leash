@@ -3,8 +3,6 @@ import Label from '../ui/Label'
 import { PAGE } from '../ui/page'
 import { PROSE } from '../ui/prose'
 
-const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
-
 export default function Hero() {
   return (
     <section className={`${PAGE} pb-12 pt-14 sm:pb-16 sm:pt-20`} aria-labelledby="hero-title">
@@ -38,7 +36,7 @@ export default function Hero() {
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <ActionLink href="/setup" variant="primary">Create protected account</ActionLink>
-        <ActionLink href={`/a/${ACCOUNT}`}>View live dashboard</ActionLink>
+        <ActionLink href="#live-proof">View live dashboard</ActionLink>
       </div>
       <ul
         className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs"

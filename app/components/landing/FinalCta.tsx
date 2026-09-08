@@ -3,8 +3,6 @@ import Panel from '../ui/Panel'
 import { PAGE } from '../ui/page'
 import { PROSE } from '../ui/prose'
 
-const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
-
 export default function FinalCta() {
   return (
     <section className={`${PAGE} py-10 sm:py-14`} aria-labelledby="final-cta-title">
@@ -26,7 +24,7 @@ export default function FinalCta() {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <ActionLink href="/setup" variant="primary">Create protected account</ActionLink>
-          <ActionLink href={`/a/${ACCOUNT}`}>View live dashboard</ActionLink>
+          <ActionLink href="#live-proof">View live dashboard</ActionLink>
         </div>
       </Panel>
     </section>

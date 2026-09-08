@@ -1,6 +1,7 @@
 'use client'
 
 import Meter from '../Meter'
+import ActionLink from '../ui/ActionLink'
 import Panel from '../ui/Panel'
 import Label from '../ui/Label'
 import Address from '../ui/Address'
@@ -99,6 +100,9 @@ export default function LiveProof() {
             </a>
           ))
         )}
+        <div className="mt-4">
+          <ActionLink href={`/a/${ACCOUNT}`}>Open full dashboard</ActionLink>
+        </div>
       </div>
     </Panel>
   )
