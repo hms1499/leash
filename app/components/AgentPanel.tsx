@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
-import { formatAmount, parseAmount } from '../lib/policy.js'
+import { formatDisplayAmount, parseAmount } from '../lib/policy.js'
 import { transactionsLeft } from '../lib/gasFloat.js'
-import { truncateAddress } from '../lib/address.js'
 import { pollUntil } from '../lib/confirm.js'
+import Address from './ui/Address'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
 import Button from './ui/Button'
@@ -145,27 +145,36 @@ export default function AgentPanel({
 
   return (
     <Panel as="section" className="p-6">
-      <Label className="block">Funds</Label>
-      <div className="grid gap-5 sm:grid-cols-2 mt-3">
-        <div>
-          <p className="text-sm font-semibold">Protected funds</p>
-          <p className="num mt-2">{formatAmount(protectedBalance, decimals)} {symbol}</p>
+      <Label className="block">Balances</Label>
+      <h2
+        className="mt-2"
+        style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)', color: 'var(--text)' }}
+      >
+        Funds and agent gas
+      </h2>
+      <div className="grid gap-4 mt-4 sm:grid-cols-2">
+        <div className="rounded p-4" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
+          <p className="text-sm font-semibold">Protected account</p>
+          <p className="num mt-2 text-lg">{formatDisplayAmount(protectedBalance, decimals)} {symbol}</p>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-            Held by the policy account and subject to its limits.
+            Held behind the contract&apos;s spending policy.
           </p>
         </div>
-        <div>
-          <p className="text-sm font-semibold">Agent wallet</p>
-          <p className="num text-sm mt-2">{truncateAddress(operator)}</p>
+        <div className="rounded p-4" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <p className="text-sm font-semibold">Agent wallet</p>
+            <span className="num text-xs" style={{ color: low ? 'var(--bad)' : 'var(--ok)' }}>
+              {left} gas tx left
+            </span>
+          </div>
+          <p className="mt-2"><Address address={operator} copy explorer className="num text-sm" /></p>
           <p className="text-sm mt-2" style={{ color: low ? 'var(--bad)' : 'var(--dim)' }}>
-            <span className="num">{formatAmount(float, decimals)} {symbol}</span> — about{' '}
-            <span className="num">{left}</span>{' '}
-            {left === 1 ? 'transaction' : 'transactions'} of gas left
+            <span className="num">{formatDisplayAmount(float, decimals)} {symbol}</span> available for gas
             {left === 0 && '. The agent has stalled and cannot refuel itself.'}
           </p>
         </div>
       </div>
-      <p className="text-sm mt-4" style={{ color: 'var(--bad)' }}>
+      <p className="text-sm mt-4" style={{ color: low ? 'var(--bad)' : 'var(--dim)' }}>
         Funds in the agent wallet are outside recipient restrictions. This is
         required for gas and x402 payments.
       </p>

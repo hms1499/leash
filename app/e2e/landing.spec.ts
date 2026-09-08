@@ -47,7 +47,7 @@ test('the landing page explains itself and shows live mainnet numbers', async ({
   ).toBeVisible()
 
   await expect(page.getByText('Live on Celo mainnet')).toBeVisible()
-  await expect(page.locator('.num').filter({ hasText: /\d+\.\d{6}/ }).first())
+  await expect(page.locator('.num').filter({ hasText: /\d+\.\d{2,6}/ }).first())
     .toBeVisible({ timeout: 30_000 })
 
   // The proof rows are links a reader can actually open.
@@ -63,7 +63,7 @@ test('the landing page explains itself and shows live mainnet numbers', async ({
   await expect(dashboardPreviews.first()).toHaveAttribute('href', '#live-proof')
   await expect(page.getByRole('link', { name: 'Open full dashboard' })).toHaveAttribute(
     'href',
-    '/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2',
+    '/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2?operator=0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6',
   )
   await expect(page.locator('a button, button a')).toHaveCount(0)
 })

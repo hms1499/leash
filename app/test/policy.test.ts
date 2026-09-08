@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  spentToday, percentUsed, refusalThreshold, formatAmount, parseAmount, canEdit,
+  spentToday, percentUsed, refusalThreshold, formatAmount, formatDisplayAmount, parseAmount, canEdit,
   validateLimits,
 } from '../lib/policy.js'
 
@@ -61,6 +61,17 @@ describe('formatAmount', () => {
 
   it('honours a shorter requested precision', () => {
     expect(formatAmount(980_773n, USDC, 2)).toBe('0.98')
+  })
+})
+
+describe('formatDisplayAmount', () => {
+  it('removes zeroes that add no information', () => {
+    expect(formatDisplayAmount(190_000n, USDC)).toBe('0.19')
+    expect(formatDisplayAmount(1_000_000n, USDC)).toBe('1.00')
+  })
+
+  it('keeps precision for a small gas balance', () => {
+    expect(formatDisplayAmount(37_776n, USDC)).toBe('0.037776')
   })
 })
 

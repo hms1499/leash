@@ -33,6 +33,26 @@ export function formatAmount(value: bigint, decimals: number, places = decimals)
   return places === 0 ? whole : `${whole}.${fraction.padEnd(places, '0').slice(0, places)}`
 }
 
+/**
+ * Human-facing token amount: preserve small values, but remove meaningless
+ * trailing zeroes from normal balances. Policy inputs keep using formatAmount
+ * because fixed precision is useful while editing; dashboard figures use this
+ * shape because 0.190000 is slower to scan than 0.19 and no more accurate.
+ */
+export function formatDisplayAmount(
+  value: bigint,
+  decimals: number,
+  minimumPlaces = 2,
+): string {
+  const full = formatUnits(value, decimals)
+  const [whole, rawFraction = ''] = full.split('.')
+  let fraction = rawFraction.padEnd(decimals, '0')
+  while (fraction.length > minimumPlaces && fraction.endsWith('0')) {
+    fraction = fraction.slice(0, -1)
+  }
+  return fraction.length === 0 ? whole : `${whole}.${fraction}`
+}
+
 export function parseAmount(input: string, decimals: number): bigint {
   if (!/^\d+(\.\d+)?$/.test(input.trim())) {
     throw new RangeError(`"${input}" is not a positive decimal amount`)

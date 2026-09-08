@@ -11,6 +11,7 @@ import { explorerUrl } from '../../lib/proofs.js'
 import { WINDOW_LABEL } from '../../lib/feed.js'
 
 const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2' as const
+const OPERATOR = '0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6' as const
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const DECIMALS = 6
 const ROWS = 3
@@ -101,7 +102,7 @@ export default function LiveProof() {
           ))
         )}
         <div className="mt-4">
-          <ActionLink href={`/a/${ACCOUNT}`}>Open full dashboard</ActionLink>
+          <ActionLink href={`/a/${ACCOUNT}?operator=${OPERATOR}`}>Open full dashboard</ActionLink>
         </div>
       </div>
     </Panel>

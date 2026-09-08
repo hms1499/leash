@@ -826,7 +826,7 @@ export default function Onboard() {
               Open the dashboard to monitor spending or change protection. Connecting an SDK or MCP runtime is a separate integration journey and is not required to complete this setup.
             </p>
             <div className="flex flex-wrap gap-3 mt-4">
-              <ActionLink href={`/a/${account}`} variant="primary">Open dashboard</ActionLink>
+              <ActionLink href={`/a/${account}?operator=${agent}`} variant="primary">Open dashboard</ActionLink>
               <Button variant="ghost" onClick={() => setActiveStage(3)}>Review funding</Button>
             </div>
           </div>

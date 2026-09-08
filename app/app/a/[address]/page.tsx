@@ -6,9 +6,8 @@ import Meter from '../../../components/Meter'
 import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
 import NetworkBadge from '../../../components/NetworkBadge'
-import Address from '../../../components/ui/Address'
 import BrandLink from '../../../components/ui/BrandLink'
-import Label, { LABEL_STYLE } from '../../../components/ui/Label'
+import Label from '../../../components/ui/Label'
 import Panel from '../../../components/ui/Panel'
 import Button from '../../../components/ui/Button'
 import Shell from '../../../components/ui/Shell'
@@ -17,7 +16,7 @@ import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
 import AccountSwitcher from '../../../components/AccountSwitcher'
-import { AccountStatus, RecommendedAction, SecurityPolicy } from '../../../components/DashboardOverview'
+import { AccountOverview, SecurityPolicy } from '../../../components/DashboardOverview'
 import { useAccountState } from '../../../lib/useAccountState.js'
 import { useFeed } from '../../../lib/useFeed.js'
 import { isValidAddress } from '../../../lib/address.js'
@@ -31,6 +30,8 @@ import { accountDeployBlock, migrateLegacyAccount } from '../../../lib/accountRe
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const DECIMALS = 6
 const SYMBOL = 'USDC'
+const DEMO_ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
+const DEMO_OPERATOR = '0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6'
 
 const OPERATOR_ABI = [
   { type: 'function', name: 'operators', stateMutability: 'view',
@@ -103,6 +104,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
   // itself is what actually gates the panel.
   const [operator, setOperator] = useState<string | null>(null)
   const [operatorCheckFailed, setOperatorCheckFailed] = useState(false)
+  const [operatorResolving, setOperatorResolving] = useState(true)
 
   // The check below depends on feed.rows, so a single failed read used to
   // stick until a new feed event arrived — while its neighbour, the balance
@@ -123,16 +125,30 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     async function resolve() {
       const fromFeed = feed.rows.find((r) => r.kind === 'spent' || r.kind === 'toppedUp')?.operator
       const fromQuery = new URLSearchParams(window.location.search).get('operator')
+      const fromSetup = localStorage.getItem(`leash.agent.${address.toLowerCase()}`)
+      // The public proof account is intentionally a stable product fixture.
+      // Its grant event eventually falls outside the 24-hour activity window,
+      // so keep its candidate beside the account constant. This is not trusted
+      // authorization: operators() below still verifies it on every load.
+      const fromPublicProof = address.toLowerCase() === DEMO_ACCOUNT.toLowerCase()
+        ? DEMO_OPERATOR
+        : null
       // A spend proves the operator is real and working, so it wins. Failing
       // that, who the owner authorised: without this an account set up but not
       // yet used — what the wizard leaves behind — never showed its agent at
       // all. The query parameter stays last and stays untrusted; operators()
       // below is what decides, either way.
-      const candidate = feed.operatorCandidate ?? fromFeed ?? fromQuery
-      if (!candidate || !isValidAddress(candidate)) {
-        if (!cancelled) { setOperator(null); setOperatorCheckFailed(false) }
+      const candidate = [feed.operatorCandidate, fromFeed, fromSetup, fromPublicProof, fromQuery]
+        .find((value): value is `0x${string}` => typeof value === 'string' && isValidAddress(value))
+      if (!candidate) {
+        if (!cancelled) {
+          setOperator(null)
+          setOperatorCheckFailed(false)
+          setOperatorResolving(false)
+        }
         return
       }
+      if (!cancelled) setOperatorResolving(true)
       try {
         const isOperator = await publicClient.readContract({
           address, abi: OPERATOR_ABI, functionName: 'operators', args: [candidate],
@@ -140,11 +156,16 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         if (cancelled) return
         setOperator(isOperator ? candidate : null)
         setOperatorCheckFailed(false)
+        setOperatorResolving(false)
       } catch {
         // Fail closed: a failed check must never render the panel as if it
         // had verified the address, since that is exactly the phishing shape
         // this check exists to prevent.
-        if (!cancelled) { setOperator(null); setOperatorCheckFailed(true) }
+        if (!cancelled) {
+          setOperator(null)
+          setOperatorCheckFailed(true)
+          setOperatorResolving(false)
+        }
       }
     }
     void resolve()
@@ -159,6 +180,11 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     setAgentTransactionsLeft(null)
   }, [operator])
 
+  // History may still be backfilling after a candidate has already passed
+  // operators(). Once the operator is verified, activity loading must not
+  // keep the whole account stuck in a misleading "Verifying" state.
+  const operatorLoading = !operator && (feed.isLoading || operatorResolving)
+
   return (
     <main>
       {/* Everything on this band obeys the bright-ground rule: --bg only.
@@ -170,29 +196,22 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           borderBottom: '1px solid var(--line)',
         }}
       >
-        <div className={`${PAGE} flex flex-wrap items-center gap-3 py-3`}>
-        <BrandLink onBright={state.paused} />
-        {/* .label's --dim on the paused band's --bad is about 1.6:1 and
-            disappears on video. The state change is meant to read at a glance,
-            and the address is what tells you *which* account stopped. */}
-        <Address
-          address={address}
-          copy
-          explorer
-          style={{ ...LABEL_STYLE, color: state.paused ? 'var(--bg)' : undefined }}
-        />
-        <span className="ml-auto flex flex-wrap items-center justify-end gap-3">
-          <AccountSwitcher current={address} />
-          <NetworkBadge onDangerBand={state.paused} />
-          <StopButton
-            account={address}
-            paused={state.paused}
-            isOwner={isOwner}
-            loading={state.isLoading}
-            onChanged={state.refetch}
-          />
-          <ConnectButton />
-        </span>
+        <div className={`${PAGE} flex flex-wrap items-center gap-2 py-3`}>
+          <BrandLink onBright={state.paused} />
+          <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <AccountSwitcher current={address} />
+            {connected && <NetworkBadge onDangerBand={state.paused} />}
+            {isOwner && (
+              <StopButton
+                account={address}
+                paused={state.paused}
+                isOwner={isOwner}
+                loading={state.isLoading}
+                onChanged={state.refetch}
+              />
+            )}
+            <ConnectButton />
+          </span>
         </div>
       </header>
 
@@ -223,25 +242,20 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 </Panel>
               </div>
             )}
-            <AccountStatus
+            <AccountOverview
               account={address}
               owner={state.owner}
               connected={connected}
               paused={state.paused}
               loading={state.isLoading}
               updatedAt={state.updatedAt}
+              daily={state.daily}
+              perTx={state.perTx}
+              balance={state.balance}
+              operator={operator}
+              operatorLoading={operatorLoading}
+              agentTransactionsLeft={agentTransactionsLeft}
             />
-            {!state.isLoading && (
-              <RecommendedAction
-                account={address}
-                paused={state.paused}
-                daily={state.daily}
-                balance={state.balance}
-                operator={operator}
-                operatorLoading={feed.isLoading}
-                agentTransactionsLeft={agentTransactionsLeft}
-              />
-            )}
           </div>
 
           {/* The dashboard's dominant figure is the direct-payment ceiling. */}
@@ -258,40 +272,44 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           />
 
           <div className={`${PAGE} py-6 space-y-3`}>
-            {!state.isLoading && (
-              <SecurityPolicy
-                daily={state.daily}
-                perTx={state.perTx}
-                allowlistEnabled={state.allowlistEnabled}
-                operator={operator}
-                operatorLoading={feed.isLoading}
-                decimals={DECIMALS}
-                symbol={SYMBOL}
-              />
-            )}
-            {isOwner && (
-              <LimitsDrawer
-                account={address}
-                token={TOKEN}
-                decimals={DECIMALS}
-                symbol={SYMBOL}
-                perTx={state.perTx}
-                daily={state.daily}
-                allowlistEnabled={state.allowlistEnabled}
-                operator={operator}
-                isOwner={isOwner}
-                loading={state.isLoading}
-                onSaved={state.refetch}
-              />
-            )}
+            <div id="policy-controls" className="scroll-mt-6 space-y-3">
+              {!state.isLoading && (
+                <SecurityPolicy
+                  daily={state.daily}
+                  perTx={state.perTx}
+                  allowlistEnabled={state.allowlistEnabled}
+                  operator={operator}
+                  operatorLoading={operatorLoading}
+                  decimals={DECIMALS}
+                  symbol={SYMBOL}
+                />
+              )}
+              {isOwner && (
+                <LimitsDrawer
+                  account={address}
+                  token={TOKEN}
+                  decimals={DECIMALS}
+                  symbol={SYMBOL}
+                  perTx={state.perTx}
+                  daily={state.daily}
+                  allowlistEnabled={state.allowlistEnabled}
+                  operator={operator}
+                  isOwner={isOwner}
+                  loading={state.isLoading}
+                  onSaved={state.refetch}
+                />
+              )}
+            </div>
             {operator && isValidAddress(operator) && (
-              <AgentPanel
-                account={address} operator={operator} token={TOKEN}
-                decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
-                protectedBalance={state.balance}
-                onRefuelled={state.refetch}
-                onGasStatusChange={updateAgentGasStatus}
-              />
+              <div id="agent-funds" className="scroll-mt-6">
+                <AgentPanel
+                  account={address} operator={operator} token={TOKEN}
+                  decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
+                  protectedBalance={state.balance}
+                  onRefuelled={state.refetch}
+                  onGasStatusChange={updateAgentGasStatus}
+                />
+              </div>
             )}
             {!operator && operatorCheckFailed && (
               <Label className="block" style={{ color: 'var(--bad)' }}>

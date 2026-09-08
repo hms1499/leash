@@ -31,11 +31,9 @@ export default function AccountSwitcher({ current }: { current: `0x${string}` })
     }
   }, [connected])
 
-  if (!connected) return null
-
   return (
     <span className="flex flex-wrap items-center gap-2">
-      {accounts.length > 1 && (
+      {connected && accounts.length > 1 && (
         <select
           className="field num px-2 py-2 max-w-48"
           aria-label="Protected account"
@@ -44,7 +42,11 @@ export default function AccountSwitcher({ current }: { current: `0x${string}` })
             const next = accounts.find((item) => item.address.toLowerCase() === event.target.value)
             if (!next) return
             selectPolicyAccount(localStorage, connected, next.address)
-            router.push(`/a/${next.address}`)
+            const operator = localStorage.getItem(`leash.agent.${next.address.toLowerCase()}`)
+            const query = operator && /^0x[0-9a-fA-F]{40}$/.test(operator)
+              ? `?operator=${operator}`
+              : ''
+            router.push(`/a/${next.address}${query}`)
           }}
         >
           {!accounts.some((item) => item.address.toLowerCase() === current.toLowerCase()) && (
@@ -60,8 +62,13 @@ export default function AccountSwitcher({ current }: { current: `0x${string}` })
       <Link
         href="/accounts"
         aria-current={pathname === '/accounts' ? 'page' : undefined}
-        className="rounded px-3 py-2"
-        style={{ border: '1px solid var(--line-control)', fontFamily: 'var(--mono)', fontSize: 'var(--t-data)' }}
+        className="rounded px-3 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        style={{
+          border: '1px solid var(--line-control)',
+          fontFamily: 'var(--mono)',
+          fontSize: 'var(--t-data)',
+          outlineColor: 'var(--text)',
+        }}
       >
         My accounts{accounts.length ? ` (${accounts.length})` : ''}
       </Link>

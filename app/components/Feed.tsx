@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { formatAmount } from '../lib/policy.js'
+import { formatDisplayAmount } from '../lib/policy.js'
 import { relativeAge, rowKey, WINDOW_LABEL, type FeedRow } from '../lib/feed.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
@@ -90,19 +90,19 @@ export default function Feed({
 
   return (
     <Panel className="px-4">
-      {rows.map((r) => (
+      {rows.map((r, index) => (
         <div
           key={rowKey(r)}
-          className="flex items-center gap-3 py-2 text-sm"
-          style={{ borderBottom: '1px solid var(--line)' }}
+          className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-1 py-3 text-sm sm:grid-cols-[auto_1fr_auto_auto_auto]"
+          style={{ borderBottom: index === rows.length - 1 ? 'none' : '1px solid var(--line)' }}
         >
           <span
             className="w-1.5 h-1.5 rounded-full shrink-0"
             style={{ background: r.kind === 'paused' ? 'var(--bad)' : 'var(--ok)' }}
           />
-          <span className="flex-1">{r.text}</span>
+          <span className="min-w-0">{r.text}</span>
           {head && (
-            <Label className="shrink-0">
+            <Label className="col-start-2 row-start-2 sm:col-auto sm:row-auto">
               {relativeAge(
                 Number(head.block - r.blockNumber) + (Date.now() - head.seenAt) / 1000,
               )}
@@ -115,15 +115,18 @@ export default function Feed({
             // inherited colour. --celo is spoken for in exactly two roles and
             // cannot be the third.
             <span className="num" style={{ color: 'var(--text)' }}>
-              {formatAmount(r.amount, decimals)} {symbol}
+              {formatDisplayAmount(r.amount, decimals)} {symbol}
             </span>
           )}
           <a
             href={`https://celoscan.io/tx/${r.txHash}`}
             target="_blank"
             rel="noreferrer"
+            aria-label="View transaction on Celoscan"
+            className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            style={{ outlineColor: 'var(--text)' }}
           >
-            <Label>tx</Label>
+            <Label>tx ↗</Label>
           </a>
         </div>
       ))}

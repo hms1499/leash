@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { formatAmount } from '../lib/policy.js'
+import { formatDisplayAmount } from '../lib/policy.js'
 import { meterState, spendBand } from '../lib/meter.js'
 import Label from './ui/Label'
 import Stat from './ui/Stat'
@@ -87,7 +87,7 @@ export default function Meter({
         <div className="mb-3">
           <Stat
             label="Maximum next direct payment"
-            value={`${formatAmount(band.amount, decimals)} ${symbol}`}
+            value={`${formatDisplayAmount(band.amount, decimals)} ${symbol}`}
             size={dominant ? 'display' : 'data'}
           />
           {/* The figure alone does not say whether to raise a cap or send more
@@ -159,27 +159,27 @@ export default function Meter({
       )}
 
       {/* The three constraints the figure above is the minimum of, at --t-data.
-          Before the first read there is nothing to state: 0.000000 here is
+          Before the first read there is nothing to state: 0.00 here is
           indistinguishable from a spent allowance, and that is the first thing
           a visitor sees. */}
-      <div className="flex flex-wrap gap-6 mt-3">
+      <div className="grid grid-cols-2 gap-5 mt-4 sm:grid-cols-3">
         <Stat
           label="Remaining today"
           value={loading
             ? `— / — ${symbol}`
-            : `${formatAmount(remaining, decimals)} / ${formatAmount(daily, decimals)} ${symbol}`}
+            : `${formatDisplayAmount(remaining, decimals)} / ${formatDisplayAmount(daily, decimals)} ${symbol}`}
           tone={locked ? 'bad' : 'normal'}
         />
         {/* The allowance is what policy permits; this is whether the money is
             there. They are different numbers and only the first was shown. */}
         <Stat
           label="Account holds"
-          value={loading ? `— ${symbol}` : `${formatAmount(balance, decimals)} ${symbol}`}
+          value={loading ? `— ${symbol}` : `${formatDisplayAmount(balance, decimals)} ${symbol}`}
           tone={band.kind === 'unfunded' ? 'bad' : 'normal'}
         />
         <Stat
           label="Per-transaction cap"
-          value={loading ? `— ${symbol}` : `${formatAmount(perTx, decimals)} ${symbol}`}
+          value={loading ? `— ${symbol}` : `${formatDisplayAmount(perTx, decimals)} ${symbol}`}
         />
       </div>
       </div>
