@@ -18,7 +18,7 @@ import { PROSE } from '../ui/prose'
 const QUESTIONS: ReadonlyArray<{ q: string; a: string }> = [
   {
     q: 'If the agent’s key leaks, how much can it take?',
-    a: 'The rest of that day’s allowance, and nothing behind it — both spending paths run through the same daily counter. But the payee allowlist guards only one of them: topUpOperator moves funds to the agent’s own wallet and never checks it. Treat the allowlist as protection against a wrong address, not against a stolen key.',
+    a: 'The rest of that day’s allowance plus whatever is already in the agent wallet. Both contract spending paths share the daily counter, so the protected balance behind that allowance stays out of reach. The payee allowlist guards only direct payments: topUpOperator moves funds to the agent wallet without checking it. Keep that operating balance small, and treat the allowlist as protection against a wrong address rather than a stolen key.',
   },
   {
     q: 'Can you take my money?',

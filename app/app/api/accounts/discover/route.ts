@@ -51,8 +51,8 @@ export async function GET(request: Request) {
     const accounts = deploymentCandidates(transactions, owner)
     return NextResponse.json({
       accounts,
-      // Ten full pages means the history was deliberately bounded. Manual
-      // import remains available for an unusually active deployer.
+      // Ten full pages means the history was deliberately bounded. A known
+      // account remains directly reachable through its address route.
       historyTruncated: transactions.length >= PAGE_SIZE * MAX_PAGES,
     }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },

@@ -5,6 +5,8 @@ import { useAccount, useDeployContract, useWriteContract } from 'wagmi'
 import ConnectButton from '../../components/ConnectButton'
 import NetworkBadge from '../../components/NetworkBadge'
 import Address from '../../components/ui/Address'
+import ActionLink from '../../components/ui/ActionLink'
+import BrandLink from '../../components/ui/BrandLink'
 import Panel from '../../components/ui/Panel'
 import Label from '../../components/ui/Label'
 import { PROSE } from '../../components/ui/prose'
@@ -486,10 +488,7 @@ export default function Onboard() {
     <main className={`${PAGE} py-12`}>
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <a href="/" style={{
-            fontFamily: 'var(--mono)', fontSize: 'var(--t-title)', lineHeight: 'var(--t-title-line)',
-            color: 'var(--celo)', letterSpacing: '.26em',
-          }}>LEASH</a>
+          <BrandLink large />
           <h1 className="mt-5" style={{ ...HEADING, fontSize: 'var(--t-title)' }}>
             Set up a protected agent account
           </h1>
@@ -497,7 +496,10 @@ export default function Onboard() {
             Create the account, decide what the agent may spend, then give it permission and funds.
           </p>
         </div>
-        <NetworkBadge />
+        <div className="flex flex-wrap items-center gap-3">
+          <ActionLink href="/accounts">My accounts</ActionLink>
+          <NetworkBadge />
+        </div>
       </header>
 
       <nav aria-label="Setup progress" className="mt-8">
@@ -824,9 +826,7 @@ export default function Onboard() {
               Open the dashboard to monitor spending or change protection. Connecting an SDK or MCP runtime is a separate integration journey and is not required to complete this setup.
             </p>
             <div className="flex flex-wrap gap-3 mt-4">
-              <a className="inline-block rounded px-4 py-2" href={`/a/${account}`}
-                style={{ background: 'var(--celo)', color: 'var(--bg)', fontWeight: 700,
-                  fontFamily: 'var(--mono)', fontSize: 'var(--t-data)' }}>Open dashboard</a>
+              <ActionLink href={`/a/${account}`} variant="primary">Open dashboard</ActionLink>
               <Button variant="ghost" onClick={() => setActiveStage(3)}>Review funding</Button>
             </div>
           </div>

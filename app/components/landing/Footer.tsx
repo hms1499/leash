@@ -1,5 +1,4 @@
-import Link from 'next/link'
-import Button from '../ui/Button'
+import ActionLink from '../ui/ActionLink'
 import Address from '../ui/Address'
 import { PROSE } from '../ui/prose'
 
@@ -22,7 +21,7 @@ export default function Footer() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/setup"><Button variant="primary">Build your own</Button></Link>
+        <ActionLink href="/setup" variant="primary">Create protected account</ActionLink>
         <a
           style={{ ...PROSE, color: 'var(--dim)' }}
           href="https://github.com/hms1499/leash"

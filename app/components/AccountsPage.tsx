@@ -1,11 +1,12 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 import ConnectButton from './ConnectButton'
 import NetworkBadge from './NetworkBadge'
 import Address from './ui/Address'
+import ActionLink from './ui/ActionLink'
+import BrandLink from './ui/BrandLink'
 import Button from './ui/Button'
 import Label from './ui/Label'
 import Panel from './ui/Panel'
@@ -114,7 +115,7 @@ export default function AccountsPage() {
       setAccounts(listPolicyAccounts(localStorage, owner))
       announceAccountRegistryChange()
       setDiscoveryNote(
-        `${discovered} compatible policy ${discovered === 1 ? 'account' : 'accounts'} found in Celo history.` +
+        `${discovered} compatible protected ${discovered === 1 ? 'account' : 'accounts'} found in Celo history.` +
         (body.historyTruncated ? ' Some older deployments may not be shown.' : ''),
       )
     } catch (error) {
@@ -134,33 +135,37 @@ export default function AccountsPage() {
 
   return (
     <main className={`${PAGE} py-10 space-y-6`}>
-      <header className="flex flex-wrap items-center gap-3">
-        <div>
-          <h1 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-title)', color: 'var(--celo)' }}>
-            My policy accounts
+      <header>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <BrandLink />
+          <span className="flex flex-wrap items-center gap-3">
+            <NetworkBadge />
+            {isConnected && <ConnectButton />}
+          </span>
+        </div>
+        <div className="mt-6">
+          <h1 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-title)', color: 'var(--text)' }}>
+            My protected accounts
           </h1>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-            Leash finds compatible policy accounts deployed by the connected owner and caches the list on this device.
+            Reopen accounts owned by this wallet or create another protected budget for an agent.
           </p>
         </div>
-        <span className="ml-auto flex flex-wrap items-center gap-3">
-          <NetworkBadge />
-          <ConnectButton />
-        </span>
       </header>
 
       {!isConnected ? (
         <Panel className="p-6">
           <h2 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>Connect the owner wallet</h2>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-            The saved list is separated by owner, so Leash needs to know which wallet to show.
+            Each list is private to its owner wallet. Connect the wallet that created the account.
           </p>
+          <div className="mt-4"><ConnectButton /></div>
         </Panel>
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>
-              <Label>{accounts.length} policy {accounts.length === 1 ? 'account' : 'accounts'}</Label>
+              <Label>{accounts.length} protected {accounts.length === 1 ? 'account' : 'accounts'}</Label>
               {discoveryNote && (
                 <p role="status" className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
                   {discoveryNote}
@@ -171,13 +176,9 @@ export default function AccountsPage() {
               <Button disabled={discovering} onClick={() => void discoverAccounts(connected!)}>
                 {discovering ? 'Discovering…' : 'Refresh from Celo'}
               </Button>
-            <Link
-              href="/setup?new=1"
-              className="rounded px-4 py-2"
-              style={{ background: 'var(--celo)', color: 'var(--bg)', fontFamily: 'var(--mono)', fontSize: 'var(--t-data)', fontWeight: 700 }}
-            >
-              Create another account
-            </Link>
+            <ActionLink href="/setup?new=1" variant="primary">
+              {accounts.length === 0 ? 'Create account' : 'Create another account'}
+            </ActionLink>
             </span>
           </div>
 
@@ -185,8 +186,8 @@ export default function AccountsPage() {
             <Panel className="p-6">
               <p className="text-sm">
                 {discovering
-                  ? 'Searching this owner’s deployment history for compatible policy accounts…'
-                  : 'No compatible policy accounts were found. You can create one to get started.'}
+                  ? 'Searching this owner’s deployment history for compatible protected accounts…'
+                  : 'No compatible protected accounts were found. Create one to get started.'}
               </p>
             </Panel>
           ) : (
@@ -222,18 +223,12 @@ function AccountRow({ account, number }: {
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
           <h2 className="mt-1 break-words" style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>
-            Policy account {number}
+            Protected account {number}
           </h2>
-          <div className="mt-2"><Address address={account.address} copy full className="num" /></div>
+          <div className="mt-2"><Address address={account.address} copy full className="num break-all text-left" /></div>
           {account.deployBlock && <Label className="block mt-2">Deployed at block {account.deployBlock}</Label>}
         </div>
-        <Link
-          href={`/a/${account.address}`}
-          className="rounded px-4 py-2"
-          style={{ border: '1px solid var(--line-control)', fontFamily: 'var(--mono)', fontSize: 'var(--t-data)' }}
-        >
-          Open dashboard
-        </Link>
+        <ActionLink href={`/a/${account.address}`}>Open dashboard</ActionLink>
       </div>
     </Panel>
   )

@@ -82,7 +82,8 @@ export default function McpHandoff({
         </p>
       )}
       <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-        Point <code>args</code> at your own checkout of the Leash repository.
+        This runs the published <code>leash-agentpay</code> package through{' '}
+        <code>npx</code>. Node.js 20 or newer is required.
       </p>
     </Panel>
   )

@@ -38,7 +38,7 @@ export default function AccountSwitcher({ current }: { current: `0x${string}` })
       {accounts.length > 1 && (
         <select
           className="field num px-2 py-2 max-w-48"
-          aria-label="Policy account"
+          aria-label="Protected account"
           value={current.toLowerCase()}
           onChange={(event) => {
             const next = accounts.find((item) => item.address.toLowerCase() === event.target.value)

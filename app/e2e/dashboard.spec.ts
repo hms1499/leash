@@ -28,6 +28,7 @@ test('the dashboard renders live numbers with no wallet connected', async ({ pag
 
   // And nothing asked for a wallet.
   await expect(page.getByText('Connect wallet')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Leash home' })).toHaveAttribute('href', '/')
 })
 
 /**

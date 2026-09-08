@@ -43,7 +43,7 @@ export function AccountStatus({
 }
 
 export function RecommendedAction({
-  account, paused, daily, balance, operator, operatorLoading,
+  account, paused, daily, balance, operator, operatorLoading, agentTransactionsLeft,
 }: {
   account: `0x${string}`
   paused: boolean
@@ -51,6 +51,7 @@ export function RecommendedAction({
   balance: bigint
   operator: string | null
   operatorLoading: boolean
+  agentTransactionsLeft: number | null
 }) {
   let title = 'Everything is ready'
   let body = 'The agent can make direct payments within the limits below.'
@@ -69,11 +70,18 @@ export function RecommendedAction({
     body = 'Reading recent account history and checking agent access on chain.'
   } else if (!operator) {
     title = 'Verify the agent wallet'
-    body = 'No active agent was found in the recent account history. Return to setup to add or verify one.'
+    body = 'No active agent was found in recent account history. The owner can add or verify one from Protection below.'
     tone = 'bad'
   } else if (balance === 0n) {
     title = 'Add protected funds'
-    body = `Send USDC on Celo to ${account}. The agent cannot make a direct payment while the policy account is empty.`
+    body = `Send USDC on Celo to ${account}. The agent cannot make a direct payment while the protected account is empty.`
+    tone = 'bad'
+  } else if (agentTransactionsLeft === null) {
+    title = 'Checking agent gas'
+    body = 'Reading the agent wallet’s USDC balance before declaring it ready.'
+  } else if (agentTransactionsLeft === 0) {
+    title = 'Refuel agent gas'
+    body = 'The policy is ready, but the agent wallet cannot send a transaction. The owner can add a small USDC gas balance below.'
     tone = 'bad'
   }
 
@@ -108,7 +116,7 @@ export function SecurityPolicy({
 
   return (
     <Panel as="section" className="p-6">
-      <Label className="block">Security policy</Label>
+      <Label className="block">Protection</Label>
       <div className="mt-3">
         {rows.map(([name, value], index) => (
           <div
@@ -123,7 +131,7 @@ export function SecurityPolicy({
       </div>
       <p className="text-sm mt-3" style={{ color: 'var(--bad)' }}>
         x402 payments move funds to the agent wallet first. Recipient restrictions
-        no longer apply after those funds leave the policy account.
+        no longer apply after those funds leave the protected account.
       </p>
     </Panel>
   )

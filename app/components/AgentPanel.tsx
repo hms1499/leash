@@ -34,10 +34,12 @@ const SWEEP_ABI = [
  */
 export default function AgentPanel({
   account, operator, token, decimals, symbol, isOwner, protectedBalance, onRefuelled,
+  onGasStatusChange,
 }: {
   account: `0x${string}`; operator: `0x${string}`; token: `0x${string}`
   decimals: number; symbol: string; isOwner: boolean; protectedBalance: bigint
   onRefuelled: () => void
+  onGasStatusChange?: (transactionsLeft: number | null) => void
 }) {
   const [float, setFloat] = useState<bigint | null>(null)
   // Set only when a read has actually failed, distinct from float===null on
@@ -57,6 +59,9 @@ export default function AgentPanel({
 
   useEffect(() => {
     let cancelled = false
+    lastSeenRef.current = null
+    setFloat(null)
+    onGasStatusChange?.(null)
     async function read() {
       try {
         const bal = await publicClient.readContract({
@@ -72,6 +77,7 @@ export default function AgentPanel({
         }
         lastSeenRef.current = bal
         setFloat(bal)
+        onGasStatusChange?.(transactionsLeft(bal))
         setFailed(false)
       } catch {
         // A single transient RPC failure should not blank the panel; the
@@ -83,7 +89,7 @@ export default function AgentPanel({
     void read()
     const t = setInterval(() => { if (!document.hidden) void read() }, 8000)
     return () => { cancelled = true; clearInterval(t) }
-  }, [operator, token])
+  }, [operator, token, onGasStatusChange])
 
   if (float === null) {
     return failed ? (
@@ -117,6 +123,7 @@ export default function AgentPanel({
         if (bal <= before) return false
         lastSeenRef.current = bal
         setFloat(bal)
+        onGasStatusChange?.(transactionsLeft(bal))
         return true
       })
       // Never claim the confirmation we did not observe — but a refetch is

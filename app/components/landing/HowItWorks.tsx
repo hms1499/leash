@@ -2,14 +2,15 @@ import Panel from '../ui/Panel'
 import { PROSE } from '../ui/prose'
 
 const STEPS = [
-  { n: '1', title: 'Deploy your account', body: 'One transaction. You are the owner; nobody else can change the limits.' },
-  { n: '2', title: 'Set the limits', body: 'A cap per transaction and a cap per day, in USDC. Until you set them, every spend is refused.' },
-  { n: '3', title: 'Hand your agent the key', body: 'Paste one block into .mcp.json. The key it receives cannot raise its own limits.' },
+  { n: '1', title: 'Create the account', body: 'You deploy and permanently own the protected account. It holds the agent’s budget.' },
+  { n: '2', title: 'Set protection', body: 'Choose a cap per payment, a cap per UTC day, and optional approved recipients.' },
+  { n: '3', title: 'Authorize and fund', body: 'Fund the protected budget, then give a separate agent wallet limited access and a small USDC gas balance.' },
+  { n: '4', title: 'Review and monitor', body: 'Verify readiness, watch activity from the dashboard, and stop the agent whenever needed.' },
 ]
 
 export default function HowItWorks() {
   return (
-    <div className="grid gap-6 sm:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2">
       {STEPS.map((s) => (
         <Panel key={s.n} className="p-6">
           <span className="num text-sm" style={{ color: 'var(--celo)' }}>{s.n}</span>

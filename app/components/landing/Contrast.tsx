@@ -15,8 +15,8 @@ import { PROSE } from '../ui/prose'
  * Questions.tsx.
  */
 const ROWS: ReadonlyArray<{ without: string; with_: string }> = [
-  { without: 'The agent holds the private key.', with_: 'The money sits in a contract. The agent holds a key that can only ask.' },
-  { without: 'A leaked key drains the wallet.', with_: 'A leaked key spends at most one day’s allowance, never the balance behind it.' },
+  { without: 'The agent holds the private key.', with_: 'Most funds stay in a protected account. The agent gets restricted access and a small operating balance.' },
+  { without: 'A leaked key drains the wallet.', with_: 'A leaked key reaches the remaining daily allowance plus funds already in the agent wallet — not the protected balance behind it.' },
   { without: '“Only spend $5 a day” is an instruction.', with_: '$5 a day is code. Over it, the transaction reverts.' },
   { without: 'You find out afterwards.', with_: 'You watch it live, and you can stop it in one click.' },
 ]

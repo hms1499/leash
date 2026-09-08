@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import Button from '../ui/Button'
+import ActionLink from '../ui/ActionLink'
+import BrandLink from '../ui/BrandLink'
 import { PAGE } from '../ui/page'
 
 const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
@@ -7,12 +8,16 @@ const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
 export default function Hero() {
   return (
     <header className={`${PAGE} py-12`}>
-      <p style={{
-        fontFamily: 'var(--mono)', fontSize: 'var(--t-label)',
-        color: 'var(--celo)', letterSpacing: '.26em', fontWeight: 700,
-      }}>
-        LEASH
-      </p>
+      <nav aria-label="Primary" className="flex items-center justify-between gap-4">
+        <BrandLink />
+        <Link
+          href="/accounts"
+          className="rounded-sm text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{ color: 'var(--dim)', outlineColor: 'var(--text)' }}
+        >
+          My accounts
+        </Link>
+      </nav>
       <h1
         className="mt-6"
         style={{
@@ -38,12 +43,12 @@ export default function Hero() {
         }}
       >
         Spend limits are enforced by a contract on Celo, not by a sentence in a
-        prompt. The money never sits in the agent&apos;s wallet — the agent can
-        only ask, and the contract refuses.
+        prompt. Most funds stay protected; the agent receives only permission
+        to spend within policy and a small operating balance for gas or x402.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link href="/setup"><Button variant="primary">Build your own</Button></Link>
-        <Link href={`/a/${ACCOUNT}`}><Button variant="ghost">See the live account</Button></Link>
+        <ActionLink href="/setup" variant="primary">Create protected account</ActionLink>
+        <ActionLink href={`/a/${ACCOUNT}`}>View live dashboard</ActionLink>
       </div>
     </header>
   )

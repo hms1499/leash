@@ -1,5 +1,5 @@
-import Link from 'next/link'
-import Button from './Button'
+import ActionLink from './ActionLink'
+import BrandLink from './BrandLink'
 import { PAGE } from './page'
 
 /**
@@ -15,12 +15,7 @@ export default function Shell({
 }: { title: string; children: React.ReactNode }) {
   return (
     <main className={`${PAGE} py-12`}>
-      <p style={{
-        fontFamily: 'var(--mono)', color: 'var(--celo)',
-        letterSpacing: '.26em', fontWeight: 700, fontSize: 'var(--t-label)',
-      }}>
-        LEASH
-      </p>
+      <BrandLink />
       <h1 className="mt-6" style={{
         fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)',
         lineHeight: 'var(--t-heading-line)', fontWeight: 500, color: 'var(--text)',
@@ -34,7 +29,7 @@ export default function Shell({
         {children}
       </div>
       <div className="mt-6">
-        <Link href="/"><Button variant="ghost">Back to the start</Button></Link>
+        <ActionLink href="/">Back to home</ActionLink>
       </div>
     </main>
   )

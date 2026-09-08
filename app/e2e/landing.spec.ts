@@ -7,6 +7,7 @@ test('the wizard answers at /setup', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Setup progress' })).toBeVisible()
   await expect(page.getByText('Step 1 of 4')).toBeVisible()
   await expect(page.getByText(/MCP configuration/i)).toHaveCount(0)
+  await expect(page.locator('a button, button a')).toHaveCount(0)
 })
 
 test('the setup flow does not scroll sideways on a phone', async ({ page }) => {
@@ -19,15 +20,16 @@ test('the setup flow does not scroll sideways on a phone', async ({ page }) => {
 
 test('the account directory explains its local scope before wallet connection', async ({ page }) => {
   await page.goto('/accounts')
-  await expect(page.getByRole('heading', { name: 'My policy accounts' })).toBeVisible()
-  await expect(page.getByText(/finds compatible policy accounts deployed by the connected owner/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'My protected accounts' })).toBeVisible()
+  await expect(page.getByText(/Reopen accounts owned by this wallet/)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Connect the owner wallet' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Leash home' })).toHaveAttribute('href', '/')
 })
 
 test('the account directory does not scroll sideways on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 760 })
   await page.goto('/accounts')
-  await expect(page.getByRole('heading', { name: 'My policy accounts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'My protected accounts' })).toBeVisible()
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(375)
 })
@@ -51,7 +53,22 @@ test('the landing page explains itself and shows live mainnet numbers', async ({
   // The proof rows are links a reader can actually open.
   await expect(page.locator('a[href^="https://celoscan.io/tx/"]').first()).toBeVisible()
 
-  await expect(page.getByRole('link', { name: /build your own/i }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: /create protected account/i }).first()).toBeVisible()
+  await expect(page.locator('a button, button a')).toHaveCount(0)
+})
+
+test('the primary journey links landing, setup and the account directory without dead ends', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Create protected account' }).first().click()
+  await expect(page).toHaveURL(/\/setup$/)
+  await expect(page.getByRole('link', { name: 'My accounts' })).toHaveAttribute('href', '/accounts')
+  await page.getByRole('link', { name: 'Leash home' }).click()
+  await expect(page).toHaveURL(/\/$/)
+
+  await page.getByRole('link', { name: 'My accounts' }).click()
+  await expect(page).toHaveURL(/\/accounts$/)
+  await page.getByRole('link', { name: 'Leash home' }).click()
+  await expect(page).toHaveURL(/\/$/)
 })
 
 /**

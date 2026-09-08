@@ -35,12 +35,8 @@ export default function AgentTools() {
         owner&apos;s key.
       </p>
 
-      {/* Spec §5 item 5: show the block, and reuse McpHandoff rather than
-          duplicating it. tagStatus="missing" is the truth here -- a stranger
-          reading the landing page has no attribution tag yet, so the component
-          ships its `celo_yourtag` placeholder and says so, which is exactly the
-          mistake it was built to catch. The wizard at /setup passes the real
-          values and 'ok'. */}
+      {/* This is an integration example, not part of account setup. A stranger
+          has no attribution tag yet, so the placeholder and warning are honest. */}
       <McpHandoff handoff={SAMPLE} tagStatus="missing" />
     </div>
   )

@@ -1,12 +1,13 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
+import { use, useCallback, useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 import Meter from '../../../components/Meter'
 import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
 import NetworkBadge from '../../../components/NetworkBadge'
 import Address from '../../../components/ui/Address'
+import BrandLink from '../../../components/ui/BrandLink'
 import Label, { LABEL_STYLE } from '../../../components/ui/Label'
 import Panel from '../../../components/ui/Panel'
 import Button from '../../../components/ui/Button'
@@ -78,6 +79,10 @@ function Dashboard({ address }: { address: `0x${string}` }) {
 
   const feed = useFeed(address, TOKEN, deployBlock)
   const isOwner = canEdit(state.owner, connected)
+  const [agentTransactionsLeft, setAgentTransactionsLeft] = useState<number | null>(null)
+  const updateAgentGasStatus = useCallback((left: number | null) => {
+    setAgentTransactionsLeft(left)
+  }, [])
 
   // The contract stores operators in a mapping(address => bool), which
   // cannot be enumerated, so the dashboard learns the operator address from
@@ -150,6 +155,10 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     // an address or null, compared by value.
   }, [feed.rows, feed.operatorCandidate, address, retry])
 
+  useEffect(() => {
+    setAgentTransactionsLeft(null)
+  }, [operator])
+
   return (
     <main>
       {/* Everything on this band obeys the bright-ground rule: --bg only.
@@ -162,12 +171,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         }}
       >
         <div className={`${PAGE} flex flex-wrap items-center gap-3 py-3`}>
-        <strong style={{
-          fontFamily: 'var(--mono)', fontSize: 'var(--t-label)',
-          color: state.paused ? 'var(--bg)' : 'var(--celo)', letterSpacing: '.26em',
-        }}>
-          LEASH
-        </strong>
+        <BrandLink onBright={state.paused} />
         {/* .label's --dim on the paused band's --bad is about 1.6:1 and
             disappears on video. The state change is meant to read at a glance,
             and the address is what tells you *which* account stopped. */}
@@ -196,7 +200,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         <div className={`${PAGE} py-6`} role="alert">
           <Panel className="p-6">
             <Label className="block" style={{ color: 'var(--bad)' }}>
-              Could not read this policy account
+              Could not read this protected account
             </Label>
             <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
               Celo did not return a complete account state. The account may still
@@ -235,6 +239,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 balance={state.balance}
                 operator={operator}
                 operatorLoading={feed.isLoading}
+                agentTransactionsLeft={agentTransactionsLeft}
               />
             )}
           </div>
@@ -285,6 +290,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
                 protectedBalance={state.balance}
                 onRefuelled={state.refetch}
+                onGasStatusChange={updateAgentGasStatus}
               />
             )}
             {!operator && operatorCheckFailed && (

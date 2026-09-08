@@ -15,7 +15,7 @@ import Section from '../components/ui/Section'
  *   what is it        the hero
  *   is it real        the live account, read from mainnet
  *   why bother        without Leash, and with it
- *   how does it work  three steps
+ *   how does it work  four stages
  *   prove it          five claims, each with a transaction
  *   what breaks       the questions worth asking, answered
  *   how do I use it   the tools and the .mcp.json block
