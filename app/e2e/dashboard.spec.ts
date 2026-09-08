@@ -72,6 +72,10 @@ test('the dashboard does not scroll sideways on a phone', async ({ page }) => {
   // activity row are the content most likely to overflow after first paint.
   await expect(page.getByRole('heading', { name: 'Funds and agent gas' }))
     .toBeVisible({ timeout: 30_000 })
+  const meter = await page.getByTestId('spending-meter-card').boundingBox()
+  expect(meter).not.toBeNull()
+  expect(meter!.x).toBeGreaterThan(0)
+  expect(meter!.width).toBeLessThan(375)
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(375)
 })

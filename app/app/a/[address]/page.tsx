@@ -258,18 +258,28 @@ function Dashboard({ address }: { address: `0x${string}` }) {
             />
           </div>
 
-          {/* The dashboard's dominant figure is the direct-payment ceiling. */}
-          <Meter
-            daily={state.daily}
-            remaining={state.remaining}
-            perTx={state.perTx}
-            decimals={DECIMALS}
-            symbol={SYMBOL}
-            balance={state.balance}
-            paused={state.paused}
-            loading={state.isLoading}
-            dominant
-          />
+          {/* Keep the dominant figure aligned with the dashboard column. A
+              previous full-bleed band made empty/error states look like their
+              background had escaped the component. */}
+          <div className={PAGE}>
+            <div
+              data-testid="spending-meter-card"
+              className="overflow-hidden"
+              style={{ border: '1px solid var(--line)', borderRadius: 8 }}
+            >
+              <Meter
+                daily={state.daily}
+                remaining={state.remaining}
+                perTx={state.perTx}
+                decimals={DECIMALS}
+                symbol={SYMBOL}
+                balance={state.balance}
+                paused={state.paused}
+                loading={state.isLoading}
+                dominant
+              />
+            </div>
+          </div>
 
           <div className={`${PAGE} py-6 space-y-3`}>
             <div id="policy-controls" className="scroll-mt-6 space-y-3">

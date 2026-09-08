@@ -71,11 +71,10 @@ export default function Meter({
 
   return (
     <div style={{ background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
-      {/* The ground spans; the content does not. On the dashboard this element
-          is the full width of the viewport, and the meter inside it stays on
-          the page's column -- without this it drew 1888px wide, with the fill
-          at one edge and the cap line at the other. On the landing the outer
-          div is already inside a 768px Panel, so this changes nothing there. */}
+      {/* The meter fills the surface its parent gives it while its contents
+          retain the shared page gutter. Landing and dashboard both contain
+          that surface inside a panel; the PAGE cap still prevents accidental
+          stretching if the component is mounted elsewhere. */}
       <div className={`${PAGE} py-3`}>
       {/* One --t-display per screen, and on the dashboard this is it.
           The allowance alone says what is permitted and the balance alone
