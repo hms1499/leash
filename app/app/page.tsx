@@ -1,40 +1,71 @@
 import Hero from '../components/landing/Hero'
-import Contrast from '../components/landing/Contrast'
+import SiteHeader from '../components/landing/SiteHeader'
+import UseCaseGrid from '../components/landing/UseCaseGrid'
+import ProtectionModel from '../components/landing/ProtectionModel'
 import HowItWorks from '../components/landing/HowItWorks'
-import AgentTools from '../components/landing/AgentTools'
 import LiveProof from '../components/landing/LiveProof'
-import ProofTable from '../components/landing/ProofTable'
-import Questions from '../components/landing/Questions'
-import Footer from '../components/landing/Footer'
+import CoreCapabilities from '../components/landing/CoreCapabilities'
+import SecurityBoundary from '../components/landing/SecurityBoundary'
+import FinalCta from '../components/landing/FinalCta'
+import SiteFooter from '../components/landing/SiteFooter'
 import Section from '../components/ui/Section'
 
-/**
- * The order is the order a reader asks the questions, not the order the
- * sections were written:
- *
- *   what is it        the hero
- *   is it real        the live account, read from mainnet
- *   why bother        without Leash, and with it
- *   how does it work  four stages
- *   prove it          five claims, each with a transaction
- *   what breaks       the questions worth asking, answered
- *   how do I use it   the tools and the .mcp.json block
- *
- * The last two used to be reversed, so a reader who is not a developer met a
- * wall of JSON before reaching the evidence. Implementation is the last thing
- * anyone needs and the first thing that stops a non-developer reading.
- */
 export default function Landing() {
   return (
-    <main>
-      <Hero />
-      <Section title="What an account looks like right now"><LiveProof /></Section>
-      <Section title="Why not just give the agent a wallet?"><Contrast /></Section>
-      <Section title="How it works"><HowItWorks /></Section>
-      <Section title="Proven on Celo mainnet"><ProofTable /></Section>
-      <Section title="Questions worth asking"><Questions /></Section>
-      <Section title="What your agent gets"><AgentTools /></Section>
-      <Section><Footer /></Section>
-    </main>
+    <>
+      <SiteHeader />
+      <main>
+        <Hero />
+        <Section
+          id="use-cases"
+          eyebrow="Use cases"
+          title="Built for agents that need to spend, not hold unlimited funds"
+          description="Use Leash when an automated workflow needs real payment capability and you need a hard ceiling on the damage it can cause."
+        >
+          <UseCaseGrid />
+        </Section>
+        <Section
+          id="protection-model"
+          eyebrow="Protection model"
+          title="Keep the budget and the hot key separate"
+          description="Most funds stay in a contract you own. The agent gets permission to request bounded spends plus only a small operating balance."
+        >
+          <ProtectionModel />
+        </Section>
+        <Section
+          id="live-proof"
+          eyebrow="Live product proof"
+          title="A real account, not a mockup"
+          description="This dashboard reads policy, balance and recent activity directly from a deployed account on Celo mainnet. No wallet connection is required."
+        >
+          <LiveProof />
+        </Section>
+        <Section
+          id="capabilities"
+          eyebrow="Core capabilities"
+          title="The controls a production agent wallet actually needs"
+        >
+          <CoreCapabilities />
+        </Section>
+        <Section
+          id="how-it-works"
+          eyebrow="Setup"
+          title="From owner wallet to ready agent in four stages"
+          description="Provisioning stays focused on the on-chain account. Connect MCP or the SDK afterwards, when the protected agent is already ready."
+        >
+          <HowItWorks />
+        </Section>
+        <Section
+          id="security"
+          eyebrow="Security boundary"
+          title="Know exactly what is—and is not—protected"
+          description="Leash limits an operator; it does not make a hot key safe. The boundary below is part of the product, not fine print."
+        >
+          <SecurityBoundary />
+        </Section>
+        <FinalCta />
+      </main>
+      <SiteFooter />
+    </>
   )
 }

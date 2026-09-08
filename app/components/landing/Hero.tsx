@@ -1,29 +1,21 @@
-import Link from 'next/link'
 import ActionLink from '../ui/ActionLink'
-import BrandLink from '../ui/BrandLink'
+import Label from '../ui/Label'
 import { PAGE } from '../ui/page'
+import { PROSE } from '../ui/prose'
 
 const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
 
 export default function Hero() {
   return (
-    <header className={`${PAGE} py-12`}>
-      <nav aria-label="Primary" className="flex items-center justify-between gap-4">
-        <BrandLink />
-        <Link
-          href="/accounts"
-          className="rounded-sm text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-          style={{ color: 'var(--dim)', outlineColor: 'var(--text)' }}
-        >
-          My accounts
-        </Link>
-      </nav>
+    <section className={`${PAGE} pb-12 pt-14 sm:pb-16 sm:pt-20`} aria-labelledby="hero-title">
+      <Label>On-chain spending controls for AI agents</Label>
       <h1
-        className="mt-6"
+        id="hero-title"
+        className="mt-4"
         style={{
           fontFamily: 'var(--mono)',
-          fontSize: 'var(--t-title)',
-          lineHeight: 'var(--t-title-line)',
+          fontSize: 'clamp(2.25rem, 8vw, var(--t-display))',
+          lineHeight: 'var(--t-display-line)',
           fontWeight: 600,
           color: 'var(--text)',
         }}
@@ -33,11 +25,9 @@ export default function Hero() {
       {/* The prose exception from design-system §1: sans, not mono, because
           this is read rather than looked at. 68ch is the measure rule from §2. */}
       <p
-        className="mt-3"
+        className="mt-5"
         style={{
-          fontFamily: 'var(--sans)',
-          fontSize: 'var(--t-body)',
-          lineHeight: 'var(--t-body-line)',
+          ...PROSE,
           maxWidth: '68ch',
           color: 'var(--dim)',
         }}
@@ -50,6 +40,15 @@ export default function Hero() {
         <ActionLink href="/setup" variant="primary">Create protected account</ActionLink>
         <ActionLink href={`/a/${ACCOUNT}`}>View live dashboard</ActionLink>
       </div>
-    </header>
+      <ul
+        className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs"
+        aria-label="Product facts"
+        style={{ color: 'var(--dim)', fontFamily: 'var(--mono)' }}
+      >
+        <li>Celo mainnet</li>
+        <li>· Open source</li>
+        <li>· No custody</li>
+      </ul>
+    </section>
   )
 }
