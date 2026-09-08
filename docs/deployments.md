@@ -78,6 +78,59 @@ No token policy is configured yet. Every operator path reverts
 `TokenNotConfigured` until the owner calls `setPolicy`. The payee allowlist is
 off, so `execute()` currently accepts any payee once a policy exists.
 
+## Accounts owned by somebody else, on mainnet
+
+Two `SpendPolicyAccount` instances exist that this project did not deploy and
+does not own. Both were deployed **directly from the owner's own EOA** through
+the hosted wizard, which is what `app/lib/accountDiscovery.ts` relies on: it
+finds an account by matching a contract-creation transaction whose `from` is
+the owner. Neither is project infrastructure and neither is the demo account.
+
+They are recorded here because they were missing from this file, and because a
+contract this project has any hand in must be declarable in the submission's
+`ownContracts`. Read off the chain 2026-09-08, not taken from any earlier note:
+
+| | `0xA73DB76f20c5ede3ABE883565D22905760F83982` | `0x7757035dd318eF1FC878bD83B06EE46eF3Ae0d9c` |
+|---|---|---|
+| Purpose | test account, used to exercise the UI | the wizard walk of 2026-09-07 |
+| Deployed | 2026-09-04T07:34:07Z, block 76606489 | 2026-09-07 |
+| Deployed by | `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459` (= its own owner) | same |
+| `owner()` | `0x94f7268c…6459` | `0x94f7268c…6459` |
+| `operators(0xd44daF…50D6)` | true | true |
+| Per-tx / daily (USDC) | 0.50 / 1.00 | 0.50 / 5.00 |
+| `paused()` | **true** | **true** |
+| `allowlistEnabled()` | false | false |
+| USDC balance | **0** | **0** |
+| Code size | 3406 bytes | 3406 bytes |
+| Source-verified | yes | **no** |
+
+Creation transactions:
+
+- `0xA73DB76f…F83982`, tx: 0xf8d390ede87c5126b8f43e5b4f20d3894b9c18dafb08b7eba59e0f9fae5ad324
+- `0x7757035d…0d9c`, tx: 0x48fabcd68ce64dc6921a753a3ceee6065fdf5ea214ddf28162f57cb2cec8fdd3
+
+Three things this re-read contradicts, which is why it is dated rather than
+written into the tables above it:
+
+- `docs/RESUME.md` says `0xA73DB76f…` reads ACTIVE and holds 0.040000 USDC, read
+  2026-09-05. It is paused and holds nothing on 2026-09-08.
+- The 2026-09-07 wizard-walk table below records `0x7757035d…` as `Paused false`
+  with a 1.00 USDC balance. That was true when it was written and is not true
+  now. **The table is not edited**: it is the record of what the walk saw.
+- `0x7757035d…` is **not source-verified on Blockscout**, unlike every account
+  this project deployed itself. The wizard deploys bytecode; it does not verify.
+
+**Both share the operator EOA `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6`** with
+the project's own account. That is the same reuse `docs/deployments.md` already
+flags as a limit on the stranger-walk measurement — a stranger would have had to
+generate an operator, and did not.
+
+**Submission gap, open at the time of writing.** `ownContracts` on the
+celobuilders submission declares `0x7aDa926B…`, `0xA73DB76f…` and `0x895B773E…`.
+It does **not** declare `0x7757035d…`. The skill warns that undeclared wallets
+which look project-controlled are read as farming signals at audit, so this is
+worth closing.
+
 ## Celo Sepolia
 
 Not deployed. The plan called for a testnet rehearsal, but the owner EOA holds
