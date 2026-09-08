@@ -69,7 +69,7 @@ function accountSummary({
       title: 'Add or verify an agent wallet',
       body: 'No active operator could be verified for this protected account.',
       tone: 'bad',
-      action: isOwner ? { href: '#policy-controls', label: 'Manage protection' } : undefined,
+      action: isOwner ? { href: '#agent-management', label: 'Manage agent' } : undefined,
     }
   }
   if (balance === 0n) {
@@ -192,13 +192,11 @@ export function AccountOverview({
 }
 
 export function SecurityPolicy({
-  daily, perTx, allowlistEnabled, operator, operatorLoading, decimals, symbol,
+  daily, perTx, allowlistEnabled, decimals, symbol,
 }: {
   daily: bigint
   perTx: bigint
   allowlistEnabled: boolean
-  operator: string | null
-  operatorLoading: boolean
   decimals: number
   symbol: string
 }) {
@@ -228,14 +226,6 @@ export function SecurityPolicy({
             <span>{value}</span>
           </div>
         ))}
-        <div className="flex flex-wrap justify-between gap-2 py-2 text-sm" style={{ borderTop: '1px solid var(--line)' }}>
-          <span style={{ color: 'var(--dim)' }}>Primary agent</span>
-          {operator ? (
-            <Address address={operator} explorer className="num" />
-          ) : (
-            <span>{operatorLoading ? 'Checking…' : 'Not discovered'}</span>
-          )}
-        </div>
       </div>
       <div
         className="mt-4 border-l-2 py-1 pl-3 text-sm [border-color:var(--bad)]"

@@ -32,6 +32,10 @@ test('the dashboard renders live numbers with no wallet connected', async ({ pag
   await expect(page.getByText('Public view — connect the owner wallet to manage this account.')).toBeVisible()
   await expect(page.getByText('Recommended action')).toHaveCount(0)
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
+  await expect(page.getByRole('heading', { name: 'Protection policy' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Agent permissions' })).toBeVisible()
+  await expect(page.getByText('Primary agent')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Edit protection' })).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Leash home' })).toHaveAttribute('href', '/')
 })
 

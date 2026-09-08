@@ -15,6 +15,7 @@ import { PAGE } from '../../../components/ui/page'
 import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
+import AgentAccessPanel from '../../../components/AgentAccessPanel'
 import AccountSwitcher from '../../../components/AccountSwitcher'
 import { AccountOverview, SecurityPolicy } from '../../../components/DashboardOverview'
 import { useAccountState } from '../../../lib/useAccountState.js'
@@ -102,7 +103,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
   // link show "Send 0.05 USDC for gas" to a wallet the owner never approved.
   // Both sources are therefore only candidates; `operators()` on the account
   // itself is what actually gates the panel.
-  const [operator, setOperator] = useState<string | null>(null)
+  const [operator, setOperator] = useState<`0x${string}` | null>(null)
   const [operatorCheckFailed, setOperatorCheckFailed] = useState(false)
   const [operatorResolving, setOperatorResolving] = useState(true)
 
@@ -288,8 +289,6 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                   daily={state.daily}
                   perTx={state.perTx}
                   allowlistEnabled={state.allowlistEnabled}
-                  operator={operator}
-                  operatorLoading={operatorLoading}
                   decimals={DECIMALS}
                   symbol={SYMBOL}
                 />
@@ -303,24 +302,34 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                   perTx={state.perTx}
                   daily={state.daily}
                   allowlistEnabled={state.allowlistEnabled}
-                  operator={operator}
-                  isOwner={isOwner}
                   loading={state.isLoading}
                   onSaved={state.refetch}
                 />
               )}
             </div>
-            {operator && isValidAddress(operator) && (
-              <div id="agent-funds" className="scroll-mt-6">
-                <AgentPanel
-                  account={address} operator={operator} token={TOKEN}
-                  decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
-                  protectedBalance={state.balance}
-                  onRefuelled={state.refetch}
-                  onGasStatusChange={updateAgentGasStatus}
-                />
-              </div>
-            )}
+            <div id="agent-management" className="scroll-mt-6 space-y-3">
+              <AgentAccessPanel
+                account={address}
+                operator={operator}
+                operatorLoading={operatorLoading}
+                isOwner={isOwner}
+                onAgentChanged={(next) => {
+                  setOperator(next)
+                  state.refetch()
+                }}
+              />
+              {operator && isValidAddress(operator) && (
+                <div id="agent-funds" className="scroll-mt-6">
+                  <AgentPanel
+                    account={address} operator={operator} token={TOKEN}
+                    decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
+                    protectedBalance={state.balance}
+                    onRefuelled={state.refetch}
+                    onGasStatusChange={updateAgentGasStatus}
+                  />
+                </div>
+              )}
+            </div>
             {!operator && operatorCheckFailed && (
               <Label className="block" style={{ color: 'var(--bad)' }}>
                 Could not verify the agent wallet — still trying.
