@@ -2,13 +2,25 @@ import { test, expect } from '@playwright/test'
 
 test('the wizard answers at /setup', async ({ page }) => {
   await page.goto('/setup')
-  await expect(page.getByText('Step 1 — Connect')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Set up a protected agent account' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Create your protected account' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Setup progress' })).toBeVisible()
+  await expect(page.getByText('Step 1 of 4')).toBeVisible()
+  await expect(page.getByText(/MCP configuration/i)).toHaveCount(0)
+})
+
+test('the setup flow does not scroll sideways on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 })
+  await page.goto('/setup')
+  await expect(page.getByRole('heading', { name: 'Create your protected account' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(360)
 })
 
 test('the account directory explains its local scope before wallet connection', async ({ page }) => {
   await page.goto('/accounts')
   await expect(page.getByRole('heading', { name: 'My policy accounts' })).toBeVisible()
-  await expect(page.getByText(/finds accounts deployed by the connected owner/)).toBeVisible()
+  await expect(page.getByText(/finds compatible policy accounts deployed by the connected owner/)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Connect the owner wallet' })).toBeVisible()
 })
 

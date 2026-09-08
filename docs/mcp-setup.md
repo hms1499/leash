@@ -4,10 +4,12 @@ Leash gives an AI agent a wallet without trusting it. Funds sit in a contract,
 the agent can only ask that contract to spend, and the contract reverts past
 your limits. The limits are code on Celo, not a sentence in a prompt.
 
-This document gets your own agent spending through your own account from the
-command line. If you would rather click: run the app (`pnpm --filter @leash/app
-dev`) and open `/setup`, where a wizard does every step below and hands you the
-finished `.mcp.json` at the end.
+This document covers the command-line path: first create a protected account,
+then connect it to an agent runtime. If you would rather prepare the account in
+the browser, run the app (`pnpm --filter @leash/app dev`) and open `/setup`.
+That four-stage wizard creates the account, sets policy, authorizes the agent
+wallet and funds both balances. It deliberately stops at "ready": SDK or MCP
+connection is the separate integration described in section 2 below.
 
 **Before anything else:** Node >= 20, which `npx` needs to run the published
 server. The server installs from npm as `leash-agentpay`, so you do not need

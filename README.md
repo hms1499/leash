@@ -115,10 +115,11 @@ That is a live account and the numbers on it are real.
 
 ### Give your own agent a wallet
 
-**In the browser (recommended).** A six-step wizard connects your wallet,
-deploys *your own* `SpendPolicyAccount`, registers your agent, sets the limits,
-funds it, and hands you a filled-in `.mcp.json`. You paste your agent's address
-once; it assembles every contract call for you.
+**In the browser (recommended).** A four-stage wizard creates *your own*
+`SpendPolicyAccount`, sets its protection, authorizes a separate agent wallet,
+and funds both the protected budget and the agent's USDC gas float. It marks the
+account ready only after all five operating conditions are verified on Celo.
+SDK or MCP connection is a separate integration step after setup.
 
 ```bash
 pnpm install
