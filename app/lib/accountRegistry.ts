@@ -12,6 +12,24 @@ function registryKey(owner: string): string {
   return `leash.accounts.${owner.toLowerCase()}`
 }
 
+/**
+ * Writes that cannot take their caller down.
+ *
+ * listPolicyAccounts already guarded its read; the writes did not, and they
+ * run inside callers whose catch belongs to a transaction. deploy() calls
+ * savePolicyAccount after it has read the receipt and checked its status, so a
+ * storage throw there produced "Sent as 0x… The chain has not confirmed it
+ * yet" about a deployment that had demonstrably confirmed. See
+ * lib/browserStorage.ts for the same reasoning at the other call sites.
+ */
+function persist(storage: Storage, key: string, value: string): void {
+  try { storage.setItem(key, value) } catch { /* the chain is the record */ }
+}
+
+function forget(storage: Storage, key: string): void {
+  try { storage.removeItem(key) } catch { /* see persist */ }
+}
+
 function isSavedAccount(value: unknown): value is SavedPolicyAccount {
   if (!value || typeof value !== 'object') return false
   const item = value as Partial<SavedPolicyAccount>
@@ -62,7 +80,7 @@ export function savePolicyAccount(
   const next = index >= 0
     ? current.map((item, i) => i === index ? nextItem : item)
     : [...current, nextItem]
-  storage.setItem(registryKey(owner), JSON.stringify(next))
+  persist(storage, registryKey(owner), JSON.stringify(next))
   return next
 }
 
@@ -73,7 +91,7 @@ export function forgetPolicyAccount(
 ): SavedPolicyAccount[] {
   const next = listPolicyAccounts(storage, owner)
     .filter((item) => item.address.toLowerCase() !== address.toLowerCase())
-  storage.setItem(registryKey(owner), JSON.stringify(next))
+  persist(storage, registryKey(owner), JSON.stringify(next))
   return next
 }
 
@@ -81,20 +99,30 @@ export function selectPolicyAccount(storage: Storage, owner: string, address: st
   const account = listPolicyAccounts(storage, owner)
     .find((item) => item.address.toLowerCase() === address.toLowerCase())
   if (!account) return
-  storage.setItem('leash.account', account.address)
-  storage.setItem('leash.accountOwner', owner)
-  if (account.deployBlock) storage.setItem('leash.deployBlock', account.deployBlock)
-  else storage.removeItem('leash.deployBlock')
+  persist(storage, 'leash.account', account.address)
+  persist(storage, 'leash.accountOwner', owner)
+  if (account.deployBlock) persist(storage, 'leash.deployBlock', account.deployBlock)
+  else forget(storage, 'leash.deployBlock')
 }
 
 /** Moves the pre-multi-account singleton into the owner's registry once. */
 export function migrateLegacyAccount(storage: Storage, owner: string): SavedPolicyAccount[] {
-  const address = storage.getItem('leash.account')
-  const savedOwner = storage.getItem('leash.accountOwner')
+  let address: string | null = null
+  let savedOwner: string | null = null
+  let deployBlockRaw: string | null = null
+  try {
+    address = storage.getItem('leash.account')
+    savedOwner = storage.getItem('leash.accountOwner')
+    deployBlockRaw = storage.getItem('leash.deployBlock')
+  } catch {
+    // Blocked storage has nothing to migrate, and this runs inside effects
+    // whose failure would otherwise read as an unexplained blank page.
+    return []
+  }
   if (!address || !isValidAddress(address) || !savedOwner || savedOwner.toLowerCase() !== owner.toLowerCase()) {
     return listPolicyAccounts(storage, owner)
   }
-  const deployBlock = storage.getItem('leash.deployBlock') ?? undefined
+  const deployBlock = deployBlockRaw ?? undefined
   return savePolicyAccount(storage, owner, {
     address,
     deployBlock: deployBlock && /^\d+$/.test(deployBlock) ? deployBlock : undefined,

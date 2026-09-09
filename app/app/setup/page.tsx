@@ -20,6 +20,7 @@ import { formatAmount, formatDisplayAmount, parseAmount, validateLimits } from '
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import { firstSetupStage, setupReadiness, type SetupStage } from '../../lib/setup.js'
 import { pollUntil } from '../../lib/confirm.js'
+import { readLocal, writeLocal } from '../../lib/browserStorage.js'
 import { describeDeployReceipt } from '../../lib/deploy.js'
 import { PAGE } from '../../components/ui/page'
 import {
@@ -157,19 +158,29 @@ export default function Onboard() {
       setActiveStage(1)
       return
     }
-    const accounts = migrateLegacyAccount(localStorage, connected)
-    if (new URLSearchParams(window.location.search).get('new') === '1') {
-      setAccount(null)
-      setActiveStage(1)
-      return
-    }
-    const savedAddr = localStorage.getItem('leash.account')
-    const savedOwner = localStorage.getItem('leash.accountOwner')
-    if (savedAddr && isValidAddress(savedAddr) && savedOwner?.toLowerCase() === connected.toLowerCase()) {
-      setAccount(savedAddr)
-    } else if (accounts[0]) {
-      setAccount(accounts[0].address)
-    } else {
+    // Storage can throw rather than return null (Safari private mode, blocked
+    // third-party contexts). Unguarded, the throw escaped this effect and left
+    // `account` null with nothing said -- which is the same screen as "start
+    // here", so the failure was invisible rather than wrong. A browser that
+    // cannot remember anything simply starts at step 1, which is correct.
+    try {
+      const accounts = migrateLegacyAccount(localStorage, connected)
+      if (new URLSearchParams(window.location.search).get('new') === '1') {
+        setAccount(null)
+        setActiveStage(1)
+        return
+      }
+      const savedAddr = readLocal('leash.account')
+      const savedOwner = readLocal('leash.accountOwner')
+      if (savedAddr && isValidAddress(savedAddr) && savedOwner?.toLowerCase() === connected.toLowerCase()) {
+        setAccount(savedAddr)
+      } else if (accounts[0]) {
+        setAccount(accounts[0].address)
+      } else {
+        setAccount(null)
+        setActiveStage(1)
+      }
+    } catch {
       setAccount(null)
       setActiveStage(1)
     }
@@ -219,12 +230,12 @@ export default function Onboard() {
         setProtectedBalance(policyBalance)
         setRecipientProtectionEnabled(listEnabled)
         setRecipientMode(listEnabled ? 'protected' : 'any')
-        const savedRecipient = localStorage.getItem(`leash.recipient.${account.toLowerCase()}`)
+        const savedRecipient = readLocal(`leash.recipient.${account.toLowerCase()}`)
         if (savedRecipient && isValidAddress(savedRecipient)) setRecipient(savedRecipient)
 
         let authorized = false
         let operatorBalance: bigint | null = null
-        const savedAgent = localStorage.getItem(`leash.agent.${account.toLowerCase()}`)
+        const savedAgent = readLocal(`leash.agent.${account.toLowerCase()}`)
         if (savedAgent && isValidAddress(savedAgent)) {
           authorized = await publicClient.readContract({
             address: account, abi: SETUP_ABI, functionName: 'operators', args: [savedAgent],
@@ -333,7 +344,7 @@ export default function Onboard() {
     setRecipientMode('any')
     setRecipientNote(null)
     if (!recipientProtectionEnabled) {
-      localStorage.setItem(`leash.recipientMode.${account!.toLowerCase()}`, 'any')
+      writeLocal(`leash.recipientMode.${account!.toLowerCase()}`, 'any')
       return
     }
     if (chainId !== REQUIRED_CHAIN_ID) {
@@ -353,7 +364,7 @@ export default function Onboard() {
       if (confirmed) {
         setRecipientProtectionEnabled(false)
         setRecipientNote('Direct payments can now go to any recipient.')
-        localStorage.setItem(`leash.recipientMode.${account!.toLowerCase()}`, 'any')
+        writeLocal(`leash.recipientMode.${account!.toLowerCase()}`, 'any')
       } else {
         setRecipientMode('protected')
         setRecipientNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
@@ -401,8 +412,8 @@ export default function Onboard() {
         setRecipientProtectionEnabled(true)
         setRecipientMode('protected')
         setRecipientNote('Recipient protection enabled.')
-        localStorage.setItem(`leash.recipientMode.${account!.toLowerCase()}`, 'protected')
-        localStorage.setItem(`leash.recipient.${account!.toLowerCase()}`, recipient)
+        writeLocal(`leash.recipientMode.${account!.toLowerCase()}`, 'protected')
+        writeLocal(`leash.recipient.${account!.toLowerCase()}`, recipient)
       } else setRecipientNote('The recipient is approved, but protection has not been confirmed yet.')
     } catch {
       setRecipientNote('The requested policy change was not completed.')
@@ -431,7 +442,7 @@ export default function Onboard() {
       if (confirmed) {
         setAgentAuthorized(true)
         setAgentNote('Agent wallet authorized.')
-        localStorage.setItem(`leash.agent.${account!.toLowerCase()}`, agent)
+        writeLocal(`leash.agent.${account!.toLowerCase()}`, agent)
         // Authorization and balance are separate observations. If this read
         // fails, Refresh balances remains available; do not claim the write
         // was not sent after it was already observed on chain.

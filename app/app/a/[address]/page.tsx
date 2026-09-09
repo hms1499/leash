@@ -24,6 +24,7 @@ import { isValidAddress } from '../../../lib/address.js'
 import { canEdit } from '../../../lib/policy.js'
 import { publicClient } from '../../../lib/chain.js'
 import { accountDeployBlock, migrateLegacyAccount } from '../../../lib/accountRegistry.js'
+import { readLocal } from '../../../lib/browserStorage.js'
 
 // USDC on Celo mainnet. The token the policy is denominated in; the UI treats
 // stablecoins as 1:1 with the dollar, and that assumption lives here in the UI
@@ -126,7 +127,13 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     async function resolve() {
       const fromFeed = feed.rows.find((r) => r.kind === 'spent' || r.kind === 'toppedUp')?.operator
       const fromQuery = new URLSearchParams(window.location.search).get('operator')
-      const fromSetup = localStorage.getItem(`leash.agent.${address.toLowerCase()}`)
+      // readLocal, not localStorage: storage THROWS rather than returning
+      // null in Safari private mode and blocked third-party contexts. Raw, it
+      // rejected resolve() before its own try block, so none of the three
+      // setState calls below ever ran -- operatorResolving stayed true and the
+      // panel said "Checking operator access on chain…" forever, with no error
+      // path and no retry.
+      const fromSetup = readLocal(`leash.agent.${address.toLowerCase()}`)
       // The public proof account is intentionally a stable product fixture.
       // Its grant event eventually falls outside the 24-hour activity window,
       // so keep its candidate beside the account constant. This is not trusted
@@ -169,7 +176,16 @@ function Dashboard({ address }: { address: `0x${string}` }) {
         }
       }
     }
-    void resolve()
+    // Fail closed on anything resolve() did not anticipate. A rejected
+    // resolve() left every one of its setState calls unmade, which renders as
+    // "still checking" and never resolves. setOperatorCheckFailed(true) is
+    // what starts the 8-second retry above, so a transient failure heals.
+    void resolve().catch(() => {
+      if (cancelled) return
+      setOperator(null)
+      setOperatorCheckFailed(true)
+      setOperatorResolving(false)
+    })
     return () => { cancelled = true }
     // operatorCandidate belongs here: on an account that has been configured
     // but never used it is the only thing that changes, so leaving it out

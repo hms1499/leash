@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { truncateAddress } from '../lib/address.js'
+import { readLocal } from '../lib/browserStorage.js'
 import {
   ACCOUNT_REGISTRY_CHANGED,
   listPolicyAccounts,
@@ -21,7 +22,13 @@ export default function AccountSwitcher({ current }: { current: `0x${string}` })
 
   useEffect(() => {
     if (!connected) { setAccounts([]); return }
-    const refresh = () => setAccounts(migrateLegacyAccount(localStorage, connected))
+    // Storage can throw, not merely come back empty. A switcher that cannot
+    // list accounts renders empty; it is not worth an error banner, but it
+    // must not take the page down with it.
+    const refresh = () => {
+      try { setAccounts(migrateLegacyAccount(localStorage, connected)) }
+      catch { setAccounts([]) }
+    }
     refresh()
     window.addEventListener(ACCOUNT_REGISTRY_CHANGED, refresh)
     window.addEventListener('storage', refresh)
@@ -42,7 +49,7 @@ export default function AccountSwitcher({ current }: { current: `0x${string}` })
             const next = accounts.find((item) => item.address.toLowerCase() === event.target.value)
             if (!next) return
             selectPolicyAccount(localStorage, connected, next.address)
-            const operator = localStorage.getItem(`leash.agent.${next.address.toLowerCase()}`)
+            const operator = readLocal(`leash.agent.${next.address.toLowerCase()}`)
             const query = operator && /^0x[0-9a-fA-F]{40}$/.test(operator)
               ? `?operator=${operator}`
               : ''

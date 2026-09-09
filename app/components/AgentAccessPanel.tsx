@@ -5,6 +5,7 @@ import { useAccount, useWriteContract } from 'wagmi'
 import { isValidAddress } from '../lib/address.js'
 import { publicClient, REQUIRED_CHAIN_ID, SET_OPERATOR_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
+import { readLocal, removeLocal, writeLocal } from '../lib/browserStorage.js'
 import Address from './ui/Address'
 import Button from './ui/Button'
 import Label from './ui/Label'
@@ -60,7 +61,7 @@ export default function AgentAccessPanel({
       ))
       if (confirmed) {
         const next = agentInput as `0x${string}`
-        localStorage.setItem(`leash.agent.${account.toLowerCase()}`, next)
+        writeLocal(`leash.agent.${account.toLowerCase()}`, next)
         setNote('✓ Agent access granted.')
         onAgentChanged(next)
       } else {
@@ -90,9 +91,9 @@ export default function AgentAccessPanel({
         }),
       ))
       if (confirmed) {
-        const stored = localStorage.getItem(`leash.agent.${account.toLowerCase()}`)
+        const stored = readLocal(`leash.agent.${account.toLowerCase()}`)
         if (stored?.toLowerCase() === operator.toLowerCase()) {
-          localStorage.removeItem(`leash.agent.${account.toLowerCase()}`)
+          removeLocal(`leash.agent.${account.toLowerCase()}`)
         }
         setNote('✓ Agent access revoked.')
         onAgentChanged(null)
