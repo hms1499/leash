@@ -4,21 +4,30 @@ Leash gives an AI agent a wallet without trusting it. Funds sit in a contract,
 the agent can only ask that contract to spend, and the contract reverts past
 your limits. The limits are code on Celo, not a sentence in a prompt.
 
-This document covers the command-line path: make the agent's wallet, create a
-protected account, then connect it to an agent runtime. If you would rather
-prepare the account in the browser, run the app
-(`pnpm --filter @leash/app dev`) and open `/setup`. That four-stage wizard
-creates the account, sets policy, authorizes the agent wallet and funds both
-balances. It deliberately stops at "ready": SDK or MCP connection is the
-separate integration described in section 2 below.
+There are two ways to get a protected account, and only one of them needs this
+repository.
 
-**Section 0 applies either way.** The wizard asks for the agent's address and
-never needs its private key; section 2 does. Making that wallet first is what
-stops a finished setup from stalling on a key you cannot export.
+**In the browser, with nothing installed.** Open
+<https://leash-app-phi.vercel.app/setup> and connect an owner wallet. The
+four-stage wizard creates the account, sets policy, authorizes the agent wallet
+and funds both balances, and its last stage hands you the `.mcp.json` from
+section 2 with your account already filled in. Nothing about that path requires
+a clone, and it is the shortest route for most people. Section 1 below is then
+reference rather than instruction. (Running the app yourself with
+`pnpm --filter @leash/app dev` does the same thing, and is for working on it.)
 
-**Before anything else:** Node >= 20, which `npx` needs to run the published
-server. The server installs from npm as `leash-agentpay`, so you do not need
-to clone this repo or run `pnpm install` to follow this guide.
+**From the command line**, which is what section 1 describes. This one *does*
+need the repository: `forge create` compiles
+`contracts/src/SpendPolicyAccount.sol`, so you need the contract source and
+Foundry.
+
+**Section 0 applies either way.** Both paths ask for the agent's **address**
+and never its private key; section 2 asks for the key. Making that wallet
+first is what stops a finished setup from stalling on a key you cannot export.
+
+**Section 2 needs neither.** The server installs from npm as `leash-agentpay`,
+so connecting an agent requires no clone and no `pnpm install` — only Node >= 20,
+which `npx` needs to run it.
 
 ## 0. Make the agent's wallet first
 
@@ -44,6 +53,9 @@ abstraction, which is the whole reason it can be a throwaway key. Around
 so an owner key sitting in an agent's config defeats the entire product.
 
 ## 1. Deploy your own account
+
+*Skip this section if you used the browser wizard — it has already done all of
+it. Read it anyway if you want to know what those four stages actually sent.*
 
 **Do not point `LEASH_ACCOUNT` at this project's contract.** That account's
 owner key is ours: we could sweep your funds, and you could not set your own
@@ -87,6 +99,11 @@ the account either — you sweep back to your own wallet and spend from there.
 The account is the agent's budget, not your wallet.
 
 ## 2. Add the server to your agent
+
+This is the block the wizard's last stage gives you with `LEASH_ACCOUNT`
+already filled in, and the same one the dashboard keeps under **Connect your
+agent runtime** for when you did not save it. Copying it from there saves
+typing an address; the two are otherwise identical.
 
 ```json
 {
