@@ -17,6 +17,7 @@ import { formatAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import { firstSetupStage, setupReadiness, type SetupStage } from '../../lib/setup.js'
 import { pollUntil } from '../../lib/confirm.js'
+import { describeDeployReceipt } from '../../lib/deploy.js'
 import { PAGE } from '../../components/ui/page'
 import {
   announceAccountRegistryChange, migrateLegacyAccount, savePolicyAccount, selectPolicyAccount,
@@ -271,15 +272,16 @@ export default function Onboard() {
       }
       try {
         const receipt = await publicClient.waitForTransactionReceipt({ hash })
-        if (!receipt.contractAddress) {
-          setError(`Sent as ${hash}, but no contract address was returned. Check the transaction before trying again.`)
-          return
-        }
-        setAccount(receipt.contractAddress)
+        // A receipt is not a success. See describeDeployReceipt: a reverted
+        // creation still carries a contractAddress, and saving it left a junk
+        // account behind and then blamed the next failed read on the network.
+        const outcome = describeDeployReceipt(receipt, hash)
+        if (!outcome.ok) { setError(outcome.message); return }
+        setAccount(outcome.address)
         savePolicyAccount(localStorage, connected!, {
-          address: receipt.contractAddress, deployBlock: receipt.blockNumber.toString(),
+          address: outcome.address, deployBlock: receipt.blockNumber.toString(),
         })
-        selectPolicyAccount(localStorage, connected!, receipt.contractAddress)
+        selectPolicyAccount(localStorage, connected!, outcome.address)
         announceAccountRegistryChange()
         window.history.replaceState(null, '', '/setup')
         setActiveStage(2)
