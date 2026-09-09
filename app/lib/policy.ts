@@ -40,6 +40,12 @@ export function refusalThreshold(remaining: bigint, perTx: bigint): bigint {
  *
  * Use formatDisplayAmount for anything a user can submit; it round-trips
  * exactly, and test/policy.test.ts asserts that.
+ *
+ * Nothing calls this any more. It is kept because the tests below are the
+ * record of WHY formatDisplayAmount exists: they pin the truncation that cost
+ * this project a lowered cap, a one-percent loss and an unusable editor. A
+ * future edit that reaches for "just pad it to the decimals" has the
+ * counter-example here rather than having to rediscover it.
  */
 export function formatAmount(value: bigint, decimals: number, places = decimals): string {
   const full = formatUnits(value, decimals)
@@ -49,9 +55,14 @@ export function formatAmount(value: bigint, decimals: number, places = decimals)
 
 /**
  * Human-facing token amount: preserve small values, but remove meaningless
- * trailing zeroes from normal balances. Policy inputs keep using formatAmount
- * because fixed precision is useful while editing; dashboard figures use this
- * shape because 0.190000 is slower to scan than 0.19 and no more accurate.
+ * trailing zeroes from normal balances — 0.190000 is slower to scan than 0.19
+ * and no more accurate.
+ *
+ * This is now the ONLY formatter the app calls. The comment here used to say
+ * policy inputs kept formatAmount for its fixed precision while editing; they
+ * did not, and had not since the pre-fill truncation bug recorded below sent
+ * both editors here. The wizard's last two calls were the shortfall sentence
+ * in fund(), which read "Your wallet holds 1.230000 USDC".
  */
 export function formatDisplayAmount(
   value: bigint,

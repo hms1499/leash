@@ -16,7 +16,7 @@ import {
   SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS, SET_OPERATOR_GAS, SET_POLICY_GAS,
 } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
-import { formatAmount, formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
+import { formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import {
   afterFailedRead, balanceValue, describeBalance, firstSetupStage, setupReadiness,
@@ -574,7 +574,7 @@ export default function Onboard() {
       // sentence. This matters most on a wallet nobody has used before.
       const available = await readBalance(connected!)
       if (available < amount) {
-        setNote(`Your wallet holds ${formatAmount(available, DECIMALS)} USDC, less than the ${formatAmount(amount, DECIMALS)} you asked to send. Nothing was sent.`)
+        setNote(`Your wallet holds ${formatDisplayAmount(available, DECIMALS)} USDC, less than the ${formatDisplayAmount(amount, DECIMALS)} you asked to send. Nothing was sent.`)
         return
       }
       const before = await readBalance(destination)
