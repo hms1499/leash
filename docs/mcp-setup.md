@@ -1,5 +1,11 @@
 # Use Leash with your agent
 
+> **Came from the wizard with a `.mcp.json` in hand?** You do not need this
+> page. [`docs/quickstart.md`](quickstart.md) is the five steps that follow
+> that block, and nothing else. Come back here for what each variable means,
+> for deploying an account from the command line, or when something below is
+> the reference you actually want.
+
 Leash gives an AI agent a wallet without trusting it. Funds sit in a contract,
 the agent can only ask that contract to spend, and the contract reverts past
 your limits. The limits are code on Celo, not a sentence in a prompt.
@@ -174,8 +180,12 @@ claude mcp get leash                  # ✘ Rejected, or ⏸ Pending approval
 claude mcp reset-project-choices      # clears it; restart and answer yes
 ```
 
-`claude mcp list` does **not** show a rejected server at all, so it is the
-wrong command to check with — use `get`.
+Use `get` rather than `list`. Current Claude Code shows an unapproved
+`.mcp.json` server as `⏸ Pending approval` in both, but only `get` names the
+one server you are asking about; `list` puts it in a column you have to find.
+(An earlier version of this page claimed `list` hides such a server entirely.
+That is no longer what the CLI documents — `claude mcp --help` describes the
+pending state for both subcommands.)
 
 Add `.mcp.json` to your `.gitignore` before you paste a key into it, and add
 `.mcp.json.*` alongside it: the natural thing to do before editing that file is

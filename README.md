@@ -14,6 +14,7 @@ Spend limits and payee allowlists enforced on-chain — not by a prompt.
 [Live app](https://leash-app-phi.vercel.app) ·
 [Live account](https://leash-app-phi.vercel.app/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2) ·
 [Contract](https://celoscan.io/address/0x7ada926b021baef4896f51f237bca61435e43fd2) ·
+[Connect an agent](docs/quickstart.md) ·
 [Agent setup](docs/mcp-setup.md) ·
 [Deployments & proofs](docs/deployments.md)
 

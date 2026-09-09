@@ -8,8 +8,17 @@ import Panel from './ui/Panel'
 import Label from './ui/Label'
 import Button from './ui/Button'
 
-const GUIDE = 'https://github.com/hms1499/leash/blob/main/docs/mcp-setup.md'
-const TAG_GUIDE = `${GUIDE}#where-attribution_tag-comes-from`
+/**
+ * The five steps that follow this block, for a reader who came through the
+ * wizard and has everything except OPERATOR_PK. Deliberately NOT
+ * docs/mcp-setup.md: that page opens with two paths and a Foundry deploy, and
+ * a wizard user has to work out that its first two sections do not apply to
+ * them. Sending them there was the handoff's weakest link.
+ */
+const GUIDE = 'https://github.com/hms1499/leash/blob/main/docs/quickstart.md'
+/** Tag provenance stays in the full guide; quickstart only shows the shape. */
+const TAG_GUIDE =
+  'https://github.com/hms1499/leash/blob/main/docs/mcp-setup.md#where-attribution_tag-comes-from'
 
 export default function McpHandoff({
   account, token, operator = null, defaultOpen = false,
@@ -159,7 +168,7 @@ export default function McpHandoff({
           <code>npx</code>. Node.js 20 or newer is required.{' '}
           <a href={GUIDE} target="_blank" rel="noreferrer"
             style={{ color: 'var(--text)', textDecoration: 'underline' }}>
-            Full setup guide
+            Next steps: connect it to Claude Code
           </a>
         </p>
       </details>
