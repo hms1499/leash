@@ -16,7 +16,7 @@ import {
   SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS, SET_OPERATOR_GAS, SET_POLICY_GAS,
 } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
-import { formatAmount, parseAmount, validateLimits } from '../../lib/policy.js'
+import { formatAmount, formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import { firstSetupStage, setupReadiness, type SetupStage } from '../../lib/setup.js'
 import { pollUntil } from '../../lib/confirm.js'
@@ -206,8 +206,14 @@ export default function Onboard() {
           ? { perTx: limits[0], daily: limits[1] }
           : null
         if (nextLimits) {
-          setPerTx(formatAmount(nextLimits.perTx, DECIMALS, 2))
-          setDaily(formatAmount(nextLimits.daily, DECIMALS, 2))
+          // formatDisplayAmount, not formatAmount: the latter truncates, and
+          // these strings are both what Save writes back AND what
+          // readiness.limitsConfirmed compares against confirmedLimits. A
+          // truncated pre-fill made those two disagree, which sent
+          // firstSetupStage to stage 4 while the render's guard refused it --
+          // and no stage block matched, so the wizard body went blank.
+          setPerTx(formatDisplayAmount(nextLimits.perTx, DECIMALS, 2))
+          setDaily(formatDisplayAmount(nextLimits.daily, DECIMALS, 2))
           setConfirmedLimits(nextLimits)
         }
         setProtectedBalance(policyBalance)
@@ -806,6 +812,24 @@ export default function Onboard() {
         </Panel>
       )}
 
+      {/* Every stage guard is a conjunction, so any disagreement between
+          firstSetupStage's inputs and the readiness this render derives leaves
+          no block matching and the body blank -- with steps 3 and 4 disabled by
+          stageUnlocked, which is a dead end with no way forward. A truncating
+          pre-fill caused exactly that for a sub-cent cap. The cause is fixed
+          above; this makes the shape non-fatal. */}
+      {activeStage === 4 && !(account && readiness.ready && confirmedLimits) && (
+        <Panel as="section" className="p-6 mt-6">
+          <p className="text-sm" style={{ color: 'var(--bad)' }}>
+            This account&apos;s setup could not be summarised. Go back a step to
+            check its limits, agent and balances.
+          </p>
+          <Button variant="ghost" className="mt-3" onClick={() => setActiveStage(3)}>
+            Back to step 3
+          </Button>
+        </Panel>
+      )}
+
       {activeStage === 4 && account && readiness.ready && confirmedLimits && (
         <Panel as="section" className="p-6 mt-6">
           <Label className="block">Step 4 of 4</Label>
@@ -825,9 +849,9 @@ export default function Onboard() {
             <div><dt style={{ color: 'var(--dim)' }}>Agent wallet</dt>
               <dd className="mt-1"><Address address={agent} copy explorer className="num" /></dd></div>
             <div><dt style={{ color: 'var(--dim)' }}>Maximum per payment</dt>
-              <dd className="num mt-1">{formatAmount(confirmedLimits.perTx, DECIMALS, 2)} USDC</dd></div>
+              <dd className="num mt-1">{formatDisplayAmount(confirmedLimits.perTx, DECIMALS, 2)} USDC</dd></div>
             <div><dt style={{ color: 'var(--dim)' }}>Maximum per day</dt>
-              <dd className="num mt-1">{formatAmount(confirmedLimits.daily, DECIMALS, 2)} USDC</dd></div>
+              <dd className="num mt-1">{formatDisplayAmount(confirmedLimits.daily, DECIMALS, 2)} USDC</dd></div>
             <div><dt style={{ color: 'var(--dim)' }}>Protected balance</dt>
               <dd className="num mt-1">{formatAmount(protectedBalance!, DECIMALS)} USDC</dd></div>
             <div><dt style={{ color: 'var(--dim)' }}>Agent gas</dt>

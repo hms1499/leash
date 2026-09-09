@@ -27,6 +27,20 @@ export function refusalThreshold(remaining: bigint, perTx: bigint): bigint {
   return remaining < perTx ? remaining : perTx
 }
 
+/**
+ * A fixed-precision amount.
+ *
+ * `places` TRUNCATES -- it slices, it does not round. Never use it to pre-fill
+ * an editable field: the truncated string becomes the value written back, so a
+ * cap of 0.505 pre-filled as "0.50" and an untouched Save lowered it, and
+ * 0.999999 pre-filled as "0.99" lost one percent of the cap the same way. A
+ * sub-cent cap fared worse still: 0.005 formats to "0.00", which validateLimits
+ * then refuses as "a per-transaction cap of 0", making the editor unusable for
+ * that account.
+ *
+ * Use formatDisplayAmount for anything a user can submit; it round-trips
+ * exactly, and test/policy.test.ts asserts that.
+ */
 export function formatAmount(value: bigint, decimals: number, places = decimals): string {
   const full = formatUnits(value, decimals)
   const [whole, fraction = ''] = full.split('.')

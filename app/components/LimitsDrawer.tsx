@@ -6,7 +6,7 @@ import {
   publicClient, REQUIRED_CHAIN_ID, SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS,
   SET_POLICY_GAS, WRONG_NETWORK,
 } from '../lib/chain.js'
-import { formatAmount, validateLimits } from '../lib/policy.js'
+import { formatDisplayAmount, validateLimits } from '../lib/policy.js'
 import { isValidAddress } from '../lib/address.js'
 import { pollUntil } from '../lib/confirm.js'
 import Panel from './ui/Panel'
@@ -69,8 +69,10 @@ export default function LimitsDrawer({
 
   useEffect(() => {
     if (dirty) return
-    setPerTx(formatAmount(perTx, decimals, 2))
-    setDaily(formatAmount(daily, decimals, 2))
+    // formatDisplayAmount, not formatAmount: the latter truncates, and this
+    // string is what Save writes back.
+    setPerTx(formatDisplayAmount(perTx, decimals, 2))
+    setDaily(formatDisplayAmount(daily, decimals, 2))
   }, [perTx, daily, decimals, dirty])
 
   async function saveLimits() {

@@ -172,3 +172,32 @@ describe('validateLimits', () => {
     expect(r).toEqual({ ok: true, perTx: 500_000n, daily: 5_000_000n })
   })
 })
+
+describe('a pre-filled amount must survive the round trip', () => {
+  /**
+   * The form pre-fill is what Save writes back, so the string it shows has to
+   * parse to the value it came from. formatAmount does not: it slices.
+   */
+  it('formatDisplayAmount round-trips every value a cap can hold', () => {
+    for (const v of [1n, 5000n, 500_000n, 505_000n, 999_999n, 1_000_000n, 12_345_678n]) {
+      expect(parseAmount(formatDisplayAmount(v, 6, 2), 6)).toBe(v)
+    }
+  })
+
+  it('formatAmount does not, which is why it must not pre-fill a field', () => {
+    // Each of these silently lowered a cap when an owner opened the editor and
+    // pressed Save without touching it.
+    expect(formatAmount(505_000n, 6, 2)).toBe('0.50')
+    expect(parseAmount(formatAmount(505_000n, 6, 2), 6)).toBe(500_000n)
+    expect(parseAmount(formatAmount(999_999n, 6, 2), 6)).toBe(990_000n)
+  })
+
+  it('and it renders a sub-cent cap as zero, which validateLimits then refuses', () => {
+    // The other half: the editor became unusable rather than merely wrong.
+    expect(formatAmount(5_000n, 6, 2)).toBe('0.00')
+    const out = validateLimits('0.00', '1.00', 6)
+    expect(out.ok).toBe(false)
+    expect(formatDisplayAmount(5_000n, 6, 2)).toBe('0.005')
+    expect(validateLimits('0.005', '1.00', 6).ok).toBe(true)
+  })
+})
