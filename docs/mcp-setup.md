@@ -4,16 +4,44 @@ Leash gives an AI agent a wallet without trusting it. Funds sit in a contract,
 the agent can only ask that contract to spend, and the contract reverts past
 your limits. The limits are code on Celo, not a sentence in a prompt.
 
-This document covers the command-line path: first create a protected account,
-then connect it to an agent runtime. If you would rather prepare the account in
-the browser, run the app (`pnpm --filter @leash/app dev`) and open `/setup`.
-That four-stage wizard creates the account, sets policy, authorizes the agent
-wallet and funds both balances. It deliberately stops at "ready": SDK or MCP
-connection is the separate integration described in section 2 below.
+This document covers the command-line path: make the agent's wallet, create a
+protected account, then connect it to an agent runtime. If you would rather
+prepare the account in the browser, run the app
+(`pnpm --filter @leash/app dev`) and open `/setup`. That four-stage wizard
+creates the account, sets policy, authorizes the agent wallet and funds both
+balances. It deliberately stops at "ready": SDK or MCP connection is the
+separate integration described in section 2 below.
+
+**Section 0 applies either way.** The wizard asks for the agent's address and
+never needs its private key; section 2 does. Making that wallet first is what
+stops a finished setup from stalling on a key you cannot export.
 
 **Before anything else:** Node >= 20, which `npx` needs to run the published
 server. The server installs from npm as `leash-agentpay`, so you do not need
 to clone this repo or run `pnpm install` to follow this guide.
+
+## 0. Make the agent's wallet first
+
+Both paths — this document and the browser wizard — ask for the agent's
+**address** when you set it up, and then section 2 below asks for its
+**private key**. Generate it now, in one place, so you are not exporting a key
+out of a browser extension halfway through:
+
+```bash
+cast wallet new
+# Address:     0x…   <- paste this into setOperator, or into the wizard
+# Private key: 0x…   <- this becomes OPERATOR_PK in section 2
+```
+
+No `cast`? Any keypair generator works; the wallet is an ordinary EOA. What
+matters is that you can read the private key back out.
+
+**This wallet needs no CELO, ever.** It pays gas in USDC through Celo's fee
+abstraction, which is the whole reason it can be a throwaway key. Around
+0.05 USDC in it is about 17 transactions.
+
+**It must not be your owner wallet.** The owner can `sweep()` past every limit,
+so an owner key sitting in an agent's config defeats the entire product.
 
 ## 1. Deploy your own account
 
@@ -82,13 +110,36 @@ The account is the agent's budget, not your wallet.
 |---|---|
 | `LEASH_ACCOUNT` | Your `SpendPolicyAccount` from step 1. This is where the money lives and where the limits are enforced. |
 | `OPERATOR_PK` | The private key of the wallet you passed to `setOperator`. **A hot key — see the warning below.** |
-| `ATTRIBUTION_TAG` | Your ERC-8021 tag, `celo_` plus 12 hex characters. Every transaction the server sends carries it. There is no untagged path. |
+| `ATTRIBUTION_TAG` | Your ERC-8021 tag, `celo_` plus 12 hex characters. Every transaction the server sends carries it. There is no untagged path. **Required — the server refuses to start without one.** See below for where to get it. |
 | `SPEND_TOKEN` | The token the agent spends. The value above is USDC on Celo mainnet. |
 | `FEE_ADAPTER` | Which stablecoin pays gas. The value above is the USDC fee adapter, so the agent needs **no CELO at all**. |
 | `CELO_RPC_URL` | Optional. Defaults to `https://forno.celo.org`. |
 
 The server holds no keys of its own and adds no logic. It reads the chain and
 signs with the operator key you gave it.
+
+### Where `ATTRIBUTION_TAG` comes from
+
+`mcp/src/config.ts` requires it and checks its shape against
+`/^celo_[0-9a-f]{12}$/`, so the server exits before its first tool call if it is
+missing or malformed — and an agent reports that as "server failed to connect",
+with the real message buried.
+
+Two ways to have one:
+
+- **Registered.** Celo Builders issues a tag when you register a project. That
+  is the only kind that *counts* for anything: it is what attributes on-chain
+  volume to you.
+- **Your own.** Outside a hackathon nothing issues tags, and the suffix is only
+  data. Generate twelve hex characters and use them:
+
+  ```bash
+  printf 'celo_%s\n' "$(openssl rand -hex 6)"
+  ```
+
+**Do not paste a tag you found in someone else's repository** — this one's
+included. A tag is an attribution target, so borrowing a registered tag credits
+your transactions to whoever registered it, not to you.
 
 ### Then approve it, and know what a refusal looks like
 

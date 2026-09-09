@@ -585,9 +585,22 @@ export default function Onboard() {
           <details className="mt-5 text-sm" style={{ color: 'var(--dim)' }}>
             <summary className="cursor-pointer" style={{ color: 'var(--text)' }}>What you need before creating</summary>
             <ul className="mt-3 ml-5 list-disc space-y-2">
-              <li>An owner wallet on Celo with a little CELO for transaction fees.</li>
-              <li>USDC on Celo for the protected budget and agent gas.</li>
-              <li>A separate wallet address controlled by your AI agent.</li>
+              <li>
+                An owner wallet on Celo with a little CELO for transaction fees.
+                Roughly 0.25 CELO covers this whole setup; the owner is permanent,
+                so use a wallet you will keep.
+              </li>
+              <li>
+                USDC on Celo for the protected budget and agent gas. The agent
+                wallet needs <strong>no CELO at all</strong> — it pays gas in USDC.
+              </li>
+              <li>
+                A separate wallet for your agent. You will paste its{' '}
+                <strong>address</strong> here, and later you will need its{' '}
+                <strong>private key</strong> to connect an agent runtime — so
+                generate one you can export, for example with{' '}
+                <code>cast wallet new</code>. Do not use your owner wallet.
+              </li>
             </ul>
           </details>
           <div className="mt-5 pt-5" style={{ borderTop: '1px solid var(--line)' }}>
@@ -723,6 +736,15 @@ export default function Onboard() {
               <>
                 <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
                   The agent can request payments within policy. It cannot change limits, pause the account or recover all funds.
+                </p>
+                {/* Said here as well as in step 1: someone who created this
+                    wallet in a browser extension can finish the whole wizard
+                    before discovering that connecting a runtime needs the key,
+                    not the address. */}
+                <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+                  Paste the address. Connecting an agent runtime later needs this
+                  wallet&apos;s <strong>private key</strong>, so use one you can
+                  export — <code>cast wallet new</code> prints both.
                 </p>
                 <Label className="block mt-4">Agent wallet address</Label>
                 <input className="num field w-full mt-2 p-3" aria-label="Agent wallet address"
