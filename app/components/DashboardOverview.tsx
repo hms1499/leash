@@ -102,10 +102,14 @@ export function SecurityPolicy({
   decimals: number
   symbol: string
 }) {
+  // The third element says whether the value is money. CLAUDE.md: money on
+  // screen uses `.num` (mono, tabular-nums) so digits do not reflow as values
+  // update live -- and these come from the 4-second useAccountState poll, so
+  // they do update live.
   const rows = [
-    ['Daily limit', daily === 0n ? 'Not set' : `${formatDisplayAmount(daily, decimals)} ${symbol}`],
-    ['Maximum direct payment', perTx === 0n ? 'Not set' : `${formatDisplayAmount(perTx, decimals)} ${symbol}`],
-    ['Approved recipients', allowlistEnabled ? 'On' : 'Off — any address'],
+    ['Daily limit', daily === 0n ? 'Not set' : `${formatDisplayAmount(daily, decimals)} ${symbol}`, daily !== 0n],
+    ['Maximum direct payment', perTx === 0n ? 'Not set' : `${formatDisplayAmount(perTx, decimals)} ${symbol}`, perTx !== 0n],
+    ['Approved recipients', allowlistEnabled ? 'On' : 'Off — any address', false],
   ] as const
 
   return (
@@ -118,14 +122,14 @@ export function SecurityPolicy({
         Protection policy
       </h2>
       <div className="mt-4">
-        {rows.map(([name, value], index) => (
+        {rows.map(([name, value, isMoney], index) => (
           <div
             key={name}
             className="flex flex-wrap justify-between gap-2 py-2 text-sm"
             style={{ borderTop: index === 0 ? 'none' : '1px solid var(--line)' }}
           >
             <span style={{ color: 'var(--dim)' }}>{name}</span>
-            <span>{value}</span>
+            <span className={isMoney ? 'num' : undefined}>{value}</span>
           </div>
         ))}
       </div>

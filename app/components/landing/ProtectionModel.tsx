@@ -25,8 +25,8 @@ export default function ProtectionModel() {
         <div className="p-6">
           <Label>Protected account</Label>
           <p
-            className="num mt-4 text-2xl font-semibold"
-            style={{ color: 'var(--text)' }}
+            className="num mt-4 font-semibold"
+            style={{ fontSize: 'var(--t-title)', color: 'var(--text)' }}
           >
             Most USDC
           </p>
@@ -59,8 +59,8 @@ export default function ProtectionModel() {
         <div className="p-6">
           <Label>Agent wallet</Label>
           <p
-            className="num mt-4 text-2xl font-semibold"
-            style={{ color: 'var(--text)' }}
+            className="num mt-4 font-semibold"
+            style={{ fontSize: 'var(--t-title)', color: 'var(--text)' }}
           >
             Small USDC float
           </p>

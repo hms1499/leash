@@ -55,7 +55,11 @@ export function useAccountState(
   const read = useCallback(async () => {
     // Keep a previously observed snapshot visible during refreshes. On the
     // first read there is no snapshot, so the loading state remains explicit.
-    setState((s) => ({ ...s, isLoading: s.updatedAt === null, error: null }))
+    // `error` is deliberately NOT cleared here. Clearing it optimistically
+    // made the dashboard's "Could not refresh the account" banner appear and
+    // vanish every four seconds during a sustained outage. It is cleared on a
+    // successful read below, which is the only moment that is true.
+    setState((s) => ({ ...s, isLoading: s.updatedAt === null }))
     try {
       const [limits, remaining, paused, allowlistEnabled, owner, balance] = await Promise.all([
         publicClient.readContract({

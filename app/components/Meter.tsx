@@ -63,6 +63,11 @@ export default function Meter({
   const [visible, setVisible] = useState(true)
   useEffect(() => {
     const onChange = () => setVisible(!document.hidden)
+    // Read once at mount, like the reduced-motion effect above. Without it a
+    // tab that was ALREADY hidden fires no visibilitychange, so `visible`
+    // stayed true and the SMIL <animate> ran for as long as the tab stayed
+    // hidden -- the opposite of what the comment below promises.
+    onChange()
     document.addEventListener('visibilitychange', onChange)
     return () => document.removeEventListener('visibilitychange', onChange)
   }, [])
