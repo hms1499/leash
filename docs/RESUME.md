@@ -46,10 +46,10 @@ somebody adds a file to it.
 |---|---|
 | `cd contracts && forge test` | 32/32 |
 | `cd sdk && pnpm run test` | 66/66 |
-| `cd mcp && pnpm run test` | 27/27 |
+| `cd mcp && pnpm run test` | 29/29 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 201/201 (including multi-account registry and explorer discovery tests) |
-| `cd app && pnpm run test:e2e` | 10/10 local; deployed URL has not yet been updated with the multi-account UI |
+| `cd app && pnpm run test` | 228/228 (including multi-account registry and explorer discovery tests) |
+| `cd app && pnpm run test:e2e` | 13/13 local; deployed URL has not yet been updated with the multi-account UI |
 
 The app's `/accounts` route discovers direct contract deployments through the
 Etherscan V2 Celo index (`chainid=42220`), then verifies the owner and complete
@@ -131,6 +131,51 @@ minors parked during task reviews were closed at the same time.
 **CI has run.** Three jobs green on the first execution in the project's life:
 `bundle` 43s, `packages` 1m9s, `contracts` 16s —
 <https://github.com/hms1499/leash/actions/runs/34072306485>.
+
+## 2026-09-09 — an app flow audit, and eleven of its fifteen tasks
+
+Two passes over `app/`: a manual full-flow read and a `/code-review app/
+--effort high` agent. Fifteen defects, planned in
+`docs/superpowers/plans/2026-09-09-leash-app-flow-fixes.md`, which carries each
+defect statement inline.
+
+**Done (11).** In commit order: the deploy receipt (a reverted creation was
+saved as an account and the next failed read blamed on the network); the feed
+tail cursor (a background tab reported a quiet account over blocks nobody
+scanned); account discovery (a rate-limited RPC told an owner they had no
+accounts); the funding pre-check; explicit gas on all fourteen writes; the
+payee allowlist (a "ready to spend" badge over payments the contract refuses);
+the truncating limits pre-fill (an untouched Save lowered the cap, and a
+sub-cent cap blanked the wizard); browser storage (a throw reported confirmed
+transactions as never sent); the refuel plan; four small rule breaks (a
+blinking error banner, a meter animating in a hidden tab, money without
+`.num`, two type sizes off the scale); and the Finder duplicates, one of which
+would have doubled CI.
+
+**Deliberately not done (4).** Task 9, listing every operator rather than the
+newest, is the largest code change in the plan and touches the resolution the
+agent panel depends on. Task 14's ABI consolidation is a refactor against a
+non-upgradeable contract, and `app/lib/contract.ts` holds the deploy bytecode.
+Neither belongs before a filmed first run. Task 14's dead exports
+(`forgetPolicyAccount`, `shortHash`, `AccountsPage`'s unused `refresh`) and the
+question of whether `PROOFS[1]` and `PROOFS[3]` should be rendered or dropped
+are still open — dropping two changes a claim, not just code.
+
+**No task touched the contract.** `SpendPolicyAccount.sol` is unchanged, so
+there is no redeploy and no new address, and `app/lib/contract.ts` still holds
+the bytecode that is source-verified on Celoscan. An account deployed through
+the wizard today is byte-identical to `0x7aDa926B…3fd2`.
+
+**Two fixes are verified by reasoning and tests, not by a browser**: the feed
+cursor (Task 4) and the storage guards (Task 5) live in a hook and in component
+effects, which the node-only suite cannot reach. The plan names the manual
+checks; neither has been performed. Do them before filming.
+
+Gas figures for Task 12 were measured with `cast estimate` on mainnet that day
+and are recorded in `app/lib/chain.ts`, along with why each constant is roughly
+double its measurement: those estimates come from an account already in use,
+and warm storage understates a fresh one by ~17,000 gas per cold slot. A
+first-run wizard is the case they have to cover.
 
 ### Pick up here
 
