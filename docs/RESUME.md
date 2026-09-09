@@ -48,7 +48,7 @@ somebody adds a file to it.
 | `cd sdk && pnpm run test` | 66/66 |
 | `cd mcp && pnpm run test` | 29/29 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 228/228 (including multi-account registry and explorer discovery tests) |
+| `cd app && pnpm run test` | 232/232 (including multi-account registry and explorer discovery tests) |
 | `cd app && pnpm run test:e2e` | 13/13 local; deployed URL has not yet been updated with the multi-account UI |
 
 The app's `/accounts` route discovers direct contract deployments through the
@@ -139,7 +139,7 @@ Two passes over `app/`: a manual full-flow read and a `/code-review app/
 `docs/superpowers/plans/2026-09-09-leash-app-flow-fixes.md`, which carries each
 defect statement inline.
 
-**Done (11).** In commit order: the deploy receipt (a reverted creation was
+**Done (12).** In commit order: the deploy receipt (a reverted creation was
 saved as an account and the next failed read blamed on the network); the feed
 tail cursor (a background tab reported a quiet account over blocks nobody
 scanned); account discovery (a rate-limited RPC told an owner they had no
@@ -149,14 +149,13 @@ the truncating limits pre-fill (an untouched Save lowered the cap, and a
 sub-cent cap blanked the wizard); browser storage (a throw reported confirmed
 transactions as never sent); the refuel plan; four small rule breaks (a
 blinking error banner, a meter animating in a hidden tab, money without
-`.num`, two type sizes off the scale); and the Finder duplicates, one of which
-would have doubled CI.
+`.num`, two type sizes off the scale); the Finder duplicates, one of which
+would have doubled CI; and Task 9, listing every verified operator rather than
+the newest.
 
-**Deliberately not done (4).** Task 9, listing every operator rather than the
-newest, is the largest code change in the plan and touches the resolution the
-agent panel depends on. Task 14's ABI consolidation is a refactor against a
-non-upgradeable contract, and `app/lib/contract.ts` holds the deploy bytecode.
-Neither belongs before a filmed first run. Task 14's dead exports
+**Deliberately not done (3).** Task 14's ABI consolidation is a refactor
+against a non-upgradeable contract, and `app/lib/contract.ts` holds the deploy
+bytecode; it does not belong before a filmed first run. Task 14's dead exports
 (`forgetPolicyAccount`, `shortHash`, `AccountsPage`'s unused `refresh`) and the
 question of whether `PROOFS[1]` and `PROOFS[3]` should be rendered or dropped
 are still open — dropping two changes a claim, not just code.
