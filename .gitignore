@@ -36,3 +36,10 @@ skills-lock.json
 # last-match-wins, and that pattern sits below `!.env.example` and re-ignores it.
 .vercel
 .env.local
+
+# Finder duplicates. `.github/workflows/ci 2.yml` was a stale copy of ci.yml,
+# and GitHub Actions globs every .yml in that directory -- committing it would
+# have doubled CI on every pull request with the wrong config. The others were
+# dead weight in app/ and mcp/. Ignored rather than merely deleted, because the
+# way they appear is a copy-paste in a file manager, which will happen again.
+* [0-9].*
