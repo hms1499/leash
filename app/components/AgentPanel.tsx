@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, SWEEP_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { formatDisplayAmount, parseAmount } from '../lib/policy.js'
-import { transactionsLeft } from '../lib/gasFloat.js'
+import { planRefuel, transactionsLeft } from '../lib/gasFloat.js'
 import { pollUntil } from '../lib/confirm.js'
 import Address from './ui/Address'
 import Panel from './ui/Panel'
@@ -102,13 +102,25 @@ export default function AgentPanel({
   }
   const left = transactionsLeft(float)
   const low = left <= 3
+  // Computed here because the button label names the amount: a partial refuel
+  // must not be a surprise.
+  const plan = planRefuel(protectedBalance, parseAmount('0.05', decimals))
 
   async function refuel() {
     setNote(null)
     if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
+    if (!plan.ok) {
+      // The account cannot cover this, so the sweep would revert -- and a
+      // revert here reads as a slow chain, because the operator balance
+      // genuinely does not rise. Answer with the reason instead.
+      setNote(plan.reason === 'empty'
+        ? 'The protected account is empty. Send USDC to it before refuelling the agent.'
+        : `The protected account holds ${formatDisplayAmount(protectedBalance, decimals)} ${symbol}, which is not enough for even one agent transaction. Fund the account first.`)
+      return
+    }
     setBusy(true)
     try {
-      const amount = parseAmount('0.05', decimals)
+      const amount = plan.amount
       const before = float as bigint
       await writeContractAsync({
         address: account, abi: SWEEP_ABI, functionName: 'sweep',
@@ -155,7 +167,7 @@ export default function AgentPanel({
       <div className="grid gap-4 mt-4 sm:grid-cols-2">
         <div className="rounded p-4" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
           <p className="text-sm font-semibold">Protected account</p>
-          <p className="num mt-2 text-lg">{formatDisplayAmount(protectedBalance, decimals)} {symbol}</p>
+          <p className="num mt-2" style={{ fontSize: 'var(--t-heading)' }}>{formatDisplayAmount(protectedBalance, decimals)} {symbol}</p>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             Held behind the contract&apos;s spending policy.
           </p>
@@ -179,9 +191,16 @@ export default function AgentPanel({
         required for gas and x402 payments.
       </p>
       {note && <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>{note}</p>}
-      {isOwner && low && (
+      {isOwner && low && !plan.ok && (
+        <p className="text-sm mt-3" style={{ color: 'var(--bad)' }}>
+          {plan.reason === 'empty'
+            ? 'The protected account is empty, so there is nothing to refuel the agent with.'
+            : `The protected account holds ${formatDisplayAmount(protectedBalance, decimals)} ${symbol}, which is not enough for even one agent transaction.`}
+        </p>
+      )}
+      {isOwner && low && plan.ok && (
         <Button variant="primary" className="mt-3" disabled={busy} onClick={() => void refuel()}>
-          {busy ? 'Sending…' : `Send 0.05 ${symbol} for gas`}
+          {busy ? 'Sending…' : `Send ${formatDisplayAmount(plan.amount, decimals)} ${symbol} for gas`}
         </Button>
       )}
     </Panel>
