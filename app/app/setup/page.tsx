@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAccount, useDeployContract, useWriteContract } from 'wagmi'
 import ConnectButton from '../../components/ConnectButton'
+import McpHandoff from '../../components/McpHandoff'
 import NetworkBadge from '../../components/NetworkBadge'
 import Address from '../../components/ui/Address'
 import ActionLink from '../../components/ui/ActionLink'
@@ -985,10 +986,18 @@ export default function Onboard() {
             <div className="sm:col-span-2"><dt style={{ color: 'var(--dim)' }}>Direct-payment recipients</dt>
               <dd className="mt-1">{recipientProtectionEnabled ? 'Approved addresses only' : 'Any address — recipient protection is not enabled'}</dd></div>
           </dl>
+          <div className="mt-6">
+            <McpHandoff account={account} token={TOKEN} />
+          </div>
+
           <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--line)' }}>
             <h3 className="text-sm font-semibold">What happens next</h3>
+            {/* Was "a separate integration journey", which stopped being true
+                when the block above moved onto this step. Still not REQUIRED
+                -- readiness deliberately ignores it (lib/setup.ts) -- but it
+                is no longer somewhere else. */}
             <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-              Open the dashboard to monitor spending or change protection. Connecting an SDK or MCP runtime is a separate integration journey and is not required to complete this setup.
+              Open the dashboard to monitor spending or change protection. The account is complete either way: connecting a runtime is optional and is not part of what this setup verifies.
             </p>
             <div className="flex flex-wrap gap-3 mt-4">
               <ActionLink href={`/a/${account}?operator=${agent}`} variant="primary">Open dashboard</ActionLink>

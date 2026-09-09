@@ -103,8 +103,8 @@ The 0.1.0 record, which still stands as written: it was **published, public,
 and exercised end to end.** A
 second account was deployed through the hosted wizard on 2026-09-07, and an
 agent running `npx -y leash-agentpay` — the published package, started by its
-own MCP client from the `.mcp.json` the wizard emitted at the time (the app
-stopped emitting one on 2026-09-09; see below) — called `leash_status`
+own MCP client from the `.mcp.json` the wizard emitted at the time (emission
+was removed and restored on 2026-09-09; see below) — called `leash_status`
 against it, then `leash_fetch` with `quote_only: true` against
 `https://usebuy.ai/gcloud/vm` for a quote of 0.016753 USDC.
 
@@ -223,14 +223,25 @@ first-run wizard is the case they have to cover.
 The `.mcp.json` a reader copies now says `npx -y leash-agentpay` instead of
 `/absolute/path/to/leash/mcp/src/index.ts`, which they had to edit by hand.
 
-**Superseded 2026-09-09.** The app no longer renders that block anywhere.
-`/setup`'s stage 4 says integration is a separate journey, and both e2e specs
-now assert the block's absence, so `app/components/McpHandoff.tsx`,
-`app/lib/mcpJson.ts` and their 24 tests were deleted rather than left as a
-builder nothing built. The block lives in `docs/mcp-setup.md`, which the site
-header and footer link to. The sentence this paragraph used to end with --
-"the landing page and `/setup` both render through it, so they cannot drift
-apart" -- had been false since the dashboard simplification.
+**Deleted, then restored, both on 2026-09-09.** For part of that day the app
+rendered the block nowhere: `McpHandoff.tsx`, `lib/mcpJson.ts` and their 24
+tests were deleted as a builder nothing built, and `docs/mcp-setup.md` was the
+only copy. It is back on `/setup` stage 4 only, because a stranger who finished
+all four steps was left with an account and no way to connect an agent to it.
+
+What changed on the way back: the `tagStatus` prop is gone. The component
+derives it from `isAttributionTag`, since a caller-supplied status is exactly
+what let the landing page and `/setup` disagree about one block (see the
+2026-09-05 entry below). `FEE_ADAPTER` is declared in `lib/mcpJson.ts` and
+pinned by a test -- it had vanished from `app/` entirely with the deletion.
+
+The e2e assertions did NOT need changing and were not changed: `landing.spec.ts:9`
+loads `/setup` with no wallet, which is stage 1, and `:59` is the landing page,
+which still renders no block. Both still assert absence and both still pass.
+
+The sentence this paragraph used to end with -- "the landing page and `/setup`
+both render through it, so they cannot drift apart" -- was false when it was
+written and is still false: only `/setup` renders it now.
 
 **`@leash/sdk` is deliberately not published**, and is a `devDependency` rather
 than a dependency, because `@leash/sdk` on the registry is an unrelated

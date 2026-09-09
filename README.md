@@ -304,8 +304,9 @@ claim above backed by a transaction rather than a test's own output.
 **The MCP server is published.** `leash-agentpay` is on npm, and the
 `.mcp.json` block in [`docs/mcp-setup.md`](docs/mcp-setup.md) runs it with
 `npx -y leash-agentpay` — nobody needs to clone this repo or edit a local path
-to use it. Connecting an agent is deliberately a step after setup rather than
-part of the wizard, so the app itself does not hand out that block. `@leash/sdk` stays unpublished by
+to use it. `/setup` stage 4 hands out the same block with your account already
+filled in; connecting an agent stays optional, and nothing about it gates
+whether the account is ready. `@leash/sdk` stays unpublished by
 choice: it has one consumer, and publishing it would commit this project to a
 public API and a semver contract nobody has asked for, so it is bundled into
 the server instead.
