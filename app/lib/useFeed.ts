@@ -101,6 +101,11 @@ export function useFeed(
   useEffect(() => {
     let cancelled = false
 
+    // The tail's cursor. Declared here, above backfill(), because backfill is
+    // what sets it: the two are one scan with a seam, and the seam has to be
+    // a single block number that both agree on.
+    let lastSeen: bigint | null = null
+
     // Walked newest-first and published chunk by chunk. A whole-window scan
     // is 18 sequential round trips; painting only at the end would leave the
     // most recent spend — the one a demo is about — waiting on the oldest
@@ -109,6 +114,16 @@ export function useFeed(
       try {
         const head = await publicClient.getBlockNumber()
         if (!cancelled) setHead({ block: head, seenAt: Date.now() })
+        // The tail starts where this scan ends, not where the first tail tick
+        // happens to land. Set in the tail instead, it was never set at all on
+        // a tab that started hidden -- every tick returned on document.hidden
+        // BEFORE reaching the initialiser -- so the whole hidden period went
+        // unqueried by either half and Feed.tsx then called that a quiet
+        // account: a claim about a range nobody read. On a visible tab the same
+        // seam still lost the blocks between this call and the first tick,
+        // which on Celo's one-second blocks is a real four-second hole on every
+        // load, right where a demo's first spend lands.
+        lastSeen = head
         // A caller-supplied floor can only NARROW the walk. An account
         // deployed an hour ago has no logs before its deploy block, so
         // scanning there is wasted round trips; an account deployed last week
@@ -179,10 +194,10 @@ export function useFeed(
     // EVENT_ABI, not spendPolicyAccountAbi: the SDK's ABI carries functions
     // and error definitions only — it has no `event` entries, so asking for
     // those would silently match nothing.
-    let lastSeen: bigint | null = null
 
     async function tail() {
-      // A hidden tab is not watching. The cursor stays put, and tailRange
+      // A hidden tab is not watching. The cursor stays put — set by the
+      // backfill, so it is a real block number even here — and tailRange
       // clamps the catch-up when it comes back.
       if (cancelled || document.hidden) return
       try {
@@ -193,6 +208,9 @@ export function useFeed(
         // on activity leaves a quiet account's ages drifting.
         setHead((prev) => (prev && prev.block >= head ? prev : { block: head, seenAt: Date.now() }))
 
+        // Only reachable when the backfill threw before its own
+        // getBlockNumber returned, so there is no seam to preserve — start
+        // watching from here rather than not at all.
         if (lastSeen === null) { lastSeen = head; return }
         const range = tailRange(lastSeen, head)
         if (!range) return
