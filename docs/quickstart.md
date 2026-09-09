@@ -33,13 +33,7 @@ prints something older:
 brew install node
 ```
 
-**Ubuntu / Debian**
-
-```bash
-sudo apt update && sudo apt install -y nodejs npm
-```
-
-**Windows, or no package manager** — download the LTS installer from
+**Windows, or macOS without Homebrew** — download the LTS installer from
 <https://nodejs.org/en/download> and run it.
 
 Confirm before moving on:
@@ -78,7 +72,7 @@ not take, and a registry or network error means `npx` could not reach npm.
 
 ## 3. Install Claude Code
 
-**macOS, Linux, WSL**
+**macOS**
 
 ```bash
 curl -fsSL https://claude.ai/install.sh | bash
@@ -104,66 +98,41 @@ installer adds `claude` to a path your current shell has not re-read.
 This is where the agent will work, and where the config has to live. Not your
 home directory.
 
+**macOS**
+
 ```bash
 mkdir -p ~/my-agent
 cd ~/my-agent
 ```
 
-## 5. Save the block as `.mcp.json`
-
-The block is still on your clipboard from the wizard. Write it straight to the
-file:
-
-**macOS**
-
-```bash
-pbpaste > .mcp.json
-```
-
-**Linux (X11)**
-
-```bash
-xclip -o -selection clipboard > .mcp.json
-```
-
-**Linux (Wayland)**
-
-```bash
-wl-paste > .mcp.json
-```
-
 **Windows PowerShell**
 
 ```powershell
-Get-Clipboard | Set-Content .mcp.json
+mkdir ~/my-agent
+cd ~/my-agent
 ```
 
-Lost the block? The dashboard keeps it under **Connect your agent runtime**,
-with your account already filled in. Copy it again and rerun the command above.
+## 5. Save the block as `.mcp.json`
 
-Keep it out of git:
+The block is still on your clipboard from the wizard. Save it as a file named
+`.mcp.json` **inside the folder you made in step 4** — `~/my-agent`, not your
+home directory and not anywhere else. Claude Code reads it from the folder you
+start it in, and nowhere else.
+
+Lost the block? The dashboard keeps it under **Connect your agent runtime**,
+with your account already filled in. Copy it again.
+
+It will hold your operator key, so keep it out of git:
 
 ```bash
 printf '.mcp.json\n.mcp.json.*\n' >> .gitignore
 ```
 
-Check that the file looks right:
-
-```bash
-cat .mcp.json
-```
-
 ## 6. Paste the operator key
 
-Open the file:
-
-```bash
-nano .mcp.json
-```
-
-Replace `0xYourAgentOperatorPrivateKey` with the private key of the agent wallet
-the wizard shows you — `0x` followed by 64 hex characters. In `nano`, save with
-`Ctrl+O`, `Enter`, then exit with `Ctrl+X`.
+Open `.mcp.json` in any text editor — TextEdit on macOS, Notepad on Windows —
+and replace `0xYourAgentOperatorPrivateKey` with the private key of the agent
+wallet the wizard shows you: `0x` followed by 64 hex characters. Save the file.
 
 Paste an *address* here by mistake (40 characters) and the server refuses to
 start.
