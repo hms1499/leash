@@ -466,6 +466,16 @@ export default function Onboard() {
     }
     setFundingTarget(target)
     try {
+      // Read rather than discovered from a revert. wagmi does not simulate, so
+      // a transfer larger than the wallet holds is signed, lands, reverts and
+      // costs gas -- and then reads as a slow chain, because the destination
+      // balance genuinely did not change. One balanceOf turns that into a
+      // sentence. This matters most on a wallet nobody has used before.
+      const available = await readBalance(connected!)
+      if (available < amount) {
+        setNote(`Your wallet holds ${formatAmount(available, DECIMALS)} USDC, less than the ${formatAmount(amount, DECIMALS)} you asked to send. Nothing was sent.`)
+        return
+      }
       const before = await readBalance(destination)
       await writeContractAsync({
         address: TOKEN, abi: ERC20_ABI, functionName: 'transfer',
