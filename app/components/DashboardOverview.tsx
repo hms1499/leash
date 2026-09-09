@@ -3,111 +3,12 @@ import Address from './ui/Address'
 import Label from './ui/Label'
 import Panel from './ui/Panel'
 import { formatDisplayAmount } from '../lib/policy.js'
+import { accountHealth } from '../lib/accountHealth.js'
 import { PROSE } from './ui/prose'
-
-type Summary = {
-  badge: string
-  title: string
-  body: string
-  tone: 'normal' | 'ok' | 'bad'
-  action?: { href: string; label: string }
-}
-
-function accountSummary({
-  account, paused, loading, daily, perTx, balance, operator, operatorLoading,
-  agentTransactionsLeft, isOwner,
-}: {
-  account: `0x${string}`
-  paused: boolean
-  loading: boolean
-  daily: bigint
-  perTx: bigint
-  balance: bigint
-  operator: string | null
-  operatorLoading: boolean
-  agentTransactionsLeft: number | null
-  isOwner: boolean
-}): Summary {
-  if (loading) {
-    return {
-      badge: 'Syncing',
-      title: 'Reading the protected account',
-      body: 'Checking policy, balance and owner controls directly on Celo.',
-      tone: 'normal',
-    }
-  }
-  if (paused) {
-    return {
-      badge: 'Paused',
-      title: 'Agent spending is stopped',
-      body: isOwner
-        ? 'Every operator payment is refused. Use Resume in the header when it is safe to continue.'
-        : 'Every operator payment is refused until the owner resumes this account.',
-      tone: 'bad',
-    }
-  }
-  if (daily === 0n || perTx === 0n) {
-    return {
-      badge: 'Needs setup',
-      title: 'Set the spending limits',
-      body: 'The contract refuses every payment until both a daily and per-payment limit are configured.',
-      tone: 'bad',
-      action: isOwner ? { href: '#policy-controls', label: 'Manage protection' } : undefined,
-    }
-  }
-  if (operatorLoading) {
-    return {
-      badge: 'Checking',
-      title: 'Verifying agent access',
-      body: 'Reading account history and confirming the operator against the contract.',
-      tone: 'normal',
-    }
-  }
-  if (!operator) {
-    return {
-      badge: 'Needs setup',
-      title: 'Add or verify an agent wallet',
-      body: 'No active operator could be verified for this protected account.',
-      tone: 'bad',
-      action: isOwner ? { href: '#agent-management', label: 'Manage agent' } : undefined,
-    }
-  }
-  if (balance === 0n) {
-    return {
-      badge: 'Needs funds',
-      title: 'Fund the protected account',
-      body: `Send USDC on Celo to ${account}. Direct payments cannot succeed while the protected balance is empty.`,
-      tone: 'bad',
-    }
-  }
-  if (agentTransactionsLeft === null) {
-    return {
-      badge: 'Checking',
-      title: 'Checking agent gas',
-      body: 'Reading the agent wallet’s USDC balance before marking it ready.',
-      tone: 'normal',
-    }
-  }
-  if (agentTransactionsLeft === 0) {
-    return {
-      badge: 'Needs gas',
-      title: 'Refuel the agent wallet',
-      body: 'The protected account is funded, but the agent cannot send its next transaction.',
-      tone: 'bad',
-      action: isOwner ? { href: '#agent-funds', label: 'Refuel agent' } : undefined,
-    }
-  }
-  return {
-    badge: 'Ready',
-    title: 'Agent is ready to spend',
-    body: 'Policy, protected funds, operator access and agent gas are all available.',
-    tone: 'ok',
-  }
-}
 
 export function AccountOverview({
   account, owner, connected, paused, loading, updatedAt, daily, perTx, balance,
-  operator, operatorLoading, agentTransactionsLeft,
+  allowlistEnabled, operator, operatorLoading, agentTransactionsLeft,
 }: {
   account: `0x${string}`
   owner: `0x${string}` | null
@@ -118,6 +19,7 @@ export function AccountOverview({
   daily: bigint
   perTx: bigint
   balance: bigint
+  allowlistEnabled: boolean
   operator: string | null
   operatorLoading: boolean
   agentTransactionsLeft: number | null
@@ -128,9 +30,9 @@ export function AccountOverview({
     : isOwner
       ? 'Owner controls enabled.'
       : 'Public view — the connected wallet is not the owner.'
-  const summary = accountSummary({
-    account, paused, loading, daily, perTx, balance, operator, operatorLoading,
-    agentTransactionsLeft, isOwner,
+  const summary = accountHealth({
+    account, paused, loading, daily, perTx, balance, allowlistEnabled, operator,
+    operatorLoading, agentTransactionsLeft, isOwner,
   })
   const tone = summary.tone === 'normal' ? 'var(--dim)' : `var(--${summary.tone})`
 

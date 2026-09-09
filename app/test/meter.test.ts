@@ -66,7 +66,7 @@ describe('animating', () => {
 describe('spendBand', () => {
   const band = {
     remaining: 1_000_000n, perTx: 500_000n, balance: 2_000_000n,
-    paused: false, loading: false,
+    allowlistEnabled: false, paused: false, loading: false,
   }
 
   it('states nothing before the first read returns', () => {
@@ -95,17 +95,17 @@ describe('spendBand', () => {
 
   it('takes the per-transaction cap when it is the tightest', () => {
     expect(spendBand(band))
-      .toEqual({ kind: 'ceiling', amount: 500_000n, limitedBy: 'per-transaction cap' })
+      .toEqual({ kind: 'ceiling', amount: 500_000n, limitedBy: 'per-transaction cap' , restrictedToApprovedPayees: false })
   })
 
   it('takes what is left today when that is tighter than the cap', () => {
     expect(spendBand({ ...band, remaining: 200_000n }))
-      .toEqual({ kind: 'ceiling', amount: 200_000n, limitedBy: 'daily allowance' })
+      .toEqual({ kind: 'ceiling', amount: 200_000n, limitedBy: 'daily allowance' , restrictedToApprovedPayees: false })
   })
 
   it('takes the balance when the account holds less than either cap', () => {
     expect(spendBand({ ...band, balance: 100_000n }))
-      .toEqual({ kind: 'ceiling', amount: 100_000n, limitedBy: 'balance' })
+      .toEqual({ kind: 'ceiling', amount: 100_000n, limitedBy: 'balance' , restrictedToApprovedPayees: false })
   })
 })
 
@@ -116,32 +116,76 @@ describe('spendBand', () => {
  * distinction 50778cd was opened for.
  */
 describe('spendBand names the constraint that is biting', () => {
-  const base = { paused: false, loading: false }
+  const base = { allowlistEnabled: false, paused: false, loading: false }
 
   it('says balance when the account holds less than the policy allows', () => {
     const band = spendBand({ ...base, remaining: 1_000_000n, perTx: 500_000n, balance: 40_000n })
-    expect(band).toEqual({ kind: 'ceiling', amount: 40_000n, limitedBy: 'balance' })
+    expect(band).toEqual({ kind: 'ceiling', amount: 40_000n, limitedBy: 'balance', restrictedToApprovedPayees: false })
   })
 
   it('says per-transaction cap when that is the tightest', () => {
     const band = spendBand({ ...base, remaining: 1_000_000n, perTx: 500_000n, balance: 2_000_000n })
-    expect(band).toEqual({ kind: 'ceiling', amount: 500_000n, limitedBy: 'per-transaction cap' })
+    expect(band).toEqual({ kind: 'ceiling', amount: 500_000n, limitedBy: 'per-transaction cap', restrictedToApprovedPayees: false })
   })
 
   it('says daily allowance when the day is nearly spent', () => {
     const band = spendBand({ ...base, remaining: 90_000n, perTx: 500_000n, balance: 2_000_000n })
-    expect(band).toEqual({ kind: 'ceiling', amount: 90_000n, limitedBy: 'daily allowance' })
+    expect(band).toEqual({ kind: 'ceiling', amount: 90_000n, limitedBy: 'daily allowance', restrictedToApprovedPayees: false })
   })
 
   // Ties have to resolve the same way every time or the sentence flickers.
   it('resolves a tie toward the per-transaction cap', () => {
     const band = spendBand({ ...base, remaining: 500_000n, perTx: 500_000n, balance: 2_000_000n })
-    expect(band).toEqual({ kind: 'ceiling', amount: 500_000n, limitedBy: 'per-transaction cap' })
+    expect(band).toEqual({ kind: 'ceiling', amount: 500_000n, limitedBy: 'per-transaction cap', restrictedToApprovedPayees: false })
   })
 
   // The earlier states still outrank it, in the order they already had.
   it('still reports an empty account as unfunded, not as a zero ceiling', () => {
     expect(spendBand({ ...base, remaining: 1_000_000n, perTx: 500_000n, balance: 0n }))
       .toEqual({ kind: 'unfunded' })
+  })
+})
+
+describe('spendBand and the payee allowlist', () => {
+  const band = {
+    remaining: 1_000_000n, perTx: 500_000n, balance: 2_000_000n,
+    allowlistEnabled: false, paused: false, loading: false,
+  }
+
+  it('marks a ceiling as restricted when recipient protection is on', () => {
+    const out = spendBand({ ...band, allowlistEnabled: true })
+    expect(out.kind).toBe('ceiling')
+    expect(out.kind === 'ceiling' && out.restrictedToApprovedPayees).toBe(true)
+  })
+
+  it('leaves the ceiling figure itself alone', () => {
+    // The number is still right: a payment to an APPROVED address really can
+    // be this large. Only the sentence beside it was incomplete.
+    const off = spendBand(band)
+    const on = spendBand({ ...band, allowlistEnabled: true })
+    expect(off.kind === 'ceiling' && off.amount).toBe(on.kind === 'ceiling' && on.amount)
+    expect(off.kind === 'ceiling' && off.limitedBy).toBe(on.kind === 'ceiling' && on.limitedBy)
+  })
+
+  it('marks a balance-limited ceiling too', () => {
+    const out = spendBand({ ...band, balance: 100_000n, allowlistEnabled: true })
+    expect(out.kind === 'ceiling' && out.limitedBy).toBe('balance')
+    expect(out.kind === 'ceiling' && out.restrictedToApprovedPayees).toBe(true)
+  })
+
+  it('says false when protection is off', () => {
+    const out = spendBand(band)
+    expect(out.kind === 'ceiling' && out.restrictedToApprovedPayees).toBe(false)
+  })
+
+  it('does not change the four state-vocabulary bands', () => {
+    // docs/design-system.md §5: these sentences are fixed. The allowlist must
+    // not add a sixth kind or alter one of them.
+    for (const enabled of [false, true]) {
+      expect(spendBand({ ...band, allowlistEnabled: enabled, loading: true })).toEqual({ kind: 'loading' })
+      expect(spendBand({ ...band, allowlistEnabled: enabled, paused: true })).toEqual({ kind: 'paused' })
+      expect(spendBand({ ...band, allowlistEnabled: enabled, balance: 0n })).toEqual({ kind: 'unfunded' })
+      expect(spendBand({ ...band, allowlistEnabled: enabled, remaining: 0n })).toEqual({ kind: 'exhausted' })
+    }
   })
 })

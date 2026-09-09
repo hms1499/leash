@@ -49,6 +49,7 @@ export default function LiveProof() {
             decimals={DECIMALS}
             symbol="USDC"
             balance={state.balance}
+            allowlistEnabled={state.allowlistEnabled}
             paused={state.paused}
             loading={state.isLoading}
           />

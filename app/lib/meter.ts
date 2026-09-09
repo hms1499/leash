@@ -69,12 +69,20 @@ export type SpendBand =
        * those are opposite actions.
        */
       limitedBy: 'daily allowance' | 'per-transaction cap' | 'balance'
+      /**
+       * Whether the payee allowlist is on. The ceiling is still the right
+       * figure when it is -- a payment to an APPROVED address really can be
+       * this large -- but the figure alone reads as "anyone, up to here", and
+       * the contract refuses every payee that is not on the list. It cannot be
+       * asked how many are: payeeAllowlist is a mapping and is not enumerable.
+       */
+      restrictedToApprovedPayees: boolean
     }
 
 export function spendBand({
-  remaining, perTx, balance, paused, loading,
+  remaining, perTx, balance, allowlistEnabled, paused, loading,
 }: {
-  remaining: bigint; perTx: bigint; balance: bigint
+  remaining: bigint; perTx: bigint; balance: bigint; allowlistEnabled: boolean
   paused: boolean; loading: boolean
 }): SpendBand {
   if (loading) return { kind: 'loading' }
@@ -89,7 +97,12 @@ export function spendBand({
   const cap = refusalThreshold(remaining, perTx)
   if (cap === 0n) return { kind: 'exhausted' }
 
-  if (balance < cap) return { kind: 'ceiling', amount: balance, limitedBy: 'balance' }
+  if (balance < cap) {
+    return {
+      kind: 'ceiling', amount: balance, limitedBy: 'balance',
+      restrictedToApprovedPayees: allowlistEnabled,
+    }
+  }
   // A tie between the two policy bounds resolves toward the per-transaction
   // cap, deterministically, so the sentence under the figure does not flicker
   // between renders.
@@ -97,5 +110,6 @@ export function spendBand({
     kind: 'ceiling',
     amount: cap,
     limitedBy: remaining < perTx ? 'daily allowance' : 'per-transaction cap',
+    restrictedToApprovedPayees: allowlistEnabled,
   }
 }

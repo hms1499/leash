@@ -17,6 +17,9 @@ type Props = {
   /** What the account holds. The caps say what is allowed; only this says
    *  whether there is anything to spend. */
   balance: bigint
+  /** Whether the payee allowlist is on. The ceiling is true either way; the
+   *  clause under it is what changes. */
+  allowlistEnabled: boolean
   paused: boolean
   /** True until the first read returns. Zeroes are not observations. */
   loading: boolean
@@ -42,7 +45,7 @@ const CAP_W = 4
 const FILL_MAX = CAP_X - 2
 
 export default function Meter({
-  daily, remaining, perTx, decimals, symbol, balance, paused, loading,
+  daily, remaining, perTx, decimals, symbol, balance, allowlistEnabled, paused, loading,
   dominant = false,
 }: Props) {
   // False on the server and on first paint so hydration matches; the effect
@@ -66,7 +69,7 @@ export default function Meter({
 
   const { fillPercent, locked, animating } =
     meterState({ daily, remaining, paused, loading, visible, reduced })
-  const band = spendBand({ remaining, perTx, balance, paused, loading })
+  const band = spendBand({ remaining, perTx, balance, allowlistEnabled, paused, loading })
   const width = Math.max(0, Math.min(FILL_MAX, (fillPercent / 100) * FILL_MAX))
 
   return (
@@ -93,6 +96,11 @@ export default function Meter({
               money, and those are opposite actions. */}
           <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
             limited by the {band.limitedBy}
+            {/* Appended, not a sixth band.kind: the four sentences below are
+                the design-system §5 state vocabulary and are not to be
+                reworded, and this figure is still correct -- it is only
+                incomplete without naming who may receive it. */}
+            {band.restrictedToApprovedPayees && ' \u00b7 approved recipients only'}
           </p>
         </div>
       )}

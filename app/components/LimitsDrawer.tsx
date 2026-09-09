@@ -58,6 +58,12 @@ export default function LimitsDrawer({
   const [payee, setPayee] = useState('')
   const [payeeAllowed, setPayeeAllowed] = useState<boolean | null>(null)
   const [dirty, setDirty] = useState(false)
+  // Two beats before removing an approved payee, the StopButton /
+  // AgentAccessPanel pattern. Turning protection ON is already refused
+  // without a verified address ("An empty allowlist blocks every direct
+  // payment"); removing the last one reaches the same dead end from the other
+  // side, and had no gate at all.
+  const [removeArming, setRemoveArming] = useState(false)
   const { writeContractAsync } = useWriteContract()
   const { chainId } = useAccount()
 
@@ -157,6 +163,7 @@ export default function LimitsDrawer({
       ) === next)
       if (confirmed) {
         setPayeeAllowed(next)
+        setRemoveArming(false)
         setRecipientNote(next ? '✓ Recipient approved.' : '✓ Recipient removed.')
       } else {
         setRecipientNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
@@ -246,6 +253,7 @@ export default function LimitsDrawer({
                         setPayee(event.target.value)
                         setPayeeAllowed(null)
                         setRecipientNote(null)
+                        setRemoveArming(false)
                       }}
                       disabled={recipientBusy}
                     />
@@ -255,8 +263,17 @@ export default function LimitsDrawer({
                           {recipientBusy ? 'Checking…' : 'Check address'}
                         </Button>
                       ) : payeeAllowed ? (
-                        <Button variant="stop" disabled={recipientBusy} onClick={() => void setPayeeAccess(false)}>
-                          {recipientBusy ? 'Removing…' : 'Remove address'}
+                        <Button
+                          variant="stop"
+                          disabled={recipientBusy}
+                          onBlur={() => setRemoveArming(false)}
+                          onClick={() => (
+                            !allowlistEnabled || removeArming
+                              ? void setPayeeAccess(false)
+                              : setRemoveArming(true)
+                          )}
+                        >
+                          {recipientBusy ? 'Removing…' : removeArming ? 'Confirm removal' : 'Remove address'}
                         </Button>
                       ) : (
                         <Button variant="primary" disabled={recipientBusy} onClick={() => void setPayeeAccess(true)}>
@@ -269,6 +286,14 @@ export default function LimitsDrawer({
                         </span>
                       )}
                     </div>
+                    {removeArming && (
+                      <p role="alert" className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
+                        Recipient protection is on. If this is the last approved
+                        address, every direct payment will be refused until another
+                        is approved — and the contract cannot be asked how many
+                        remain.
+                      </p>
+                    )}
 
                     <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
                       <p className="text-sm" style={{ color: 'var(--dim)' }}>

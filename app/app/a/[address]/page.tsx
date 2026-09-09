@@ -253,6 +253,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
               daily={state.daily}
               perTx={state.perTx}
               balance={state.balance}
+              allowlistEnabled={state.allowlistEnabled}
               operator={operator}
               operatorLoading={operatorLoading}
               agentTransactionsLeft={agentTransactionsLeft}
@@ -275,6 +276,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 decimals={DECIMALS}
                 symbol={SYMBOL}
                 balance={state.balance}
+                allowlistEnabled={state.allowlistEnabled}
                 paused={state.paused}
                 loading={state.isLoading}
                 dominant
