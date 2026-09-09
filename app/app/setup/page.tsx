@@ -18,7 +18,10 @@ import {
 import { isValidAddress } from '../../lib/address.js'
 import { formatAmount, formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
-import { firstSetupStage, setupReadiness, type SetupStage } from '../../lib/setup.js'
+import {
+  afterFailedRead, balanceValue, describeBalance, firstSetupStage, setupReadiness,
+  type BalanceRead, type SetupStage,
+} from '../../lib/setup.js'
 import { pollUntil } from '../../lib/confirm.js'
 import { readLocal, writeLocal } from '../../lib/browserStorage.js'
 import { describeDeployReceipt } from '../../lib/deploy.js'
@@ -77,8 +80,15 @@ type RecipientMode = 'any' | 'protected'
 type ConfirmedLimits = { perTx: bigint; daily: bigint }
 type FundingTarget = 'protected' | 'agent'
 
-function noteColor(note: string | null, success: string): string {
-  return note === success ? 'var(--ok)' : 'var(--bad)'
+/**
+ * Variadic because a single operation has more than one non-failure outcome:
+ * "already authorised, nothing was sent" is not an error, and matching one
+ * exact string painted it in --bad. AgentAccessPanel marks its own successes
+ * with a leading tick instead; both spellings are load-bearing strings, and
+ * either way a reworded message must not silently turn red.
+ */
+function noteColor(note: string | null, ...successes: string[]): string {
+  return note !== null && successes.includes(note) ? 'var(--ok)' : 'var(--bad)'
 }
 
 export default function Onboard() {
@@ -109,8 +119,8 @@ export default function Onboard() {
   const [agentBusy, setAgentBusy] = useState(false)
   const [agentNote, setAgentNote] = useState<string | null>(null)
 
-  const [protectedBalance, setProtectedBalance] = useState<bigint | null>(null)
-  const [agentBalance, setAgentBalance] = useState<bigint | null>(null)
+  const [protectedBalance, setProtectedBalance] = useState<BalanceRead>({ status: 'reading' })
+  const [agentBalance, setAgentBalance] = useState<BalanceRead>({ status: 'reading' })
   const [protectedAmount, setProtectedAmount] = useState('5.00')
   const [agentGasAmount, setAgentGasAmount] = useState('0.05')
   const [protectedFundNote, setProtectedFundNote] = useState<string | null>(null)
@@ -126,10 +136,17 @@ export default function Onboard() {
         parseAmount(daily, DECIMALS) === confirmedLimits.daily
     } catch { return false }
   })()
-  const agentTransactionsLeft = agentBalance === null ? 0 : transactionsLeft(agentBalance)
+  // balanceValue, so a read that FAILED counts exactly as one that has not
+  // happened: readiness is a positive observation of the chain, and step 4
+  // must not unlock on a figure nobody has seen.
+  const agentBalanceValue = balanceValue(agentBalance)
+  const agentTransactionsLeft = agentBalanceValue === null ? 0 : transactionsLeft(agentBalanceValue)
   const readiness = setupReadiness({
-    account, limitsConfirmed, agentAuthorized, protectedBalance, agentTransactionsLeft,
+    account, limitsConfirmed, agentAuthorized,
+    protectedBalance: balanceValue(protectedBalance), agentTransactionsLeft,
   })
+  const protectedBalanceRead = describeBalance(protectedBalance, DECIMALS)
+  const agentBalanceRead = describeBalance(agentBalance, DECIMALS)
   const recipientReady = recipientMode === 'any' ? !recipientProtectionEnabled : recipientProtectionEnabled
 
   function stageUnlocked(stage: SetupStage): boolean {
@@ -195,8 +212,10 @@ export default function Onboard() {
     setConfirmedLimits(null)
     setAgent('')
     setAgentAuthorized(false)
-    setProtectedBalance(null)
-    setAgentBalance(null)
+    // A different account's figures are not this one's, so both go back to
+    // 'reading' rather than being carried across.
+    setProtectedBalance({ status: 'reading' })
+    setAgentBalance({ status: 'reading' })
     setRecipient('')
     setRecipientMode('any')
     setRecipientProtectionEnabled(false)
@@ -227,7 +246,7 @@ export default function Onboard() {
           setDaily(formatDisplayAmount(nextLimits.daily, DECIMALS, 2))
           setConfirmedLimits(nextLimits)
         }
-        setProtectedBalance(policyBalance)
+        setProtectedBalance({ status: 'ok', value: policyBalance })
         setRecipientProtectionEnabled(listEnabled)
         setRecipientMode(listEnabled ? 'protected' : 'any')
         const savedRecipient = readLocal(`leash.recipient.${account.toLowerCase()}`)
@@ -247,11 +266,14 @@ export default function Onboard() {
             }
             try {
               operatorBalance = await readBalance(savedAgent)
-              if (!cancelled) setAgentBalance(operatorBalance)
+              if (!cancelled) setAgentBalance({ status: 'ok', value: operatorBalance })
             } catch {
               // The authorization was independently verified. A transient
               // token-balance read must not send the user back to account creation.
-              if (!cancelled) setAgentBalance(null)
+              // It says so on screen now instead of reading as "Checking…".
+              // Flatly 'failed', not afterFailedRead: this effect reset the
+              // balance a few lines above, so there is no earlier figure to keep.
+              if (!cancelled) setAgentBalance({ status: 'failed' })
             }
           }
         }
@@ -382,6 +404,15 @@ export default function Onboard() {
       const alreadyApproved = await publicClient.readContract({
         address: account!, abi: SETUP_ABI, functionName: 'payeeAllowlist', args: [recipient],
       }) as boolean
+      // Neither write below would run, and the pollUntil that follows them was
+      // already true before this function was called -- so it reported
+      // "Recipient protection enabled." for a transaction that never existed.
+      // lib/policy.ts refuses a no-op limits save for exactly this reason: a
+      // confirmation poll satisfied on its first iteration confirms nothing.
+      if (alreadyApproved && recipientProtectionEnabled) {
+        setRecipientNote('That recipient is already approved and protection is already on — nothing to change.')
+        return
+      }
       if (!alreadyApproved) {
         await writeContractAsync({
           address: account!, abi: SETUP_ABI, functionName: 'setAllowlist',
@@ -427,6 +458,45 @@ export default function Onboard() {
     if (chainId !== REQUIRED_CHAIN_ID) { setAgentNote(WRONG_NETWORK); return }
     setAgentBusy(true)
     try {
+      // Ask the chain before writing to it. Two things depended on this and
+      // neither worked:
+      //
+      // - Resuming. The wizard learns its agent from localStorage alone, so a
+      //   different browser, a cleared origin, or Safari private mode restored
+      //   a finished account with no agent and asked the owner to authorise
+      //   one they had already authorised -- a second transaction, paid for,
+      //   that changed nothing. Pasting the address they already have is now
+      //   enough, because operators() is what answers.
+      // - Truthfulness. setOperator on an existing operator is a no-op, so the
+      //   pollUntil below was ALREADY true before the call: a wallet that
+      //   silently dropped the write would still have been reported as
+      //   "authorized". lib/policy.ts documents the same trap for limits.
+      //
+      // AgentAccessPanel.grantAccess has refused a duplicate all along. Two
+      // implementations of one operation must not disagree (CLAUDE.md).
+      //
+      // Its own try: the catch below says "The transaction was not sent",
+      // which would be a wrong account of a failed READ -- it reads as a
+      // rejected signature rather than an unreachable node, and nothing has
+      // been asked of the wallet at this point.
+      let alreadyAuthorized: boolean
+      try {
+        alreadyAuthorized = await publicClient.readContract({
+          address: account!, abi: SETUP_ABI, functionName: 'operators', args: [agent],
+        }) as boolean
+      } catch {
+        setAgentNote('Could not check this wallet against the account on Celo. Nothing was sent; check your connection and try again.')
+        return
+      }
+      if (alreadyAuthorized) {
+        setAgentAuthorized(true)
+        setAgentNote('That wallet is already an authorised agent on this account. Nothing was sent.')
+        writeLocal(`leash.agent.${account!.toLowerCase()}`, agent)
+        try {
+          setAgentBalance({ status: 'ok', value: await readBalance(agent) })
+        } catch { setAgentBalance((prev) => afterFailedRead(prev)) }
+        return
+      }
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setOperator',
         args: [agent, true], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
@@ -443,7 +513,9 @@ export default function Onboard() {
         // Authorization and balance are separate observations. If this read
         // fails, Refresh balances remains available; do not claim the write
         // was not sent after it was already observed on chain.
-        try { setAgentBalance(await readBalance(agent)) } catch { setAgentBalance(null) }
+        try {
+          setAgentBalance({ status: 'ok', value: await readBalance(agent) })
+        } catch { setAgentBalance((prev) => afterFailedRead(prev)) }
       } else setAgentNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
     } catch {
       setAgentNote('The transaction was not sent.')
@@ -454,15 +526,27 @@ export default function Onboard() {
     if (!account) return
     setCheckingBalances(true)
     setError(null)
+    // allSettled, not all: these are two independent reads of two different
+    // addresses, and Promise.all rejects on the first failure -- so a flaky
+    // read of the agent's balance discarded the protected balance that had
+    // just come back fine, and both columns went to the same "Checking…".
+    const wantsAgent = agentAuthorized && isValidAddress(agent)
     try {
-      const [policyBalance, operatorBalance] = await Promise.all([
+      const [policy, operator] = await Promise.allSettled([
         readBalance(account),
-        agentAuthorized && isValidAddress(agent) ? readBalance(agent) : Promise.resolve(null),
+        wantsAgent ? readBalance(agent) : Promise.resolve(null),
       ])
-      setProtectedBalance(policyBalance)
-      setAgentBalance(operatorBalance)
-    } catch {
-      setError('Could not refresh balances from Celo. Check your connection and try again.')
+      setProtectedBalance((prev) => policy.status === 'fulfilled'
+        ? { status: 'ok', value: policy.value } : afterFailedRead(prev))
+      // Left alone when there is no agent yet: 'reading' is the truth then, and
+      // the funding panel it appears in is not rendered until one is authorised.
+      if (wantsAgent) {
+        setAgentBalance((prev) => operator.status === 'fulfilled' && operator.value !== null
+          ? { status: 'ok', value: operator.value } : afterFailedRead(prev))
+      }
+      if (policy.status === 'rejected' || operator.status === 'rejected') {
+        setError('Could not read every balance from Celo. Anything still shown is the last figure the chain gave; try again in a moment.')
+      }
     } finally { setCheckingBalances(false) }
   }
 
@@ -504,8 +588,8 @@ export default function Onboard() {
         return nextBalance > before
       })
       if (confirmed) {
-        if (target === 'protected') setProtectedBalance(nextBalance)
-        else setAgentBalance(nextBalance)
+        if (target === 'protected') setProtectedBalance({ status: 'ok', value: nextBalance })
+        else setAgentBalance({ status: 'ok', value: nextBalance })
         setNote(target === 'protected' ? 'Protected funds added.' : 'Agent gas added.')
       } else setNote('Sent, but the balance has not changed yet. Check the transaction before trying again.')
     } catch {
@@ -708,8 +792,10 @@ export default function Onboard() {
               </div>
             )}
             {recipientNote && <p role="status" className="text-sm mt-3" style={{
-              color: recipientNote === 'Recipient protection enabled.' ||
-                recipientNote === 'Direct payments can now go to any recipient.' ? 'var(--ok)' : 'var(--bad)',
+              color: noteColor(recipientNote,
+                'Recipient protection enabled.',
+                'Direct payments can now go to any recipient.',
+                'That recipient is already approved and protection is already on — nothing to change.'),
             }}>{recipientNote}</p>}
             <p className="text-sm mt-4" style={{ color: 'var(--bad)' }}>
               Recipient protection covers direct account payments only. Funds moved to the agent wallet for gas or x402 are outside this restriction.
@@ -769,7 +855,8 @@ export default function Onboard() {
               </div>
             )}
             {agentNote && <p role="status" className="text-sm mt-2"
-              style={{ color: noteColor(agentNote, 'Agent wallet authorized.') }}>{agentNote}</p>}
+              style={{ color: noteColor(agentNote, 'Agent wallet authorized.',
+                'That wallet is already an authorised agent on this account. Nothing was sent.') }}>{agentNote}</p>}
           </div>
 
           {agentAuthorized && (
@@ -791,8 +878,14 @@ export default function Onboard() {
                       {readiness.protectedFundsDetected ? 'Ready' : 'Required'}
                     </span>
                   </div>
-                  <p className="num mt-3">{protectedBalance === null ? 'Checking…' : `${formatAmount(protectedBalance, DECIMALS)} USDC`}</p>
-                  <p className="text-xs mt-2" style={{ color: 'var(--dim)' }}>Spending budget protected by your limits.</p>
+                  <p className="num mt-3" style={{ color: protectedBalanceRead.failed ? 'var(--bad)' : undefined }}>
+                    {protectedBalanceRead.text}
+                  </p>
+                  <p className="text-xs mt-2" style={{ color: 'var(--dim)' }}>
+                    {protectedBalanceRead.failed
+                      ? 'Try Refresh balances to read it again.'
+                      : 'Spending budget protected by your limits.'}
+                  </p>
                   <Label className="block mt-4">Amount to add</Label>
                   <input className="num field w-full mt-2 p-2" aria-label="USDC to add to protected account"
                     inputMode="decimal" value={protectedAmount}
@@ -811,10 +904,13 @@ export default function Onboard() {
                       {readiness.agentGasReady ? 'Ready' : 'Required'}
                     </span>
                   </div>
-                  <p className="num mt-3">{agentBalance === null ? 'Checking…' : `${formatAmount(agentBalance, DECIMALS)} USDC`}</p>
+                  <p className="num mt-3" style={{ color: agentBalanceRead.failed ? 'var(--bad)' : undefined }}>
+                    {agentBalanceRead.text}
+                  </p>
                   <p className="text-xs mt-2" style={{ color: readiness.agentGasReady ? 'var(--dim)' : 'var(--bad)' }}>
-                    {agentBalance === null ? 'USDC pays Celo transaction fees.' :
-                      `About ${agentTransactionsLeft} ${agentTransactionsLeft === 1 ? 'transaction' : 'transactions'} available.`}
+                    {agentBalanceRead.failed ? 'Try Refresh balances to read it again.'
+                      : agentBalanceValue === null ? 'USDC pays Celo transaction fees.'
+                      : `About ${agentTransactionsLeft} ${agentTransactionsLeft === 1 ? 'transaction' : 'transactions'} available.`}
                   </p>
                   <Label className="block mt-4">USDC for gas</Label>
                   <input className="num field w-full mt-2 p-2" aria-label="USDC to add to agent wallet for gas"
@@ -883,7 +979,7 @@ export default function Onboard() {
             <div><dt style={{ color: 'var(--dim)' }}>Maximum per day</dt>
               <dd className="num mt-1">{formatDisplayAmount(confirmedLimits.daily, DECIMALS, 2)} USDC</dd></div>
             <div><dt style={{ color: 'var(--dim)' }}>Protected balance</dt>
-              <dd className="num mt-1">{formatAmount(protectedBalance!, DECIMALS)} USDC</dd></div>
+              <dd className="num mt-1">{protectedBalanceRead.text}</dd></div>
             <div><dt style={{ color: 'var(--dim)' }}>Agent gas</dt>
               <dd className="num mt-1">{agentTransactionsLeft} {agentTransactionsLeft === 1 ? 'transaction' : 'transactions'} available</dd></div>
             <div className="sm:col-span-2"><dt style={{ color: 'var(--dim)' }}>Direct-payment recipients</dt>
