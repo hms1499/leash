@@ -60,3 +60,24 @@ export function etherscanTransactionsUrl(owner: string, apiKey: string, page: nu
   })
   return `https://api.etherscan.io/v2/api?${query}`
 }
+
+/**
+ * What a discovery pass may claim.
+ *
+ * Never "none found" while any candidate went unread: that is an assertion of
+ * absence built from a failed read, and this app refuses that everywhere else
+ * (Feed.tsx, useAccountState.ts). An owner with three accounts whose RPC was
+ * rate-limited was being told they had none.
+ */
+export function describeDiscovery(
+  { verified, unreadable, historyTruncated }:
+  { verified: number; unreadable: number; historyTruncated: boolean },
+): string {
+  const noun = verified === 1 ? 'account' : 'accounts'
+  const truncated = historyTruncated ? ' Some older deployments may not be shown.' : ''
+  if (unreadable > 0) {
+    const them = unreadable === 1 ? 'it' : 'them'
+    return `${verified} compatible protected ${noun} confirmed. ${unreadable} could not be checked — Celo did not answer for ${them}, so this list may be incomplete. Try again in a moment.${truncated}`
+  }
+  return `${verified} compatible protected ${noun} found in Celo history.${truncated}`
+}

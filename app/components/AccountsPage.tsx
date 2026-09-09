@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
+import {
+  ContractFunctionRevertedError,
+  ContractFunctionZeroDataError,
+  type BaseError,
+} from 'viem'
 import ConnectButton from './ConnectButton'
 import NetworkBadge from './NetworkBadge'
 import Address from './ui/Address'
@@ -19,7 +24,7 @@ import {
   type SavedPolicyAccount,
 } from '../lib/accountRegistry.js'
 import { publicClient } from '../lib/chain.js'
-import type { DiscoveredAccountCandidate } from '../lib/accountDiscovery.js'
+import { describeDiscovery, type DiscoveredAccountCandidate } from '../lib/accountDiscovery.js'
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const VERIFY_ABI = [
@@ -38,10 +43,34 @@ const VERIFY_ABI = [
     ] },
 ] as const
 
+/**
+ * Whether a failed verification was the chain answering "no" or not answering.
+ *
+ * viem wraps BOTH in `ContractFunctionExecutionError`, so the error's own name
+ * cannot tell them apart. Measured against viem in this package on 2026-09-09,
+ * by cause chain:
+ *
+ *   no code at the address -> ContractFunctionZeroDataError
+ *   a contract that reverts -> ContractFunctionRevertedError
+ *   a node that did not answer -> HttpRequestError / TimeoutError
+ *
+ * Only the first two are the contract having answered. Everything else — an
+ * unrecognised shape included — is treated as unread, deliberately: calling an
+ * unread account "incompatible" hides somebody's money from them, while calling
+ * a genuinely incompatible one "unread" only asks them to try again.
+ */
+function answeredByTheContract(error: unknown): boolean {
+  const walk = (error as BaseError)?.walk
+  if (typeof walk !== 'function') return false
+  return (error as BaseError).walk(
+    (e) => e instanceof ContractFunctionZeroDataError || e instanceof ContractFunctionRevertedError,
+  ) !== null
+}
+
 async function verifyPolicyAccount(
   address: `0x${string}`,
   expectedOwner: `0x${string}`,
-): Promise<'verified' | 'wrong-owner' | 'incompatible'> {
+): Promise<'verified' | 'wrong-owner' | 'incompatible' | 'unreadable'> {
   try {
     const [owner] = await Promise.all([
       publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'owner' }),
@@ -54,8 +83,13 @@ async function verifyPolicyAccount(
     return (owner as string).toLowerCase() === expectedOwner.toLowerCase()
       ? 'verified'
       : 'wrong-owner'
-  } catch {
-    return 'incompatible'
+  } catch (error) {
+    // A contract that answered "no" and a node that did not answer are
+    // different facts. Collapsing them is how "we could not check" became
+    // "you have no accounts": 40 candidates against a rate-limited forno all
+    // came back 'incompatible', and the page told an owner with three
+    // protected accounts that none existed.
+    return answeredByTheContract(error) ? 'incompatible' : 'unreadable'
   }
 }
 
@@ -64,11 +98,15 @@ export default function AccountsPage() {
   const [accounts, setAccounts] = useState<SavedPolicyAccount[]>([])
   const [discovering, setDiscovering] = useState(false)
   const [discoveryNote, setDiscoveryNote] = useState<string | null>(null)
+  // How many candidates the chain never answered for. Kept apart from the
+  // note so the empty state can refuse to claim absence as well.
+  const [unreadableCount, setUnreadableCount] = useState(0)
 
   useEffect(() => {
     if (!connected) {
       setAccounts([])
       setDiscoveryNote(null)
+      setUnreadableCount(0)
       setDiscovering(false)
       return
     }
@@ -81,6 +119,9 @@ export default function AccountsPage() {
   async function discoverAccounts(owner: `0x${string}`, signal?: AbortSignal) {
     setDiscovering(true)
     setDiscoveryNote(null)
+    // A stale count would let the previous run's outage keep suppressing this
+    // run's honest "none were found".
+    setUnreadableCount(0)
     try {
       const response = await fetch(`/api/accounts/discover?owner=${encodeURIComponent(owner)}`, { signal })
       const body = await response.json() as {
@@ -96,6 +137,10 @@ export default function AccountsPage() {
       }
 
       let discovered = 0
+      // Counted, not collapsed into the miss count: a candidate the chain
+      // never answered for has not been rejected, and the sentence below must
+      // not imply it was.
+      let unreadable = 0
       // Bound RPC concurrency: an active owner can have many unrelated
       // deployments, and they are only candidates until each one passes all
       // three Leash reads and owner verification.
@@ -107,6 +152,7 @@ export default function AccountsPage() {
         })))
         if (signal?.aborted) return
         for (const { candidate, result } of results) {
+          if (result === 'unreadable') { unreadable++; continue }
           if (result !== 'verified') continue
           savePolicyAccount(localStorage, owner, candidate)
           discovered++
@@ -114,10 +160,12 @@ export default function AccountsPage() {
       }
       setAccounts(listPolicyAccounts(localStorage, owner))
       announceAccountRegistryChange()
-      setDiscoveryNote(
-        `${discovered} compatible protected ${discovered === 1 ? 'account' : 'accounts'} found in Celo history.` +
-        (body.historyTruncated ? ' Some older deployments may not be shown.' : ''),
-      )
+      setUnreadableCount(unreadable)
+      setDiscoveryNote(describeDiscovery({
+        verified: discovered,
+        unreadable,
+        historyTruncated: Boolean(body.historyTruncated),
+      }))
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
         setDiscoveryNote('Could not refresh account history. Showing the last saved list.')
@@ -187,7 +235,13 @@ export default function AccountsPage() {
               <p className="text-sm">
                 {discovering
                   ? 'Searching this owner’s deployment history for compatible protected accounts…'
-                  : 'No compatible protected accounts were found. Create one to get started.'}
+                  // Suppressed while anything went unread. "None were found" is
+                  // a statement about the chain, and a rate-limited RPC has not
+                  // established it -- the note above already says how many
+                  // could not be checked.
+                  : unreadableCount > 0
+                    ? 'No protected account could be confirmed. Some candidates could not be checked, so this is not yet an answer — try again in a moment.'
+                    : 'No compatible protected accounts were found. Create one to get started.'}
               </p>
             </Panel>
           ) : (
