@@ -112,20 +112,14 @@ mkdir ~/my-agent
 cd ~/my-agent
 ```
 
-## 5. Save the block as `.mcp.json`
+## 5. Add `.mcp.json` to the folder
 
-The block is still on your clipboard from the wizard. Save it as a file named
-`.mcp.json` **inside the folder you made in step 4** — `~/my-agent`, not your
-home directory and not anywhere else. Claude Code reads it from the folder you
-start it in, and nowhere else.
+Save the block from your clipboard as a file named `.mcp.json` inside the folder
+you made in step 4:
 
-Lost the block? The dashboard keeps it under **Connect your agent runtime**,
-with your account already filled in. Copy it again.
-
-It will hold your operator key, so keep it out of git:
-
-```bash
-printf '.mcp.json\n.mcp.json.*\n' >> .gitignore
+```
+~/my-agent/
+└── .mcp.json
 ```
 
 ## 6. Paste the operator key
