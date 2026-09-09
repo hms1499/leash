@@ -165,10 +165,34 @@ there is no redeploy and no new address, and `app/lib/contract.ts` still holds
 the bytecode that is source-verified on Celoscan. An account deployed through
 the wizard today is byte-identical to `0x7aDa926B…3fd2`.
 
-**Two fixes are verified by reasoning and tests, not by a browser**: the feed
-cursor (Task 4) and the storage guards (Task 5) live in a hook and in component
-effects, which the node-only suite cannot reach. The plan names the manual
-checks; neither has been performed. Do them before filming.
+**The two fixes the node-only suite cannot reach were verified in a browser on
+2026-09-09**, against `pnpm dev` and live forno, and each was checked BOTH ways
+-- with the fix, and with only that fix reverted -- so the probe is known to be
+capable of failing.
+
+*Task 4, the feed cursor.* Chrome with `document.hidden` forced true from before
+first paint, `eth_getLogs` ranges recorded off `window.fetch`. Fixed: backfill
+ended at block 77022196, nothing was requested during 20 hidden seconds, and the
+first tail range after focus was 77022197-77022224 -- **0 blocks unscanned**.
+With `lastSeen = head` removed from the backfill and nothing else changed: the
+backfill ended at 77022364 and the first tail range began at 77022390 --
+**25 blocks queried by nothing**, which is what the feed used to call a quiet
+account.
+
+*Task 5, the storage guards.* `localStorage` replaced before first paint with an
+object whose every accessor throws `SecurityError`, as Safari private mode does.
+Fixed: `/a/<address>` resolved the agent panel to AUTHORIZED with the real
+operator, `/setup` rendered step 1, `/accounts` rendered its connect prompt, and
+there were zero unhandled rejections. With `readLocal` reverted to a raw
+`getItem` and the `.catch` removed from `void resolve()`: the panel sat on
+"Checking operator access on chain..." for the full 25-second observation, the
+overview sat on "Verifying agent access", no operator was ever shown, and three
+unhandled SecurityErrors reached the page.
+
+Both probes ran against the demo account, which had no activity inside the
+24-hour window, so they prove the SCAN RANGE and the render path rather than
+row rendering. A spend landing live in the feed is still worth watching once
+during the shoot.
 
 Gas figures for Task 12 were measured with `cast estimate` on mainnet that day
 and are recorded in `app/lib/chain.ts`, along with why each constant is roughly
