@@ -104,7 +104,10 @@ function Dashboard({ address }: { address: `0x${string}` }) {
   // link show "Send 0.05 USDC for gas" to a wallet the owner never approved.
   // Both sources are therefore only candidates; `operators()` on the account
   // itself is what actually gates the panel.
-  const [operator, setOperator] = useState<`0x${string}` | null>(null)
+  // A LIST, not one address. `operators` is a mapping and cannot be
+  // enumerated, so this is assembled from OperatorChanged history and then
+  // verified entry by entry against operators() -- see the effect below.
+  const [operators, setOperators] = useState<readonly `0x${string}`[]>([])
   const [operatorCheckFailed, setOperatorCheckFailed] = useState(false)
   const [operatorResolving, setOperatorResolving] = useState(true)
 
@@ -146,11 +149,21 @@ function Dashboard({ address }: { address: `0x${string}` }) {
       // yet used — what the wizard leaves behind — never showed its agent at
       // all. The query parameter stays last and stays untrusted; operators()
       // below is what decides, either way.
-      const candidate = [feed.operatorCandidate, fromFeed, fromSetup, fromPublicProof, fromQuery]
-        .find((value): value is `0x${string}` => typeof value === 'string' && isValidAddress(value))
-      if (!candidate) {
+      // Deduplicated case-insensitively: the same address routinely arrives
+      // from several of these at once -- a spend row, the wizard's note of it,
+      // and the OperatorChanged log that authorised it are all the same wallet.
+      const seen = new Set<string>()
+      const candidates: `0x${string}`[] = []
+      for (const value of [...feed.operatorCandidates, fromFeed, fromSetup, fromPublicProof, fromQuery]) {
+        if (typeof value !== 'string' || !isValidAddress(value)) continue
+        const key = value.toLowerCase()
+        if (seen.has(key)) continue
+        seen.add(key)
+        candidates.push(value)
+      }
+      if (candidates.length === 0) {
         if (!cancelled) {
-          setOperator(null)
+          setOperators([])
           setOperatorCheckFailed(false)
           setOperatorResolving(false)
         }
@@ -158,19 +171,33 @@ function Dashboard({ address }: { address: `0x${string}` }) {
       }
       if (!cancelled) setOperatorResolving(true)
       try {
-        const isOperator = await publicClient.readContract({
-          address, abi: OPERATOR_ABI, functionName: 'operators', args: [candidate],
-        }) as boolean
+        // Every candidate is checked, and the order is preserved:
+        // feed.operatorCandidates is newest-authorisation-first, so the first
+        // survivor is the one a single-agent account expects to see.
+        const verified = await Promise.all(candidates.map(async (candidate) => ({
+          candidate,
+          ok: await publicClient.readContract({
+            address, abi: OPERATOR_ABI, functionName: 'operators', args: [candidate],
+          }) as boolean,
+        })))
         if (cancelled) return
-        setOperator(isOperator ? candidate : null)
+        const next = verified.filter((v) => v.ok).map((v) => v.candidate)
+        // Keep the previous array when nothing changed. This effect re-runs on
+        // every feed poll, and a fresh array each time would hand every
+        // downstream consumer a new identity four times a second for a value
+        // that did not move.
+        setOperators((prev) =>
+          prev.length === next.length && prev.every((o, i) => o === next[i]) ? prev : next)
         setOperatorCheckFailed(false)
         setOperatorResolving(false)
       } catch {
-        // Fail closed: a failed check must never render the panel as if it
-        // had verified the address, since that is exactly the phishing shape
-        // this check exists to prevent.
+        // Fail closed, and closed means EMPTY: a failed check must never
+        // render the panel as if it had verified an address, since that is
+        // exactly the phishing shape this check exists to prevent. Promise.all
+        // rejects on the first failure, so a partially-read list is not a
+        // list -- setOperatorCheckFailed starts the 8-second retry above.
         if (!cancelled) {
-          setOperator(null)
+          setOperators([])
           setOperatorCheckFailed(true)
           setOperatorResolving(false)
         }
@@ -182,25 +209,28 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     // what starts the 8-second retry above, so a transient failure heals.
     void resolve().catch(() => {
       if (cancelled) return
-      setOperator(null)
+      setOperators([])
       setOperatorCheckFailed(true)
       setOperatorResolving(false)
     })
     return () => { cancelled = true }
-    // operatorCandidate belongs here: on an account that has been configured
+    // operatorCandidates belongs here: on an account that has been configured
     // but never used it is the only thing that changes, so leaving it out
     // would keep the panel hidden for exactly the case it was added for. It is
-    // an address or null, compared by value.
-  }, [feed.rows, feed.operatorCandidate, address, retry])
+    // a new array each render, so it is joined into a string to compare by
+    // value -- an array identity would re-run this effect on every feed poll.
+  }, [feed.rows, feed.operatorCandidates.join(','), address, retry])
 
+  // Gas is a property of one wallet, so the panel below reads operators[0].
+  const gasOperator = operators[0] ?? null
   useEffect(() => {
     setAgentTransactionsLeft(null)
-  }, [operator])
+  }, [gasOperator])
 
   // History may still be backfilling after a candidate has already passed
   // operators(). Once the operator is verified, activity loading must not
   // keep the whole account stuck in a misleading "Verifying" state.
-  const operatorLoading = !operator && (feed.isLoading || operatorResolving)
+  const operatorLoading = operators.length === 0 && (feed.isLoading || operatorResolving)
 
   return (
     <main>
@@ -270,7 +300,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
               perTx={state.perTx}
               balance={state.balance}
               allowlistEnabled={state.allowlistEnabled}
-              operator={operator}
+              operator={gasOperator}
               operatorLoading={operatorLoading}
               agentTransactionsLeft={agentTransactionsLeft}
             />
@@ -328,18 +358,22 @@ function Dashboard({ address }: { address: `0x${string}` }) {
             <div id="agent-management" className="scroll-mt-6 space-y-3">
               <AgentAccessPanel
                 account={address}
-                operator={operator}
+                operators={operators}
                 operatorLoading={operatorLoading}
                 isOwner={isOwner}
-                onAgentChanged={(next) => {
-                  setOperator(next)
+                onAgentGranted={(next) => {
+                  setOperators((prev) => (prev.includes(next) ? prev : [next, ...prev]))
+                  state.refetch()
+                }}
+                onAgentRevoked={(gone) => {
+                  setOperators((prev) => prev.filter((o) => o.toLowerCase() !== gone.toLowerCase()))
                   state.refetch()
                 }}
               />
-              {operator && isValidAddress(operator) && (
+              {gasOperator && isValidAddress(gasOperator) && (
                 <div id="agent-funds" className="scroll-mt-6">
                   <AgentPanel
-                    account={address} operator={operator} token={TOKEN}
+                    account={address} operator={gasOperator} token={TOKEN}
                     decimals={DECIMALS} symbol={SYMBOL} isOwner={isOwner}
                     protectedBalance={state.balance}
                     onRefuelled={state.refetch}
@@ -348,7 +382,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 </div>
               )}
             </div>
-            {!operator && operatorCheckFailed && (
+            {operators.length === 0 && operatorCheckFailed && (
               <Label className="block" style={{ color: 'var(--bad)' }}>
                 Could not verify the agent wallet — still trying.
               </Label>

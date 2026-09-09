@@ -82,6 +82,16 @@ describe('accountHealth ordering is unchanged by the allowlist', () => {
     expect(accountHealth({ ...protectedOn, operator: null }).badge).toBe('Needs setup')
   })
 
+  it('says none was FOUND, never that none exists', () => {
+    // The history is read over 24 hours and `operators` cannot be enumerated,
+    // so absence of a log is not absence of an operator. An owner told the
+    // account has no agent may stop looking for one that can still spend.
+    const body = accountHealth({ ...protectedOn, operator: null }).body
+    expect(body).toContain('recent activity')
+    expect(body).toContain('cannot be asked to list')
+    expect(body).not.toContain('No active operator could be verified')
+  })
+
   it('reports an empty account as needing funds', () => {
     expect(accountHealth({ ...protectedOn, balance: 0n }).badge).toBe('Needs funds')
   })

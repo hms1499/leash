@@ -69,7 +69,12 @@ export function accountHealth({
     return {
       badge: 'Needs setup',
       title: 'Add or verify an agent wallet',
-      body: 'No active operator could be verified for this protected account.',
+      // "None could be verified", never "none exist". The operator history is
+      // read over a 24-hour window and `operators` is a mapping that cannot be
+      // enumerated, so an agent authorised earlier and never used appears
+      // nowhere -- and an owner told the account has no agent may stop looking
+      // for one that can still spend. See liveOperators in lib/feed.ts.
+      body: 'No operator was found in this account’s recent activity. The contract cannot be asked to list its operators, so one authorised earlier may not appear here.',
       tone: 'bad',
       action: isOwner ? { href: '#agent-management', label: 'Manage agent' } : undefined,
     }

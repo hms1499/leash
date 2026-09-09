@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { publicClient } from './chain.js'
 import {
-  belongsToToken, describeLog, rowKey, tailRange, pickOperator, MAX_LOG_RANGE_BLOCKS, WINDOW_BLOCKS,
+  belongsToToken, describeLog, rowKey, tailRange, liveOperators, MAX_LOG_RANGE_BLOCKS, WINDOW_BLOCKS,
   type FeedRow, type OperatorChange,
 } from './feed.js'
 
@@ -26,7 +26,7 @@ const EVENT_ABI = [
   // Read, never rendered. The feed is the four events above (spec §1.3); this
   // one answers a different question -- who the account's operator is -- which
   // `operators` cannot be asked, being a mapping. Carried in the same getLogs
-  // calls so discovery costs nothing extra. See pickOperator in feed.ts.
+  // calls so discovery costs nothing extra. See liveOperators in feed.ts.
   { type: 'event', name: 'OperatorChanged', inputs: [
     { name: 'operator', type: 'address', indexed: true },
     { name: 'enabled', type: 'bool', indexed: false }] },
@@ -245,5 +245,5 @@ export function useFeed(
     return () => { cancelled = true; clearInterval(timer) }
   }, [account, token, fromBlock])
 
-  return { rows, isLoading, error, head, operatorCandidate: pickOperator(operatorChanges) }
+  return { rows, isLoading, error, head, operatorCandidates: liveOperators(operatorChanges) }
 }

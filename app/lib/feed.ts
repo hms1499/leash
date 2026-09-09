@@ -168,8 +168,8 @@ export type OperatorChange = {
 }
 
 /**
- * Which operator the dashboard should offer to show, from the account's
- * `OperatorChanged` history.
+ * Which operators the dashboard should offer to show, from the account's
+ * `OperatorChanged` history. Newest authorisation first.
  *
  * `operators` is a plain `mapping(address => bool)` and is not enumerable, so
  * the contract cannot be asked who its operators are. Until this existed the
@@ -187,7 +187,7 @@ export type OperatorChange = {
  * decides, and still fails closed — a name is not an authorisation
  * (`CLAUDE.md`).
  */
-export function pickOperator(changes: readonly OperatorChange[]): `0x${string}` | null {
+export function liveOperators(changes: readonly OperatorChange[]): readonly `0x${string}`[] {
   // Chain order, not arrival order: the backfill walks newest-first and merges
   // with the live tail, so these arrive shuffled as a matter of course.
   const ordered = [...changes].sort((a, b) =>
@@ -204,7 +204,11 @@ export function pickOperator(changes: readonly OperatorChange[]): `0x${string}` 
     else live.delete(key)
   })
 
-  let best: { address: `0x${string}`; at: number } | null = null
-  for (const entry of live.values()) if (!best || entry.at > best.at) best = entry
-  return best?.address ?? null
+  // ALL of them, newest authorisation first. This used to return only the
+  // newest and throw the rest of `live` away -- which is how an account with
+  // two authorised keys showed one, and an owner who revoked it read "no
+  // operator" while the other still spent to the daily cap.
+  return [...live.values()]
+    .sort((a, b) => b.at - a.at)
+    .map((entry) => entry.address)
 }

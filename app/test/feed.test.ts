@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   belongsToToken, describeLog, rowKey, relativeAge, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
-  tailRange, MAX_LOG_RANGE_BLOCKS, pickOperator,
+  tailRange, MAX_LOG_RANGE_BLOCKS, liveOperators,
 } from '../lib/feed.js'
 
 const TX = ('0x' + 'ab'.repeat(32)) as `0x${string}`
@@ -175,45 +175,66 @@ describe('tailRange', () => {
   })
 })
 
-describe('pickOperator', () => {
+describe('liveOperators', () => {
   const at = (operator: string, enabled: boolean, blockNumber: bigint, logIndex = 0) =>
     ({ operator: operator as `0x${string}`, enabled, blockNumber, logIndex })
 
   const A = '0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6'
   const B = '0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57'
 
-  it('has nobody to suggest when the account has never named one', () => {
-    expect(pickOperator([])).toBeNull()
+  it('has nothing to offer from an empty history', () => {
+    expect(liveOperators([])).toEqual([])
   })
 
-  it('suggests the operator the owner authorised', () => {
-    expect(pickOperator([at(A, true, 100n)])).toBe(A)
+  it('offers the operator the owner authorised', () => {
+    expect(liveOperators([at(A, true, 100n)])).toEqual([A])
   })
 
-  it('does not suggest one the owner has since revoked', () => {
-    expect(pickOperator([at(A, true, 100n), at(A, false, 200n)])).toBeNull()
+  it('does not offer one the owner has since revoked', () => {
+    expect(liveOperators([at(A, true, 100n), at(A, false, 200n)])).toEqual([])
   })
 
-  it('suggests one re-authorised after a revocation', () => {
-    expect(pickOperator([at(A, true, 100n), at(A, false, 200n), at(A, true, 300n)])).toBe(A)
+  it('offers one re-authorised after a revocation', () => {
+    expect(liveOperators([at(A, true, 100n), at(A, false, 200n), at(A, true, 300n)])).toEqual([A])
   })
 
   it('reads the events in chain order, not the order they arrived', () => {
     // The backfill walks newest-first and merges with the live tail, so this
     // function is handed logs out of order as a matter of course.
-    expect(pickOperator([at(A, false, 200n), at(A, true, 100n)])).toBeNull()
+    expect(liveOperators([at(A, false, 200n), at(A, true, 100n)])).toEqual([])
   })
 
   it('separates two writes in one block by log index', () => {
-    expect(pickOperator([at(A, true, 100n, 1), at(A, false, 100n, 0)])).toBe(A)
+    expect(liveOperators([at(A, true, 100n, 1), at(A, false, 100n, 0)])).toEqual([A])
   })
 
-  it('prefers the most recently authorised when the account has several', () => {
-    expect(pickOperator([at(A, true, 100n), at(B, true, 300n)])).toBe(B)
-    expect(pickOperator([at(A, true, 300n), at(B, true, 100n)])).toBe(A)
+  /**
+   * The defect this function was widened for. It used to return only the
+   * newest live operator, so an account with two authorised keys showed one --
+   * and an owner who revoked that one read "no operator" while the other still
+   * spent to the daily cap.
+   */
+  it('returns EVERY live operator, not just the newest', () => {
+    expect(liveOperators([at(A, true, 100n), at(B, true, 300n)])).toEqual([B, A])
   })
 
-  it('falls back to another live operator when the newest was revoked', () => {
-    expect(pickOperator([at(A, true, 100n), at(B, true, 200n), at(B, false, 300n)])).toBe(A)
+  it('orders them newest authorisation first', () => {
+    expect(liveOperators([at(A, true, 300n), at(B, true, 100n)])).toEqual([A, B])
+  })
+
+  it('drops only the revoked one when several are live', () => {
+    expect(liveOperators([at(A, true, 100n), at(B, true, 200n), at(B, false, 300n)])).toEqual([A])
+  })
+
+  it('counts a re-authorisation as the newest, not the original grant', () => {
+    // A was granted first but re-granted last, so it is the more recent
+    // authorisation and should lead.
+    expect(liveOperators([at(A, true, 100n), at(B, true, 200n), at(A, false, 300n), at(A, true, 400n)]))
+      .toEqual([A, B])
+  })
+
+  it('never returns the same address twice', () => {
+    const out = liveOperators([at(A, true, 100n), at(A, true, 200n), at(A, true, 300n)])
+    expect(out).toEqual([A])
   })
 })

@@ -19,31 +19,48 @@ const OPERATOR_ABI = [
 ] as const
 
 export default function AgentAccessPanel({
-  account, operator, operatorLoading, isOwner, onAgentChanged,
+  account, operators, operatorLoading, isOwner, onAgentGranted, onAgentRevoked,
 }: {
   account: `0x${string}`
-  operator: `0x${string}` | null
+  /**
+   * Every operator this account could be verified to have, newest first.
+   *
+   * A list, because `operators` is a mapping and cannot be enumerated: the
+   * dashboard assembles candidates from OperatorChanged history and checks
+   * each against operators(). Showing only the newest -- which this panel did
+   * until 2026-09-09 -- let an owner revoke the one on screen, read "no
+   * operator", and leave a second key spending to the daily cap.
+   */
+  operators: readonly `0x${string}`[]
   operatorLoading: boolean
   isOwner: boolean
-  onAgentChanged: (operator: `0x${string}` | null) => void
+  onAgentGranted: (operator: `0x${string}`) => void
+  onAgentRevoked: (operator: `0x${string}`) => void
 }) {
   const [agentInput, setAgentInput] = useState('')
   const [busy, setBusy] = useState(false)
-  const [arming, setArming] = useState(false)
+  // Which row is armed, by address: one shared boolean would arm every
+  // Revoke button at once on a multi-operator account.
+  const [arming, setArming] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const { address: connected, chainId } = useAccount()
   const { writeContractAsync } = useWriteContract()
 
   useEffect(() => {
-    if (operator) setAgentInput(operator)
-    else setAgentInput('')
-  }, [operator])
+    // The grant form only appears when the list is empty, so there is nothing
+    // to prefill it with. It used to echo the single operator back.
+    if (operators.length > 0) setAgentInput('')
+  }, [operators.length])
 
   async function grantAccess() {
     setNote(null)
     if (!isValidAddress(agentInput)) { setNote('Enter a valid Celo address.'); return }
     if (connected && agentInput.toLowerCase() === connected.toLowerCase()) {
       setNote('Use a separate agent wallet. The owner wallet must not also be the agent.')
+      return
+    }
+    if (operators.some((o) => o.toLowerCase() === agentInput.toLowerCase())) {
+      setNote('That wallet is already an authorised agent on this account.')
       return
     }
     if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
@@ -63,7 +80,7 @@ export default function AgentAccessPanel({
         const next = agentInput as `0x${string}`
         writeLocal(`leash.agent.${account.toLowerCase()}`, next)
         setNote('✓ Agent access granted.')
-        onAgentChanged(next)
+        onAgentGranted(next)
       } else {
         setNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }
@@ -74,8 +91,7 @@ export default function AgentAccessPanel({
     }
   }
 
-  async function revokeAccess() {
-    if (!operator) return
+  async function revokeAccess(operator: `0x${string}`) {
     setNote(null)
     if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
 
@@ -96,7 +112,7 @@ export default function AgentAccessPanel({
           removeLocal(`leash.agent.${account.toLowerCase()}`)
         }
         setNote('✓ Agent access revoked.')
-        onAgentChanged(null)
+        onAgentRevoked(operator)
       } else {
         setNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }
@@ -104,7 +120,7 @@ export default function AgentAccessPanel({
       setNote('The transaction was not sent.')
     } finally {
       setBusy(false)
-      setArming(false)
+      setArming(null)
     }
   }
 
@@ -122,37 +138,59 @@ export default function AgentAccessPanel({
         <p className="text-sm mt-4" style={{ color: 'var(--dim)' }}>
           Checking operator access on chain…
         </p>
-      ) : operator ? (
+      ) : operators.length > 0 ? (
         <>
-          <div
-            className="mt-4 flex flex-col gap-3 rounded p-4 sm:flex-row sm:items-center sm:justify-between"
-            style={{ background: 'var(--well)', border: '1px solid var(--line)' }}
-          >
-            <div>
-              <Label className="block" style={{ color: 'var(--ok)' }}>Authorized</Label>
-              <p className="mt-2"><Address address={operator} copy explorer className="num" /></p>
-            </div>
-            {isOwner && (
-              <Button
-                variant="stop"
-                disabled={busy}
-                onBlur={() => setArming(false)}
-                onClick={() => (arming ? void revokeAccess() : setArming(true))}
+          <div className="mt-4 space-y-3">
+            {operators.map((op) => (
+              <div
+                key={op}
+                className="flex flex-col gap-3 rounded p-4 sm:flex-row sm:items-center sm:justify-between"
+                style={{ background: 'var(--well)', border: '1px solid var(--line)' }}
               >
-                {busy ? 'Revoking…' : arming ? 'Confirm revoke' : 'Revoke access'}
-              </Button>
-            )}
+                <div>
+                  <Label className="block" style={{ color: 'var(--ok)' }}>Authorized</Label>
+                  <p className="mt-2"><Address address={op} copy explorer className="num" /></p>
+                </div>
+                {isOwner && (
+                  <Button
+                    variant="stop"
+                    disabled={busy}
+                    onBlur={() => setArming(null)}
+                    onClick={() => (
+                      arming === op ? void revokeAccess(op) : setArming(op)
+                    )}
+                  >
+                    {busy && arming === op
+                      ? 'Revoking…'
+                      : arming === op ? 'Confirm revoke' : 'Revoke access'}
+                  </Button>
+                )}
+              </div>
+            ))}
           </div>
           <p className="text-sm mt-3" style={{ color: 'var(--dim)' }}>
-            This wallet can request policy-bounded payments. To use another
-            agent, revoke this wallet first; its existing wallet balance will not move.
+            {operators.length === 1
+              ? 'This wallet can request policy-bounded payments. To use another agent, revoke this wallet first; its existing wallet balance will not move.'
+              : `All ${operators.length} of these wallets can request policy-bounded payments, and each spends against the same daily cap. Revoking one does not affect the others.`}
+          </p>
+          {/* The list is what could be VERIFIED, not what exists. See
+              liveOperators in lib/feed.ts: the history is read over 24 hours,
+              and a mapping cannot be enumerated. */}
+          <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+            Assembled from this account&apos;s recent activity and confirmed
+            against the contract. The contract cannot be asked to list its
+            operators, so one authorised earlier and never used may not appear
+            here.
           </p>
         </>
       ) : isOwner ? (
         <>
           <p className="text-sm mt-3" style={{ color: 'var(--dim)' }}>
-            Grant one separate hot wallet permission to request payments. It
-            cannot change policy, resume the account or recover protected funds.
+            No operator was found in this account&apos;s recent activity — the
+            contract cannot be asked to list its operators, so one authorised
+            earlier may not appear here. Grant a separate hot wallet permission
+            to request payments; it cannot change policy, resume the account or
+            recover protected funds.
           </p>
           <Label className="block mt-4">Agent wallet address</Label>
           <input
@@ -169,7 +207,9 @@ export default function AgentAccessPanel({
         </>
       ) : (
         <p className="text-sm mt-3" style={{ color: 'var(--dim)' }}>
-          No agent wallet is currently verified. Connect the owner wallet to grant access.
+          No operator was found in this account&apos;s recent activity. The
+          contract cannot be asked to list its operators, so one authorised
+          earlier may not appear here. Connect the owner wallet to grant access.
         </p>
       )}
 
