@@ -48,7 +48,35 @@ Confirm before moving on:
 node -v      # v20.x or newer
 ```
 
-## 2. Install Claude Code
+## 2. Fetch the Leash server
+
+**There is no install step for `leash-agentpay`, and you are not missing one.**
+The `.mcp.json` block runs it with `npx -y`, which downloads the package the
+first time Claude Code starts it and caches it after that. Nothing goes into
+your project and nothing is installed globally.
+
+That first download happens invisibly, inside Claude Code's startup, where a
+network failure surfaces only as "server failed to connect". Pull it now
+instead, so you find out here:
+
+```bash
+npx -y leash-agentpay
+```
+
+Expect it to **fail**, in exactly this way:
+
+```
+Error: OPERATOR_PK is not set. The Leash MCP server needs it to start.
+```
+
+That error is the success condition for this step: the package downloaded, ran,
+read its configuration, and stopped because you have not given it any yet. You
+will, in step 6.
+
+Any other outcome is a real problem — `command not found: npx` means step 1 did
+not take, and a registry or network error means `npx` could not reach npm.
+
+## 3. Install Claude Code
 
 **macOS, Linux, WSL**
 
@@ -71,7 +99,7 @@ claude --version      # prints something like 2.1.266 (Claude Code)
 If your shell says `command not found`, open a new terminal window first — the
 installer adds `claude` to a path your current shell has not re-read.
 
-## 3. Make a project folder
+## 4. Make a project folder
 
 This is where the agent will work, and where the config has to live. Not your
 home directory.
@@ -81,7 +109,7 @@ mkdir -p ~/my-agent
 cd ~/my-agent
 ```
 
-## 4. Save the block as `.mcp.json`
+## 5. Save the block as `.mcp.json`
 
 The block is still on your clipboard from the wizard. Write it straight to the
 file:
@@ -125,7 +153,7 @@ Check that the file looks right:
 cat .mcp.json
 ```
 
-## 5. Paste the operator key
+## 6. Paste the operator key
 
 Open the file:
 
@@ -140,7 +168,7 @@ the wizard shows you — `0x` followed by 64 hex characters. In `nano`, save wit
 Paste an *address* here by mistake (40 characters) and the server refuses to
 start.
 
-## 6. Start Claude Code
+## 7. Start Claude Code
 
 From the same folder:
 
@@ -154,7 +182,7 @@ Two prompts on first run:
 2. **Approve the server.** Claude Code asks, once, whether to run the server
    `.mcp.json` names. **Say yes** — decline and the tools silently never appear.
 
-## 7. Check that it works
+## 8. Check that it works
 
 Inside the Claude Code session, type:
 
