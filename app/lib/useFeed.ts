@@ -195,11 +195,20 @@ export function useFeed(
     // and error definitions only — it has no `event` entries, so asking for
     // those would silently match nothing.
 
+    // True while a tail poll is outstanding. The interval fires every 4
+    // seconds regardless, and on a rate-limited endpoint a poll sits in viem's
+    // 429 backoff for seconds — so without this the ticks stack and each
+    // stacked poll deepens the rate limit that delayed the first. Skipping is
+    // free here: the cursor only advances on success, so the next tick asks
+    // for the same range and nothing is missed.
+    let tailInFlight = false
+
     async function tail() {
       // A hidden tab is not watching. The cursor stays put — set by the
       // backfill, so it is a real block number even here — and tailRange
       // clamps the catch-up when it comes back.
-      if (cancelled || document.hidden) return
+      if (cancelled || document.hidden || tailInFlight) return
+      tailInFlight = true
       try {
         const head = await publicClient.getBlockNumber()
         if (cancelled) return
@@ -237,6 +246,8 @@ export function useFeed(
         // enough that surfacing it would mean an error banner on a working
         // page. The cursor is only advanced on success, so the next poll
         // asks for the same range again and nothing is skipped.
+      } finally {
+        tailInFlight = false
       }
     }
 

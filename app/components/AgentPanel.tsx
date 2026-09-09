@@ -62,7 +62,16 @@ export default function AgentPanel({
     lastSeenRef.current = null
     setFloat(null)
     onGasStatusChange?.(null)
+    // True while a read is outstanding, so an 8-second tick cannot stack a
+    // second one on top of a read still sitting in viem's 429 backoff. This
+    // panel's balance is a display value refreshed on a timer, so a skipped
+    // tick costs at most eight seconds of staleness; refuel() confirms its own
+    // write with pollUntil and does not go through here.
+    let inFlight = false
+
     async function read() {
+      if (inFlight) return
+      inFlight = true
       try {
         const bal = await publicClient.readContract({
           address: token, abi: ERC20_ABI, functionName: 'balanceOf', args: [operator],
@@ -84,6 +93,8 @@ export default function AgentPanel({
         // next tick tries again. But if it never recovers, we say so below
         // rather than rendering nothing.
         if (!cancelled) setFailed(true)
+      } finally {
+        inFlight = false
       }
     }
     void read()

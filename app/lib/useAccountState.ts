@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { spendPolicyAccountAbi } from '@leash/sdk'
 import { publicClient } from './chain.js'
 
@@ -52,7 +52,28 @@ export function useAccountState(
     isLoading: true, error: null, updatedAt: null,
   })
 
+  /**
+   * True while a read is outstanding.
+   *
+   * The interval below fires every 4 seconds whether or not the previous read
+   * came back. On a rate-limited endpoint a read spends seconds in viem's 429
+   * backoff, so the ticks stack: six calls in flight become twelve, then
+   * eighteen, each one making the rate limit that caused the delay worse. A
+   * ref, not state, because skipping a tick must not re-render.
+   *
+   * A dropped tick is free; a dropped `refetch` is not. Every caller of
+   * refetch has just watched a write confirm on chain, and the read it
+   * collides with may have been issued BEFORE that write landed — so simply
+   * returning would leave the meter showing the old number until the next
+   * tick, four seconds of a figure the chain has already contradicted. Hence
+   * `queued`: the outstanding read runs one more when it finishes.
+   */
+  const inFlight = useRef(false)
+  const queued = useRef(false)
+
   const read = useCallback(async () => {
+    if (inFlight.current) { queued.current = true; return }
+    inFlight.current = true
     // Keep a previously observed snapshot visible during refreshes. On the
     // first read there is no snapshot, so the loading state remains explicit.
     // `error` is deliberately NOT cleared here. Clearing it optimistically
@@ -96,6 +117,12 @@ export function useAccountState(
       })
     } catch (e) {
       setState((s) => ({ ...s, isLoading: false, error: e as Error }))
+    } finally {
+      inFlight.current = false
+      if (queued.current) {
+        queued.current = false
+        void read()
+      }
     }
   }, [account, token])
 

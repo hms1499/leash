@@ -5,10 +5,55 @@ import { createConfig, injected } from 'wagmi'
 export const RPC_URL =
   process.env.NEXT_PUBLIC_CELO_RPC_URL ?? 'https://forno.celo.org'
 
-/** Read path. Used by every page, including with no wallet connected. */
+/**
+ * One transport, shared by the read client and by wagmi, so a change to the
+ * rate-limit defences below cannot apply to only half the app.
+ *
+ * `retryDelay` is raised from viem's default 150ms. viem already retries an
+ * HTTP 429 (and a JSON-RPC body carrying `code: 429`) with an exponential
+ * backoff of `(1 << attempt) * retryDelay`, but 150/300/600ms is far inside a
+ * public endpoint's rate-limit window: all three retries land while the same
+ * limit is still in force, so the burst that caused the 429 is answered with
+ * three more requests. 500 gives 500/1000/2000ms, which is long enough for a
+ * per-second bucket to refill.
+ *
+ * The pollers that call this client each hold an in-flight guard, so a read
+ * that spends 3.5s in backoff cannot have the next 4s tick stack another one
+ * on top of it. Without those guards a longer retryDelay makes rate limiting
+ * worse, not better.
+ */
+const transport = http(RPC_URL, { retryDelay: 500 })
+
+/**
+ * Read path. Used by every page, including with no wallet connected.
+ *
+ * `batch.multicall` is the reason this app can be read from a public RPC at
+ * all. Every `eth_call` issued in the same macrotask is aggregated into one
+ * `aggregate3` against Multicall3 — `0xcA11bde05977b3631167028862bE2a173976CA11`,
+ * which viem already carries in its `celo` chain definition — so one HTTP
+ * request goes out instead of one per read. Measured against this code:
+ *
+ *   useAccountState's Promise.all      6 requests -> 1, every 4 seconds
+ *   /accounts verification, per batch  5 candidates x 3 reads = 15 -> 1
+ *   the setup wizard's paired reads    2 -> 1
+ *
+ * That is what was producing `POST .../celo 429 (Too Many Requests)` on every
+ * dashboard load: roughly 2 requests per second per open tab, against free
+ * public endpoints (forno, rpc.ankr.com/celo) that do not serve that rate.
+ *
+ * A failing call inside the batch stays that call's failure. viem sends
+ * `allowFailure: true` for every leg and rethrows per caller, so the
+ * revert-means-not-a-Leash-account check in AccountsPage still rejects one
+ * candidate without failing the four beside it.
+ *
+ * This does NOT batch `eth_getLogs` or `eth_blockNumber` — Multicall3 only
+ * aggregates calls. The feed's history walk is still (window / 5,000)
+ * sequential round trips; see WINDOW_BLOCKS in lib/feed.ts.
+ */
 export const publicClient = createPublicClient({
   chain: celo,
-  transport: http(RPC_URL),
+  transport,
+  batch: { multicall: true },
 })
 
 /**
@@ -21,7 +66,7 @@ export const publicClient = createPublicClient({
 export const wagmiConfig = createConfig({
   chains: [celo],
   connectors: [injected()],
-  transports: { [celo.id]: http(RPC_URL) },
+  transports: { [celo.id]: transport },
   // Required under the App Router. Without it wagmi rehydrates its persisted
   // connection synchronously during render, so a returning visitor whose
   // wallet was already connected gets a hydration mismatch the first time a
