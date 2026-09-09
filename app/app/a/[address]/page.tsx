@@ -2,6 +2,7 @@
 
 import { use, useCallback, useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
+import McpHandoff from '../../../components/McpHandoff'
 import Meter from '../../../components/Meter'
 import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
@@ -380,6 +381,17 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                     onGasStatusChange={updateAgentGasStatus}
                   />
                 </div>
+              )}
+              {/* Owner only, and isOwner comes from owner() read off the chain
+                  by useAccountState -- never from ?operator=, which is
+                  attacker-controllable. A visitor cannot use this block
+                  anyway: it needs the operator's private key. gasOperator has
+                  been through operators(), so it is safe to name. */}
+              {isOwner && (
+                <McpHandoff
+                  account={address} token={TOKEN}
+                  operator={gasOperator}
+                />
               )}
             </div>
             {operators.length === 0 && operatorCheckFailed && (

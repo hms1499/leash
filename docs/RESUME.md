@@ -235,9 +235,18 @@ what let the landing page and `/setup` disagree about one block (see the
 2026-09-05 entry below). `FEE_ADAPTER` is declared in `lib/mcpJson.ts` and
 pinned by a test -- it had vanished from `app/` entirely with the deletion.
 
+It is on the dashboard too, since 2026-09-09: an owner who did not save the
+block had nowhere to read it again. `/a/[address]` renders it inside
+`#agent-management`, shut by default, gated on `isOwner` -- which is
+`canEdit(state.owner, connected)`, `owner()` read off the chain, never
+`?operator=`. Both callers pass an `operator` they have verified against
+`operators()`, so the OPERATOR_PK warning can name which wallet's key it means;
+an account can hold several operators, which is what d1405ba was about.
+
 The e2e assertions did NOT need changing and were not changed: `landing.spec.ts:9`
-loads `/setup` with no wallet, which is stage 1, and `:59` is the landing page,
-which still renders no block. Both still assert absence and both still pass.
+loads `/setup` with no wallet, which is stage 1, `:59` is the landing page, and
+all four dashboard tests run with no wallet, so `isOwner` is false there. Every
+one still passes.
 
 The sentence this paragraph used to end with -- "the landing page and `/setup`
 both render through it, so they cannot drift apart" -- was false when it was

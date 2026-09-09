@@ -987,7 +987,13 @@ export default function Onboard() {
               <dd className="mt-1">{recipientProtectionEnabled ? 'Approved addresses only' : 'Any address — recipient protection is not enabled'}</dd></div>
           </dl>
           <div className="mt-6">
-            <McpHandoff account={account} token={TOKEN} />
+            {/* agent is a verified operator by this point: readiness.ready
+                gates this whole stage on addAgent's operators() check. */}
+            <McpHandoff
+              account={account} token={TOKEN}
+              operator={isValidAddress(agent) ? agent as `0x${string}` : null}
+              defaultOpen
+            />
           </div>
 
           <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--line)' }}>
