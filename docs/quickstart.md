@@ -1,60 +1,176 @@
-# Connect your agent — 4 steps
+# Connect your agent — copy, paste, run
 
-You finished the [setup wizard](https://leash-app-phi.vercel.app/setup) and it
-handed you a `.mcp.json` block. This page is only the rest: getting that block
-into Claude Code. It needs no clone of this repository.
+You finished the [setup wizard](https://leash-app-phi.vercel.app/setup) and
+clicked **Copy** on the `.mcp.json` block. Everything below is commands you can
+paste. Nothing here asks you to write code, and you do not need to clone this
+repository.
 
-**Everything in the block is filled in except one value: `OPERATOR_PK`**, the
-private key of the agent wallet you authorised during setup. Step 3 is where
-you paste it.
+**You will edit exactly one value**: `OPERATOR_PK`, the private key of the agent
+wallet the wizard shows you. Everything else in the block is already filled in.
+
+You also need a Claude account on a paid plan — Pro, Max, Team, Enterprise, or
+Console. Claude Code is not included in the free plan.
 
 ---
 
-## 1. Check Node
+## 1. Install Node
+
+The Leash server runs through `npx`, which needs **Node 20 or newer**. (Claude
+Code itself does not use Node — this is only for the server.)
+
+Check what you have:
 
 ```bash
-node -v      # must be v20 or newer
+node -v
 ```
 
-The block runs the published `leash-agentpay` package through `npx`. Nothing is
-installed and there is nothing to build.
+If that prints `v20` or higher, skip ahead. If it says `command not found` or
+prints something older:
 
-## 2. Save the block
+**macOS**
 
-Put it in a file named exactly `.mcp.json`, at the root of the directory you
-open Claude Code in — the project where you want the agent to be able to spend,
-not your home directory and not the Leash repo.
-
-```
-your-project/
-├── .mcp.json      <- here
-└── …
+```bash
+brew install node
 ```
 
-Add `.mcp.json` and `.mcp.json.*` to `.gitignore`.
+**Ubuntu / Debian**
+
+```bash
+sudo apt update && sudo apt install -y nodejs npm
+```
+
+**Windows, or no package manager** — download the LTS installer from
+<https://nodejs.org/en/download> and run it.
+
+Confirm before moving on:
+
+```bash
+node -v      # v20.x or newer
+```
+
+## 2. Install Claude Code
+
+**macOS, Linux, WSL**
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**Windows PowerShell**
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+Confirm it landed:
+
+```bash
+claude --version      # prints something like 2.1.266 (Claude Code)
+```
+
+If your shell says `command not found`, open a new terminal window first — the
+installer adds `claude` to a path your current shell has not re-read.
+
+## 3. Make a project folder
+
+This is where the agent will work, and where the config has to live. Not your
+home directory.
+
+```bash
+mkdir -p ~/my-agent
+cd ~/my-agent
+```
+
+## 4. Save the block as `.mcp.json`
+
+The block is still on your clipboard from the wizard. Write it straight to the
+file:
+
+**macOS**
+
+```bash
+pbpaste > .mcp.json
+```
+
+**Linux (X11)**
+
+```bash
+xclip -o -selection clipboard > .mcp.json
+```
+
+**Linux (Wayland)**
+
+```bash
+wl-paste > .mcp.json
+```
+
+**Windows PowerShell**
+
+```powershell
+Get-Clipboard | Set-Content .mcp.json
+```
 
 Lost the block? The dashboard keeps it under **Connect your agent runtime**,
-with your account already filled in.
+with your account already filled in. Copy it again and rerun the command above.
 
-## 3. Paste the operator key
-
-Replace `0xYourAgentOperatorPrivateKey` with the private key of the agent wallet
-the wizard shows you. It is `0x` followed by 64 hex characters — paste an
-address by mistake (40 characters) and the server refuses to start.
-
-## 4. Restart and approve
-
-Restart Claude Code. It asks, once, whether to run the server the file names.
-**Say yes** — decline and the tools silently never appear.
-
-Then confirm:
+Keep it out of git:
 
 ```bash
-claude mcp get leash
+printf '.mcp.json\n.mcp.json.*\n' >> .gitignore
 ```
 
-Finally, ask your agent to call `leash_status`. A reply with your remaining
-daily allowance means you are done.
+Check that the file looks right:
+
+```bash
+cat .mcp.json
+```
+
+## 5. Paste the operator key
+
+Open the file:
+
+```bash
+nano .mcp.json
+```
+
+Replace `0xYourAgentOperatorPrivateKey` with the private key of the agent wallet
+the wizard shows you — `0x` followed by 64 hex characters. In `nano`, save with
+`Ctrl+O`, `Enter`, then exit with `Ctrl+X`.
+
+Paste an *address* here by mistake (40 characters) and the server refuses to
+start.
+
+## 6. Start Claude Code
+
+From the same folder:
+
+```bash
+claude
+```
+
+Two prompts on first run:
+
+1. **Log in.** It opens your browser. Sign in with your Claude account.
+2. **Approve the server.** Claude Code asks, once, whether to run the server
+   `.mcp.json` names. **Say yes** — decline and the tools silently never appear.
+
+## 7. Check that it works
+
+Inside the Claude Code session, type:
+
+```
+/mcp
+```
+
+`leash` should show `✔ Connected` with a tool count of 3. Then just ask, in
+plain English:
+
+```
+Call leash_status and tell me my remaining daily allowance.
+```
+
+A reply with a number means you are done. Your agent can now spend, up to the
+limits your contract enforces.
 
 ---
 
@@ -64,7 +180,7 @@ Two of these three look identical from inside the agent. Work down the table.
 
 | what you see | what happened | fix |
 |---|---|---|
-| No `leash_*` tools, no error at all | You declined the approval prompt, or never got it. Nothing reports this. | `claude mcp get leash` shows the state. `claude mcp reset-project-choices` clears it; restart and answer yes. |
+| No `leash_*` tools, no error at all | You declined the approval prompt, or never got it. Nothing reports this. | `/mcp` shows `⏸ Pending approval` if you never answered. If you declined, `claude mcp reset-project-choices` clears the choice; restart `claude` and answer yes. |
 | "server failed to connect" | `ATTRIBUTION_TAG` is still `celo_yourtag`. The server checks its shape at startup and exits before the first tool call. | Put a real tag in the wizard's field and copy the block again, or generate one: `printf 'celo_%s\n' "$(openssl rand -hex 6)"` |
 | "server failed to connect" | `OPERATOR_PK` is not a 32-byte hex key. | Paste the key: `0x` plus 64 hex characters. |
 
@@ -72,6 +188,9 @@ The real messages are `ATTRIBUTION_TAG must look like celo_ plus 12 hex
 characters, got "…"` and `OPERATOR_PK is not a 32-byte hex private key`. Your
 agent buries both behind "server failed to connect", which is why the table
 matches on the config instead of on the message.
+
+Started `claude` in the wrong folder? `.mcp.json` is read from the directory you
+launch it in. `cd ~/my-agent` and run `claude` again.
 
 ## What your agent can now do
 
