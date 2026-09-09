@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
-import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
+import { publicClient, REQUIRED_CHAIN_ID, SET_PAUSED_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
 import Button from './ui/Button'
 import Label from './ui/Label'
@@ -53,7 +53,7 @@ export default function StopButton({
     try {
       await writeContractAsync({
         address: account, abi: PAUSE_ABI, functionName: 'setPaused', args: [next],
-        chainId: REQUIRED_CHAIN_ID,
+        chainId: REQUIRED_CHAIN_ID, gas: SET_PAUSED_GAS,
       })
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.

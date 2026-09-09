@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
-import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
+import { publicClient, REQUIRED_CHAIN_ID, SWEEP_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { formatDisplayAmount, parseAmount } from '../lib/policy.js'
 import { transactionsLeft } from '../lib/gasFloat.js'
 import { pollUntil } from '../lib/confirm.js'
@@ -112,7 +112,7 @@ export default function AgentPanel({
       const before = float as bigint
       await writeContractAsync({
         address: account, abi: SWEEP_ABI, functionName: 'sweep',
-        args: [token, operator, amount], chainId: REQUIRED_CHAIN_ID,
+        args: [token, operator, amount], chainId: REQUIRED_CHAIN_ID, gas: SWEEP_GAS,
       })
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.

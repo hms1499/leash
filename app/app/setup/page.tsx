@@ -11,7 +11,10 @@ import Panel from '../../components/ui/Panel'
 import Label from '../../components/ui/Label'
 import { PROSE } from '../../components/ui/prose'
 import Button from '../../components/ui/Button'
-import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS } from '../../lib/chain.js'
+import {
+  publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS, ERC20_TRANSFER_GAS,
+  SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS, SET_OPERATOR_GAS, SET_POLICY_GAS,
+} from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
 import { formatAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
@@ -302,7 +305,7 @@ export default function Onboard() {
     try {
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setPolicy',
-        args: [TOKEN, parsed.perTx, parsed.daily], chainId: REQUIRED_CHAIN_ID,
+        args: [TOKEN, parsed.perTx, parsed.daily], chainId: REQUIRED_CHAIN_ID, gas: SET_POLICY_GAS,
       })
       const confirmed = await pollUntil(async () => {
         const limits = await publicClient.readContract({
@@ -336,7 +339,7 @@ export default function Onboard() {
     try {
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setAllowlistEnabled',
-        args: [false], chainId: REQUIRED_CHAIN_ID,
+        args: [false], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_ENABLED_GAS,
       })
       const confirmed = await pollUntil(async () => !Boolean(
         await publicClient.readContract({ address: account!, abi: SETUP_ABI, functionName: 'allowlistEnabled' }),
@@ -367,7 +370,7 @@ export default function Onboard() {
       if (!alreadyApproved) {
         await writeContractAsync({
           address: account!, abi: SETUP_ABI, functionName: 'setAllowlist',
-          args: [recipient, true], chainId: REQUIRED_CHAIN_ID,
+          args: [recipient, true], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_GAS,
         })
         const approved = await pollUntil(async () => Boolean(
           await publicClient.readContract({
@@ -382,7 +385,7 @@ export default function Onboard() {
       if (!recipientProtectionEnabled) {
         await writeContractAsync({
           address: account!, abi: SETUP_ABI, functionName: 'setAllowlistEnabled',
-          args: [true], chainId: REQUIRED_CHAIN_ID,
+          args: [true], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_ENABLED_GAS,
         })
       }
       const enabled = await pollUntil(async () => Boolean(
@@ -412,7 +415,7 @@ export default function Onboard() {
     try {
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setOperator',
-        args: [agent, true], chainId: REQUIRED_CHAIN_ID,
+        args: [agent, true], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
       })
       const confirmed = await pollUntil(async () => Boolean(
         await publicClient.readContract({
@@ -479,7 +482,7 @@ export default function Onboard() {
       const before = await readBalance(destination)
       await writeContractAsync({
         address: TOKEN, abi: ERC20_ABI, functionName: 'transfer',
-        args: [destination, amount], chainId: REQUIRED_CHAIN_ID,
+        args: [destination, amount], chainId: REQUIRED_CHAIN_ID, gas: ERC20_TRANSFER_GAS,
       })
       let nextBalance = before
       const confirmed = await pollUntil(async () => {

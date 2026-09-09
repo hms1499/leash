@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { isValidAddress } from '../lib/address.js'
-import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
+import { publicClient, REQUIRED_CHAIN_ID, SET_OPERATOR_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
 import Address from './ui/Address'
 import Button from './ui/Button'
@@ -51,7 +51,7 @@ export default function AgentAccessPanel({
     try {
       await writeContractAsync({
         address: account, abi: OPERATOR_ABI, functionName: 'setOperator',
-        args: [agentInput, true], chainId: REQUIRED_CHAIN_ID,
+        args: [agentInput, true], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
       })
       const confirmed = await pollUntil(async () => Boolean(
         await publicClient.readContract({
@@ -82,7 +82,7 @@ export default function AgentAccessPanel({
     try {
       await writeContractAsync({
         address: account, abi: OPERATOR_ABI, functionName: 'setOperator',
-        args: [operator, false], chainId: REQUIRED_CHAIN_ID,
+        args: [operator, false], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
       })
       const confirmed = await pollUntil(async () => !Boolean(
         await publicClient.readContract({

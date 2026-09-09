@@ -68,3 +68,45 @@ export const DEPLOY_GAS = 1_200_000n
 
 export const WRONG_NETWORK =
   'Your wallet is on another network. Switch it to Celo — the badge in the header does it — and try again.'
+/**
+ * Gas limits for the owner's writes, so a wallet whose estimator fails still
+ * has a number to sign with.
+ *
+ * This is NOT the fee-currency hazard CLAUDE.md documents. That one is about
+ * CIP-64 sends from the operator, where a missing limit makes the node reserve
+ * the *block* gas limit in USDC — measured at 0.465 against 0.0022 actually
+ * spent — and it lives in `sdk/src/policyClient.ts`. These writes are signed by
+ * a browser wallet paying gas in CELO, and the wallet shows the fee first.
+ *
+ * The hazard here is the one DEPLOY_GAS above already records: OKX Wallet on
+ * Celo, 2026-09-04, "Network fee estimation unsuccessful", a fee of `--`, and a
+ * Confirm button that could not be pressed — because the request carried no
+ * `gas` to fall back on when its own estimator came back empty. Nothing about
+ * that was specific to contract creation, and `setPaused` is the kill switch.
+ *
+ * Measured with `cast estimate` on Celo mainnet, 2026-09-09, from the owner EOA
+ * against account 0x7aDa926B:
+ *
+ *   setPolicy             28,762      setAllowlistEnabled   26,233
+ *   setOperator           26,845      setAllowlist          46,086
+ *   setPaused(true)       45,150      sweep                 51,181
+ *   ERC-20 transfer       45,427
+ *
+ * Every figure below is roughly double its measurement, and deliberately so:
+ * that account is already in use, and an estimate taken against warm storage
+ * UNDERSTATES a fresh one. A slot going 0 -> non-zero costs 20,000 where
+ * non-zero -> non-zero costs 2,900, so on a brand-new account `setPolicy`
+ * writes two cold slots (~63,000, not 28,762), `setOperator` one (~44,000), and
+ * a transfer to an address holding nothing is ~17,000 dearer than the figure
+ * above. A first-run wizard is exactly the case these have to cover.
+ *
+ * Unused gas is refunded, so an over-estimate costs nothing and an
+ * under-estimate turns a working button into a failed transaction.
+ */
+export const SET_POLICY_GAS = 120_000n
+export const SET_OPERATOR_GAS = 100_000n
+export const SET_ALLOWLIST_GAS = 100_000n
+export const SET_ALLOWLIST_ENABLED_GAS = 80_000n
+export const SET_PAUSED_GAS = 100_000n
+export const SWEEP_GAS = 150_000n
+export const ERC20_TRANSFER_GAS = 120_000n

@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
-import { publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK } from '../lib/chain.js'
+import {
+  publicClient, REQUIRED_CHAIN_ID, SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS,
+  SET_POLICY_GAS, WRONG_NETWORK,
+} from '../lib/chain.js'
 import { formatAmount, validateLimits } from '../lib/policy.js'
 import { isValidAddress } from '../lib/address.js'
 import { pollUntil } from '../lib/confirm.js'
@@ -74,7 +77,7 @@ export default function LimitsDrawer({
     try {
       await writeContractAsync({
         address: account, abi: POLICY_ABI, functionName: 'setPolicy',
-        args: [token, parsed.perTx, parsed.daily], chainId: REQUIRED_CHAIN_ID,
+        args: [token, parsed.perTx, parsed.daily], chainId: REQUIRED_CHAIN_ID, gas: SET_POLICY_GAS,
       })
       const confirmed = await pollUntil(async () => {
         const limits = await publicClient.readContract({
@@ -103,7 +106,7 @@ export default function LimitsDrawer({
     try {
       await writeContractAsync({
         address: account, abi: POLICY_ABI, functionName: 'setAllowlistEnabled',
-        args: [next], chainId: REQUIRED_CHAIN_ID,
+        args: [next], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_ENABLED_GAS,
       })
       const confirmed = await pollUntil(async () => Boolean(
         await publicClient.readContract({
@@ -145,7 +148,7 @@ export default function LimitsDrawer({
     try {
       await writeContractAsync({
         address: account, abi: POLICY_ABI, functionName: 'setAllowlist',
-        args: [payee, next], chainId: REQUIRED_CHAIN_ID,
+        args: [payee, next], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_GAS,
       })
       const confirmed = await pollUntil(async () => Boolean(
         await publicClient.readContract({
