@@ -43,3 +43,7 @@ skills-lock.json
 # dead weight in app/ and mcp/. Ignored rather than merely deleted, because the
 # way they appear is a copy-paste in a file manager, which will happen again.
 * [0-9].*
+
+# Local skill installs (symlinks into .agents/), not project files.
+.claude/
+skills/

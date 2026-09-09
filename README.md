@@ -302,8 +302,10 @@ Built for the Celo **Agents at Work** hackathon. Live on mainnet, with every
 claim above backed by a transaction rather than a test's own output.
 
 **The MCP server is published.** `leash-agentpay` is on npm, and the
-`.mcp.json` block runs it with `npx -y leash-agentpay` — nobody needs to clone
-this repo or edit a local path to use it. `@leash/sdk` stays unpublished by
+`.mcp.json` block in [`docs/mcp-setup.md`](docs/mcp-setup.md) runs it with
+`npx -y leash-agentpay` — nobody needs to clone this repo or edit a local path
+to use it. Connecting an agent is deliberately a step after setup rather than
+part of the wizard, so the app itself does not hand out that block. `@leash/sdk` stays unpublished by
 choice: it has one consumer, and publishing it would commit this project to a
 public API and a semver contract nobody has asked for, so it is bundled into
 the server instead.

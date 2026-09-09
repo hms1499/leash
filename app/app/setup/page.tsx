@@ -344,7 +344,6 @@ export default function Onboard() {
     setRecipientMode('any')
     setRecipientNote(null)
     if (!recipientProtectionEnabled) {
-      writeLocal(`leash.recipientMode.${account!.toLowerCase()}`, 'any')
       return
     }
     if (chainId !== REQUIRED_CHAIN_ID) {
@@ -364,7 +363,6 @@ export default function Onboard() {
       if (confirmed) {
         setRecipientProtectionEnabled(false)
         setRecipientNote('Direct payments can now go to any recipient.')
-        writeLocal(`leash.recipientMode.${account!.toLowerCase()}`, 'any')
       } else {
         setRecipientMode('protected')
         setRecipientNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
@@ -412,7 +410,6 @@ export default function Onboard() {
         setRecipientProtectionEnabled(true)
         setRecipientMode('protected')
         setRecipientNote('Recipient protection enabled.')
-        writeLocal(`leash.recipientMode.${account!.toLowerCase()}`, 'protected')
         writeLocal(`leash.recipient.${account!.toLowerCase()}`, recipient)
       } else setRecipientNote('The recipient is approved, but protection has not been confirmed yet.')
     } catch {
