@@ -6,6 +6,10 @@
 
 **Architecture:** Extract the tool registration out of `mcp/src/index.ts` into a `createLeashServer(config)` seam both transports share. Add an Express app that mounts the MCP SDK's own `mcpAuthRouter` (which serves discovery, `/authorize`, `/register`, `/token`, `/revoke` with S256 PKCE and rate limiting) alongside a `POST /mcp` guarded by `requireBearerAuth`. We implement only the `OAuthServerProvider`: a consent page gated by a pairing code printed to stderr, authorization codes bound to PKCE, and rotating refresh tokens hashed to disk so a restart does not force re-pairing.
 
+**Two run paths, and the docs lead with the first.** A container host (`deploy/`, Task 8b) issues a stable URL before the process starts, so there is no tunnel to order and no terminal in the user's journey at all. Local-with-a-tunnel stays for trying it out, and `connect` (Task 7b) reduces it to one copied line that prompts for the key rather than making the user author a `.env`.
+
+**Thirteen tasks:** 1, 2, 3, 4, 5, 6, 7, 7b, 8, 8b, 9, 10, 11 — in that order. Tasks 7b and 8b were added after the first draft; see the Self-Review for what they replaced.
+
 **Tech Stack:** TypeScript, Node 20, `@modelcontextprotocol/sdk@^1.30.0`, Express 5, viem, vitest, tsup. Express, `express-rate-limit`, `pkce-challenge`, `cors` and `jose` are already hard dependencies of the MCP SDK — **this plan adds no new dependency to `mcp/package.json`.**
 
 **Spec:** `docs/superpowers/specs/2026-09-10-leash-remote-mcp-design.md`
@@ -13,7 +17,8 @@
 ## Global Constraints
 
 - **The stdio transport's behaviour must not change.** `test:bundle` packs the tarball and starts the bin; it is the guard.
-- **Never write to stdout in library or http code.** stdout is the JSON-RPC channel in stdio mode. The pairing code and the startup banner go to **stderr**.
+- **Never write to stdout in library or http code.** stdout is the JSON-RPC channel in stdio mode. The pairing code, the startup banner and every `connect` prompt go to **stderr**.
+- **A private key never travels in argv.** `ps` shows it to every user on the box and the shell writes it to a history file. `connect` prompts; it must refuse a `--operator-pk` flag rather than accept one.
 - **No new dependency in `mcp/package.json`.** Everything needed already arrives through `@modelcontextprotocol/sdk`.
 - **`LEASH_PUBLIC_URL` is the public https origin, no path.** The resource server URL is `${LEASH_PUBLIC_URL}/mcp`; protected resource metadata lands at `${LEASH_PUBLIC_URL}/.well-known/oauth-protected-resource/mcp`. The `resource` field inside that document must equal the resource server URL character for character.
 - **Secrets in tests are generated at runtime**, never written as literals — `scripts/check-secrets.sh` runs pre-commit and blocks a 64-hex value unless it is labelled as a transaction hash within 10 characters. Follow `mcp/test/status.test.ts`, which uses `generatePrivateKey()`.
@@ -1769,6 +1774,363 @@ git commit -m "feat(mcp): --http starts the server claude.ai can actually reach"
 
 ---
 
+### Task 7b: The `connect` subcommand
+
+Removes the hand-authored `.env` from the local path. The four public values
+arrive as flags; the operator key and the public URL are prompted for, so
+neither reaches argv, `ps`, or the shell's history file.
+
+**Files:**
+- Create: `mcp/src/connect.ts`
+- Modify: `mcp/src/index.ts`
+- Test: `mcp/test/connect.test.ts`
+
+**Interfaces:**
+- Consumes: `buildApp` (Task 6), `newPairingCode` (Task 4).
+- Produces:
+  ```ts
+  export type ConnectFlags = {
+    accountAddress: `0x${string}`
+    token: `0x${string}`
+    feeAdapter: `0x${string}`
+    attributionTag: string
+    port: number
+    host: string
+    anthropicOnly: boolean
+    grantsPath: string
+  }
+  export function parseConnectFlags(argv: string[], env: NodeJS.ProcessEnv): ConnectFlags
+  export function askSecret(question: string, stdin?: NodeJS.ReadStream): Promise<string>
+  export function runConnect(argv: string[], env: NodeJS.ProcessEnv): Promise<void>
+  ```
+
+- [ ] **Step 1: Write the failing test**
+
+`mcp/test/connect.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { PassThrough } from 'node:stream'
+import { parseConnectFlags, askSecret } from '../src/connect.js'
+
+const FLAGS = [
+  'connect',
+  '--account', '0x7aDa926B021BAef4896F51F237bCA61435E43fd2',
+  '--token', '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
+  '--fee-adapter', '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B',
+  '--tag', 'celo_3dec652cd977',
+]
+
+describe('parseConnectFlags', () => {
+  it('reads the four public values off the command line', () => {
+    const flags = parseConnectFlags(FLAGS, {})
+    expect(flags.accountAddress).toBe('0x7aDa926B021BAef4896F51F237bCA61435E43fd2')
+    expect(flags.attributionTag).toBe('celo_3dec652cd977')
+  })
+
+  /**
+   * The key must never be a flag. argv is visible in `ps` to every user on the
+   * box and lands in the shell's history file, so accepting it here would make
+   * the convenient path the leaky one.
+   */
+  it('refuses an operator key passed as a flag, naming the reason', () => {
+    expect(() => parseConnectFlags([...FLAGS, '--operator-pk', `0x${'11'.repeat(32)}`], {}))
+      .toThrow(/prompt|history|argv/i)
+  })
+
+  it('names a missing flag rather than failing later at an RPC call', () => {
+    expect(() => parseConnectFlags(['connect', '--account', '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'], {}))
+      .toThrow(/--token/)
+  })
+
+  it('rejects a malformed address', () => {
+    expect(() => parseConnectFlags(
+      ['connect', '--account', 'nope', '--token', '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
+       '--fee-adapter', '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B', '--tag', 'celo_3dec652cd977'],
+      {},
+    )).toThrow(/--account/)
+  })
+
+  /** The same rule config.ts enforces at startup, applied one layer earlier. */
+  it('rejects a tag the server would refuse', () => {
+    expect(() => parseConnectFlags(
+      [...FLAGS.slice(0, -1), 'celo_mytag'], {},
+    )).toThrow(/tag/i)
+  })
+
+  it('defaults the port, host and grant path the same way --http does', () => {
+    const flags = parseConnectFlags(FLAGS, {})
+    expect(flags.port).toBe(8787)
+    expect(flags.host).toBe('127.0.0.1')
+    expect(flags.grantsPath).toMatch(/\.leash[/\\]grants\.json$/)
+  })
+})
+
+describe('askSecret', () => {
+  it('reads a line without echoing it', async () => {
+    const stdin = new PassThrough() as unknown as NodeJS.ReadStream
+    // No TTY in a test, so raw mode is a no-op; the contract under test is
+    // that the typed characters never appear on the output stream.
+    ;(stdin as unknown as { isTTY: boolean }).isTTY = true
+    ;(stdin as unknown as { setRawMode: () => void }).setRawMode = () => undefined
+    const pending = askSecret('Operator key: ', stdin)
+    stdin.push('0xdeadbeef\r')
+    expect(await pending).toBe('0xdeadbeef')
+  })
+
+  /**
+   * A piped stdin cannot prompt. Hanging forever, or silently reading an empty
+   * key, are both worse than saying which path to use instead.
+   */
+  it('fails with the alternative when there is no TTY', async () => {
+    const stdin = new PassThrough() as unknown as NodeJS.ReadStream
+    ;(stdin as unknown as { isTTY: boolean }).isTTY = false
+    await expect(askSecret('Operator key: ', stdin)).rejects.toThrow(/--http/)
+  })
+})
+```
+
+- [ ] **Step 2: Run it and watch it fail**
+
+Run: `cd mcp && npx vitest run connect`
+Expected: FAIL — module not found.
+
+- [ ] **Step 3: Implement `mcp/src/connect.ts`**
+
+```ts
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { getAddress, isAddress } from 'viem'
+import { ATTRIBUTION_TAG_SHAPE, OPERATOR_PK_SHAPE } from './config.js'
+
+export type ConnectFlags = {
+  accountAddress: `0x${string}`
+  token: `0x${string}`
+  feeAdapter: `0x${string}`
+  attributionTag: string
+  port: number
+  host: string
+  anthropicOnly: boolean
+  grantsPath: string
+}
+
+function flag(argv: string[], name: string): string | undefined {
+  const at = argv.indexOf(name)
+  return at === -1 ? undefined : argv[at + 1]
+}
+
+function requireAddressFlag(argv: string[], name: string): `0x${string}` {
+  const value = flag(argv, name)
+  if (value === undefined) throw new Error(`${name} is required`)
+  if (!isAddress(value)) throw new Error(`${name} is not a valid address: ${value}`)
+  return getAddress(value)
+}
+
+/**
+ * Reads the flags the wizard's one-liner carries.
+ *
+ * All four are public values, so they are safe on a command line. The operator
+ * key deliberately is not one of them — see the guard below.
+ */
+export function parseConnectFlags(argv: string[], env: NodeJS.ProcessEnv): ConnectFlags {
+  // argv is world-readable through `ps` and is written to the shell's history
+  // file. Accepting the key here would make the shortest path the leaky one,
+  // so this refuses loudly instead of quietly working.
+  if (argv.some((a) => a === '--operator-pk' || a.startsWith('--operator-pk='))) {
+    throw new Error(
+      'The operator key cannot be passed on the command line: argv is visible in `ps` ' +
+      'and is saved to your shell history. `connect` will prompt for it instead.',
+    )
+  }
+
+  const attributionTag = flag(argv, '--tag')
+  if (attributionTag === undefined) throw new Error('--tag is required')
+  if (!ATTRIBUTION_TAG_SHAPE.test(attributionTag)) {
+    throw new Error(
+      `--tag must look like celo_ plus 12 hex characters, got "${attributionTag}". ` +
+      'The server checks the same rule at startup.',
+    )
+  }
+
+  const portFlag = flag(argv, '--port')
+  const hostFlag = flag(argv, '--host')
+  return {
+    accountAddress: requireAddressFlag(argv, '--account'),
+    token: requireAddressFlag(argv, '--token'),
+    feeAdapter: requireAddressFlag(argv, '--fee-adapter'),
+    attributionTag,
+    port: Number(portFlag ?? env.LEASH_HTTP_PORT ?? 8787),
+    host: hostFlag ?? '127.0.0.1',
+    anthropicOnly: argv.includes('--anthropic-only'),
+    grantsPath: env.LEASH_GRANTS_PATH ?? join(homedir(), '.leash', 'grants.json'),
+  }
+}
+
+/** Prompts on stderr, so stdout stays the JSON-RPC channel it is in stdio mode. */
+export function ask(question: string, stdin: NodeJS.ReadStream = process.stdin): Promise<string> {
+  return readLine(question, stdin, true)
+}
+
+export function askSecret(
+  question: string, stdin: NodeJS.ReadStream = process.stdin,
+): Promise<string> {
+  return readLine(question, stdin, false)
+}
+
+function readLine(question: string, stdin: NodeJS.ReadStream, echo: boolean): Promise<string> {
+  if (stdin.isTTY !== true) {
+    return Promise.reject(new Error(
+      'connect needs an interactive terminal to ask for the operator key. ' +
+      'For a non-interactive host, put the five variables in the environment ' +
+      'and run `leash-agentpay --http` instead.',
+    ))
+  }
+  process.stderr.write(question)
+  return new Promise<string>((resolve, reject) => {
+    let value = ''
+    stdin.setRawMode(true)
+    stdin.resume()
+    const done = (finish: () => void) => {
+      stdin.setRawMode(false)
+      stdin.pause()
+      stdin.off('data', onData)
+      process.stderr.write('\n')
+      finish()
+    }
+    const onData = (chunk: Buffer) => {
+      for (const byte of chunk) {
+        if (byte === 0x0d || byte === 0x0a) return done(() => resolve(value.trim()))
+        // Ctrl-C must still kill the process rather than being typed into a key.
+        if (byte === 0x03) return done(() => reject(new Error('cancelled')))
+        if (byte === 0x7f) {
+          value = value.slice(0, -1)
+          if (echo) process.stderr.write('\b \b')
+          continue
+        }
+        value += String.fromCharCode(byte)
+        if (echo) process.stderr.write(String.fromCharCode(byte))
+      }
+    }
+    stdin.on('data', onData)
+  })
+}
+
+export async function runConnect(argv: string[], env: NodeJS.ProcessEnv): Promise<void> {
+  const flags = parseConnectFlags(argv, env)
+
+  const rawUrl = await ask(
+    'Public https URL for this server (from your tunnel or host): ',
+  )
+  let publicUrl: URL
+  try {
+    publicUrl = new URL(rawUrl)
+  } catch {
+    throw new Error(`that is not a URL: ${rawUrl}`)
+  }
+  if (publicUrl.protocol !== 'https:') throw new Error('the public URL must be https')
+  if (publicUrl.pathname !== '/') {
+    throw new Error('give the bare origin with no path — /mcp is appended for you')
+  }
+
+  const operatorPk = await askSecret('Operator private key (not echoed): ')
+  if (!OPERATOR_PK_SHAPE.test(operatorPk)) {
+    throw new Error('that is not a 32-byte hex private key')
+  }
+
+  const [{ buildApp }, { newPairingCode }] = await Promise.all([
+    import('./http/app.js'),
+    import('./http/provider.js'),
+  ])
+  const pairingCode = newPairingCode()
+  const app = await buildApp({
+    config: {
+      accountAddress: flags.accountAddress,
+      operatorPk: operatorPk as `0x${string}`,
+      attributionTag: flags.attributionTag,
+      token: flags.token,
+      feeAdapter: flags.feeAdapter,
+      rpcUrl: env.CELO_RPC_URL,
+    },
+    publicUrl,
+    pairingCode,
+    grantsPath: flags.grantsPath,
+    anthropicOnly: flags.anthropicOnly,
+  })
+  app.listen(flags.port, flags.host, () => {
+    process.stderr.write([
+      '',
+      `Leash MCP over HTTP on ${flags.host}:${flags.port}`,
+      `Add this URL to Claude:  ${new URL('/mcp', publicUrl).href}`,
+      `Pairing code:            ${pairingCode}`,
+      '',
+      'The key you typed is held in memory only and was not written to disk,',
+      'so a restart will ask for it again.',
+      '',
+    ].join('\n'))
+  })
+}
+```
+
+- [ ] **Step 4: Export the two shape constants from `mcp/src/config.ts`**
+
+`loadConfig` currently inlines both regexes. Export them so `connect.ts` cannot
+drift from the rule the server enforces:
+
+```ts
+/** Exported so connect.ts checks the same rule, one layer earlier. */
+export const OPERATOR_PK_SHAPE = /^0x[0-9a-fA-F]{64}$/
+export const ATTRIBUTION_TAG_SHAPE = /^celo_[0-9a-f]{12}$/
+```
+
+Replace the two literal regexes inside `loadConfig` with these constants. Do not
+change the messages.
+
+- [ ] **Step 5: Dispatch it from `mcp/src/index.ts`**
+
+```ts
+const argv = process.argv.slice(2)
+
+if (argv[0] === 'connect') {
+  const { runConnect } = await import('./connect.js')
+  await runConnect(argv, process.env)
+} else {
+  const config = loadConfig(process.env)
+  const http = loadHttpConfig(process.env, argv)
+  // ... the two branches from Task 7 Step 5, unchanged ...
+}
+```
+
+Note that `connect` must be dispatched **before** `loadConfig`: its whole point
+is that the five environment variables are absent.
+
+- [ ] **Step 6: Run everything and typecheck**
+
+Run: `cd mcp && pnpm test && npx tsc --noEmit`
+Expected: all passing, tsc exit 0.
+
+- [ ] **Step 7: Try it by hand**
+
+```bash
+cd mcp
+npx tsx src/index.ts connect \
+  --account 0x7aDa926B021BAef4896F51F237bCA61435E43fd2 \
+  --token 0xcebA9300f2b948710d2653dD7B07f33A8B32118C \
+  --fee-adapter 0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B \
+  --tag celo_3dec652cd977
+```
+
+Expected: prompts for the URL, then for the key **without echoing it**, then
+prints the banner. Type a wrong-shaped key and confirm it says so plainly.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add mcp/src/connect.ts mcp/src/config.ts mcp/src/index.ts mcp/test/connect.test.ts
+git commit -m "feat(mcp): connect takes one line instead of a hand-authored .env"
+```
+
+---
+
 ### Task 8: Prove it in the packed tarball
 
 The published bin is what users run. Every other suite resolves `@leash/sdk` through the workspace symlink and cannot see a packaging failure.
@@ -1855,6 +2217,221 @@ git commit -m "test(mcp): the http path's lazy imports were invisible to every s
 
 ---
 
+### Task 8b: Ship a deploy target — the path with no terminal in it
+
+The primary documented path (spec §5.1). A stable URL exists *before* the
+process starts, which deletes the ordering constraint, the second terminal, the
+sleeping laptop and the re-added connector all at once.
+
+**Files:**
+- Create: `deploy/Dockerfile`, `deploy/fly.toml`, `deploy/README.md`
+- Modify: `mcp/src/http/app.ts` (Host validation and `/healthz`)
+- Test: `mcp/test/app.test.ts` (two cases appended)
+
+**Interfaces:**
+- Modifies: `buildApp` gains no new parameters. Host validation derives the
+  allowed hostname from `opts.publicUrl.hostname`, which it already has.
+
+- [ ] **Step 1: Write the failing tests**
+
+Three things the container path needs that loopback did not. Append to
+`mcp/test/app.test.ts`:
+
+```ts
+describe('running behind a platform proxy', () => {
+  /**
+   * Binding 0.0.0.0 is mandatory in a container and turns off the SDK's
+   * loopback DNS-rebinding protection. We know the hostname we are supposed to
+   * be answering as — it is in LEASH_PUBLIC_URL — so validate it rather than
+   * accept any Host a caller invents.
+   */
+  it('refuses a request whose Host is not the public hostname', async () => {
+    const res = await fetch(`${base}/mcp`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+        host: 'evil.example',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    })
+    expect(res.status).toBe(421)
+  })
+
+  it('accepts the public hostname, with or without a port', async () => {
+    for (const host of ['leash.example', 'leash.example:443']) {
+      const res = await fetch(`${base}/mcp`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+          host,
+        },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+      })
+      // 401 rather than 421: it got past Host validation and was refused for
+      // the absence of a token, which is the next guard down.
+      expect(res.status).toBe(401)
+    }
+  })
+
+  /**
+   * Platform health checks arrive with whatever Host the platform uses —
+   * often an internal address — so this must sit outside the Host guard, and
+   * outside auth. Without it Fly reports the machine unhealthy and cycles it.
+   */
+  it('answers /healthz regardless of Host and with no token', async () => {
+    const res = await fetch(`${base}/healthz`, { headers: { host: '172.16.0.2' } })
+    expect(res.status).toBe(200)
+  })
+})
+```
+
+- [ ] **Step 2: Run them and watch them fail**
+
+Run: `cd mcp && npx vitest run app`
+Expected: the three new cases FAIL — 200/401 where 421 is expected, and 404 for
+`/healthz`.
+
+- [ ] **Step 3: Add the guard and the health route to `mcp/src/http/app.ts`**
+
+Mount `/healthz` **before** the Host guard, and the guard before everything else:
+
+```ts
+  // Outside every guard: a platform health check arrives with whatever Host
+  // the platform uses and carries no token, and a failing check gets the
+  // machine cycled — which drops the connector.
+  app.get('/healthz', (_req, res) => { res.status(200).json({ ok: true }) })
+
+  /**
+   * Host validation, because a deployed server must bind 0.0.0.0 and that
+   * turns off the SDK's loopback-only DNS-rebinding protection. We are not
+   * guessing what we should be called: LEASH_PUBLIC_URL says so.
+   *
+   * 421 Misdirected Request, not 403 — the request reached a server that does
+   * not serve that name, which is what the status means.
+   */
+  app.use((req, res, next) => {
+    const host = (req.headers.host ?? '').split(':')[0]
+    if (host === opts.publicUrl.hostname || host === 'localhost' || host === '127.0.0.1') {
+      return next()
+    }
+    res.status(421).json({ error: 'wrong_host' })
+  })
+```
+
+Loopback stays allowed so the local path and `curl localhost:8787` keep working.
+
+- [ ] **Step 4: Run the app suite**
+
+Run: `cd mcp && npx vitest run app`
+Expected: PASS, all cases.
+
+- [ ] **Step 5: Write `deploy/Dockerfile`**
+
+It installs the **published package**, not this repo. That keeps the
+`npx`-and-go property and means the image does not need the monorepo, pnpm, or
+Foundry.
+
+```dockerfile
+# Installs the published package rather than building this repo: the image
+# needs no monorepo, no pnpm and no Foundry, and a user can pin a version.
+FROM node:20-alpine
+
+ARG LEASH_VERSION=latest
+RUN npm install -g leash-agentpay@${LEASH_VERSION}
+
+# The grant file holds refresh-token hashes. On a container filesystem it is
+# ephemeral, and losing it forces the user to pair the connector again after
+# every deploy -- which defeats the whole point of persisting it. Mount a
+# volume here and set LEASH_GRANTS_PATH to a path inside it.
+ENV LEASH_GRANTS_PATH=/data/grants.json
+VOLUME /data
+
+EXPOSE 8787
+# 0.0.0.0 is mandatory in a container. The Host header guard in app.ts is what
+# replaces the loopback DNS-rebinding protection that binding gives up.
+CMD ["leash-agentpay", "--http", "8787", "--host", "0.0.0.0"]
+```
+
+- [ ] **Step 6: Write `deploy/fly.toml`**
+
+```toml
+app = "leash-agentpay"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # Scale-to-zero is wrong for this workload. A stopped machine drops the
+  # connector, and the cold start would blow the 10-second budget Claude gives
+  # OAuth discovery and token endpoints -- which presents as an intermittent
+  # "couldn't reach the MCP server" rather than as a sleeping machine.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+
+# Refresh-token hashes live here. Without this volume every deploy forces the
+# user to pair the connector again.
+[[mounts]]
+  source = "leash_data"
+  destination = "/data"
+```
+
+- [ ] **Step 7: Write `deploy/README.md`**
+
+Cover, in this order: create the app and the volume; `fly secrets set` for
+`OPERATOR_PK` (and the four public values, which can be plain env); set
+`LEASH_PUBLIC_URL` to `https://<app>.fly.dev`; deploy; read the pairing code
+from `fly logs`; then the connector walkthrough from spec §10.2.
+
+State plainly that the operator key now lives in the platform's secret store,
+that the on-chain caps are what bound the loss if that platform is breached,
+and that `--anthropic-only` is worth adding here because a deployed URL is
+reachable by everyone rather than only by whoever knows a tunnel address.
+
+- [ ] **Step 8: Build the image locally and start it**
+
+```bash
+cd deploy
+docker build --build-arg LEASH_VERSION=latest -t leash-test .
+# Built at runtime rather than written down: check-secrets.sh blocks a 64-hex
+# literal on a line mentioning PK, which is the same reason bundle.test.ts
+# constructs its FAKE_PK instead of spelling one out.
+docker run --rm -p 8787:8787 \
+  -e LEASH_ACCOUNT=0x7aDa926B021BAef4896F51F237bCA61435E43fd2 \
+  -e OPERATOR_PK="0x$(printf '11%.0s' $(seq 32))" \
+  -e ATTRIBUTION_TAG=celo_3dec652cd977 \
+  -e SPEND_TOKEN=0xcebA9300f2b948710d2653dD7B07f33A8B32118C \
+  -e FEE_ADAPTER=0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B \
+  -e LEASH_PUBLIC_URL=https://leash.example \
+  -e LEASH_GRANTS_PATH=/tmp/grants.json \
+  leash-test
+```
+
+Expected: the banner on stderr with a pairing code, `curl -s
+localhost:8787/healthz` returning `{"ok":true}`, and
+`curl -s localhost:8787/.well-known/oauth-authorization-server` quoting
+`https://leash.example`. That key is a throwaway pattern with no funds behind
+it; it only has to satisfy the shape check in `config.ts`.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add deploy/Dockerfile deploy/fly.toml deploy/README.md mcp/src/http/app.ts mcp/test/app.test.ts
+git commit -m "feat(deploy): a container path with no terminal in the user's journey"
+```
+
+---
+
 ### Task 9: The wizard hands web users the wrong artifact
 
 `app/`'s handoff ends with a `.mcp.json`. A web user has nowhere to put it.
@@ -1866,7 +2443,7 @@ git commit -m "test(mcp): the http path's lazy imports were invisible to every s
 
 **Interfaces:**
 - Consumes: `McpHandoff` type, `OPERATOR_PK_PLACEHOLDER`, `displayTag`, `FEE_ADAPTER` from `app/lib/mcpJson.ts`.
-- Produces: `buildDotEnv(h: McpHandoff): string` and `buildRunCommands(): string`.
+- Produces: `buildDeployEnv(h: McpHandoff): string` and `buildConnectCommand(h: McpHandoff): string`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1874,7 +2451,7 @@ git commit -m "test(mcp): the http path's lazy imports were invisible to every s
 
 ```ts
 import { describe, it, expect } from 'vitest'
-import { buildDotEnv, buildRunCommands } from '../lib/webHandoff.js'
+import { buildDeployEnv, buildConnectCommand } from '../lib/webHandoff.js'
 import { OPERATOR_PK_PLACEHOLDER, ATTRIBUTION_TAG_PLACEHOLDER } from '../lib/mcpJson.js'
 
 const handoff = {
@@ -1884,48 +2461,66 @@ const handoff = {
   attributionTag: 'celo_3dec652cd977',
 } as const
 
-describe('buildDotEnv', () => {
-  it('carries the same five variables the JSON block does', () => {
-    const env = buildDotEnv(handoff)
+describe('buildDeployEnv', () => {
+  it('carries the five variables plus the public URL the host will issue', () => {
+    const env = buildDeployEnv(handoff)
     for (const key of [
       'LEASH_ACCOUNT', 'OPERATOR_PK', 'ATTRIBUTION_TAG', 'SPEND_TOKEN', 'FEE_ADAPTER',
+      'LEASH_PUBLIC_URL',
     ]) expect(env).toContain(`${key}=`)
   })
 
+  /**
+   * Without it, refresh-token hashes sit on a container filesystem and every
+   * deploy forces the user to pair the connector again — which silently
+   * defeats the persistence the grant file exists for.
+   */
+  it('sets a grant path on a mounted volume', () => {
+    expect(buildDeployEnv(handoff)).toContain('LEASH_GRANTS_PATH=/data/grants.json')
+  })
+
   it('never emits a key, only the placeholder', () => {
-    expect(buildDotEnv(handoff)).toContain(`OPERATOR_PK=${OPERATOR_PK_PLACEHOLDER}`)
+    expect(buildDeployEnv(handoff)).toContain(`OPERATOR_PK=${OPERATOR_PK_PLACEHOLDER}`)
   })
 
   /**
    * The same rule mcp/src/config.ts checks at startup. A tag the server
-   * refuses must not reach the file looking configured — the identical bug
+   * refuses must not reach the block looking configured — the identical bug
    * lib/mcpJson.ts's displayTag exists to prevent for the JSON block.
    */
   it('falls back to the placeholder on a tag the server would refuse', () => {
-    expect(buildDotEnv({ ...handoff, attributionTag: 'celo_mytag' }))
+    expect(buildDeployEnv({ ...handoff, attributionTag: 'celo_mytag' }))
       .toContain(`ATTRIBUTION_TAG=${ATTRIBUTION_TAG_PLACEHOLDER}`)
   })
 
-  /** Unquoted, because `set -a; source .env` is how the docs say to load it. */
   it('emits bare KEY=value with no quotes or export', () => {
-    expect(buildDotEnv(handoff)).not.toMatch(/export |"|'/)
+    expect(buildDeployEnv(handoff)).not.toMatch(/export |"|'/)
   })
 })
 
-describe('buildRunCommands', () => {
-  /**
-   * The tunnel has to come first: LEASH_PUBLIC_URL is required at startup and
-   * a trycloudflare URL is random per run. A block that reversed these two
-   * would send every reader into a discovery mismatch.
-   */
-  it('starts the tunnel before the server', () => {
-    const commands = buildRunCommands()
-    expect(commands.indexOf('cloudflared')).toBeLessThan(commands.indexOf('leash-agentpay'))
+describe('buildConnectCommand', () => {
+  it('carries the four public values as flags', () => {
+    const command = buildConnectCommand(handoff)
+    expect(command).toContain('--account 0x7aDa926B021BAef4896F51F237bCA61435E43fd2')
+    expect(command).toContain('--token 0xcebA9300f2b948710d2653dD7B07f33A8B32118C')
+    expect(command).toContain('--fee-adapter 0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B')
+    expect(command).toContain('--tag celo_3dec652cd977')
   })
 
-  it('passes LEASH_PUBLIC_URL and the --http flag', () => {
-    expect(buildRunCommands()).toContain('LEASH_PUBLIC_URL=')
-    expect(buildRunCommands()).toContain('--http')
+  /**
+   * The key is prompted for, never a flag: argv is visible in `ps` and lands
+   * in the shell's history file. `connect` refuses --operator-pk outright, so
+   * a block that offered one would be a command that fails.
+   */
+  it('offers no way to put the key on the command line', () => {
+    const command = buildConnectCommand(handoff)
+    expect(command).not.toContain('operator-pk')
+    expect(command).not.toContain(OPERATOR_PK_PLACEHOLDER)
+  })
+
+  it('falls back to the placeholder tag the server refuses on purpose', () => {
+    expect(buildConnectCommand({ ...handoff, attributionTag: '' }))
+      .toContain(`--tag ${ATTRIBUTION_TAG_PLACEHOLDER}`)
   })
 })
 ```
@@ -1941,41 +2536,43 @@ Expected: FAIL — module not found.
 import { displayTag, FEE_ADAPTER, OPERATOR_PK_PLACEHOLDER, type McpHandoff } from './mcpJson.js'
 
 /**
- * The same five values as the .mcp.json block, in the form a self-hosted
- * server reads them.
+ * What goes into a container host's environment UI.
  *
- * claude.ai cannot spawn a process, so the JSON block has no destination
- * there — a web user needs environment and a command line instead. Unquoted
- * on purpose: the documented way to load it is `set -a; source .env; set +a`.
+ * claude.ai cannot spawn a process, so the .mcp.json block has no destination
+ * there. This is the primary path instead: the host issues a stable URL before
+ * the process starts, so there is no tunnel to order, no terminal, and no
+ * laptop that can fall asleep and drop the connector.
  */
-export function buildDotEnv(h: McpHandoff): string {
+export function buildDeployEnv(h: McpHandoff): string {
   return [
     `LEASH_ACCOUNT=${h.account}`,
     `OPERATOR_PK=${OPERATOR_PK_PLACEHOLDER}`,
     `ATTRIBUTION_TAG=${displayTag(h.attributionTag)}`,
     `SPEND_TOKEN=${h.token}`,
     `FEE_ADAPTER=${FEE_ADAPTER}`,
+    '# The URL your host gives this app, with no path.',
+    'LEASH_PUBLIC_URL=https://YOUR-APP.fly.dev',
+    '# On a mounted volume. Without this, every deploy forces you to pair again.',
+    'LEASH_GRANTS_PATH=/data/grants.json',
     '',
   ].join('\n')
 }
 
 /**
- * The tunnel first, then the server.
+ * The local path, as one line to copy.
  *
- * Not a stylistic ordering: `LEASH_PUBLIC_URL` is required at startup and a
- * trycloudflare URL is random per run, so a reader who starts the server
- * first has nothing to give it. Getting this backwards produces a discovery
- * mismatch whose only symptom is "couldn't reach the MCP server".
+ * Every value here is public and safe in shell history. The operator key is
+ * absent on purpose — `connect` prompts for it with echo off, and refuses a
+ * `--operator-pk` flag outright, because argv is readable through `ps` and is
+ * written to the shell's history file.
  */
-export function buildRunCommands(): string {
+export function buildConnectCommand(h: McpHandoff): string {
   return [
-    '# 1. Start the tunnel and copy the https URL it prints',
-    'npx cloudflared tunnel --url http://localhost:8787',
-    '',
-    '# 2. In a second terminal, start Leash with that URL',
-    'set -a; source .env; set +a',
-    'LEASH_PUBLIC_URL=https://YOUR-TUNNEL-URL \\',
-    '  npx -y leash-agentpay --http 8787',
+    'npx -y leash-agentpay connect \\',
+    `  --account ${h.account} \\`,
+    `  --token ${h.token} \\`,
+    `  --fee-adapter ${FEE_ADAPTER} \\`,
+    `  --tag ${displayTag(h.attributionTag)}`,
     '',
   ].join('\n')
 }
@@ -1984,15 +2581,15 @@ export function buildRunCommands(): string {
 - [ ] **Step 4: Run the test**
 
 Run: `cd app && npx vitest run webHandoff`
-Expected: PASS, 6 tests.
+Expected: PASS, 8 tests.
 
 - [ ] **Step 5: Add the tab to `app/components/McpHandoff.tsx`**
 
 Add a two-button switch above the `<pre>`, defaulting to `code`. Keep the
 existing block, copy button, tag field and warning exactly as they are for the
-`code` surface; render the `.env`, the commands and the connector steps for
-`web`. Use the existing `Panel`, `Label`, `Button` and the `.num` class, and
-take colours from tokens (`var(--dim)`, `var(--bad)`, `var(--well)`,
+`code` surface; render the deploy env, the `connect` one-liner and the connector
+steps for `web`. Use the existing `Panel`, `Label`, `Button` and the `.num`
+class, and take colours from tokens (`var(--dim)`, `var(--bad)`, `var(--well)`,
 `var(--line)`) — `docs/design-system.md` is asserted against `globals.css` by
 tests that fail on drift.
 
@@ -2019,24 +2616,54 @@ tests that fail on drift.
         </div>
 ```
 
-For `surface === 'web'`, render `buildDotEnv(...)` and `buildRunCommands()` in
-`<pre className="num …">` blocks matching the existing one, then the steps:
+For `surface === 'web'`, render two sub-sections in this order — deploy first,
+because it is the path with no terminal in it (spec §5.1). Both blocks go in
+`<pre className="num …">` matching the existing one, each with its own copy
+button reusing the existing handler.
 
 ```tsx
-        <ol className="text-sm mt-4 pl-5" style={{ color: 'var(--dim)', listStyle: 'decimal' }}>
-          <li>Save the block above as <code>.env</code>, with your operator key in it.</li>
-          <li>Run the two commands. The tunnel must start first — the server needs its URL.</li>
-          <li>Copy the <strong>pairing code</strong> the server prints to your terminal.</li>
-          <li>In Claude: Settings → Connectors → Add custom connector.</li>
-          <li>Paste <code>https://YOUR-TUNNEL-URL/mcp</code>. Leave Advanced settings empty.</li>
-          <li>Press Connect, then paste the pairing code on the page that opens.</li>
-          <li>Enable the connector in a chat and ask it to check your wallet.</li>
+        <p className="text-sm mt-4" style={{ color: 'var(--dim)' }}>
+          Claude on the web can only be given a <strong>URL</strong>, so the server
+          has to run somewhere reachable. Deploying it is the shorter path and the
+          one that keeps working after you close your laptop.
+        </p>
+
+        <Label className="block mt-5">Deploy it — paste into your host&apos;s environment</Label>
+        {/* buildDeployEnv(...) in a <pre className="num …"> here */}
+        <ol className="text-sm mt-3 pl-5" style={{ color: 'var(--dim)', listStyle: 'decimal' }}>
+          <li>Deploy the <code>deploy/</code> folder from the repo to any container host.</li>
+          <li>Paste the block above into its environment, with your operator key
+            in <code>OPERATOR_PK</code>, and set <code>LEASH_PUBLIC_URL</code> to the
+            URL the host gives you.</li>
+          <li>Mount a volume at <code>/data</code>, or every deploy will make you
+            pair again.</li>
+          <li>Read the <strong>pairing code</strong> out of the host&apos;s logs.</li>
+        </ol>
+
+        <Label className="block mt-5">Or run it on this machine</Label>
+        {/* buildConnectCommand(...) in a <pre className="num …"> here */}
+        <ol className="text-sm mt-3 pl-5" style={{ color: 'var(--dim)', listStyle: 'decimal' }}>
+          <li>Start a tunnel first — <code>npx cloudflared tunnel --url
+            http://localhost:8787</code> — and copy the https URL it prints.</li>
+          <li>Run the command above. It asks for that URL and for your operator key;
+            the key is not echoed and is never written to disk.</li>
+          <li>Read the <strong>pairing code</strong> from your terminal.</li>
         </ol>
         <p className="text-sm mt-3" style={{ color: 'var(--bad)' }}>
-          Your machine has to stay awake and the tunnel has to stay up, or the
-          connector stops answering. A new tunnel URL means removing and re-adding
-          the connector — the URL is part of what the connector authorises.
+          On this path your machine has to stay awake and the tunnel has to stay
+          up, or the connector stops answering. A new tunnel URL means removing
+          and re-adding the connector — the URL is part of what it authorises.
         </p>
+
+        <Label className="block mt-5">Then, in Claude</Label>
+        <ol className="text-sm mt-3 pl-5" style={{ color: 'var(--dim)', listStyle: 'decimal' }}>
+          <li>Settings → Connectors → Add custom connector.</li>
+          <li>Paste <code>&lt;your URL&gt;/mcp</code>. Leave Advanced settings empty.</li>
+          <li>Press Connect, then paste the pairing code on the page that opens.
+            That page is served by your own server, not by this site.</li>
+          <li>Enable the connector in a chat and ask it to check your wallet —
+            <code>leash_status</code> spends nothing.</li>
+        </ol>
 ```
 
 Keep the operator-key warning visible on **both** surfaces; it is the one
@@ -2045,7 +2672,8 @@ sentence that must not be behind a tab.
 - [ ] **Step 6: Run the app suites and typecheck**
 
 Run: `cd app && pnpm test && npx tsc --noEmit`
-Expected: 238 passing (232 existing + 6 new), tsc exit 0.
+Expected: 240 passing (232 existing + 8 new), tsc exit 0. Read the number off
+the output rather than trusting this line.
 
 - [ ] **Step 7: Run the e2e suite, which builds and serves**
 
@@ -2069,15 +2697,32 @@ git commit -m "fix(app): the wizard handed web users a file with nowhere to go"
 
 - [ ] **Step 1: Add a section to `docs/mcp-setup.md`**
 
-After section 2 (the `.mcp.json` block), add **"3. Claude web, or any client that can only take a URL"**, covering: why the JSON block does not apply; the `.env`; the tunnel-then-server ordering and why; the pairing code and that it comes from stderr; the eight connector steps from the spec's §10; that a restart keeps the connection but a new tunnel URL does not; that the free plan allows one connector; and `--anthropic-only` as a recommended hardening with the reason it is not the default.
+After section 2 (the `.mcp.json` block), add **"3. Claude web, or any client that
+can only take a URL"**, with the two paths in the order the spec sets — deploy
+first, local second. Cover: why the JSON block does not apply at all here; the
+`deploy/` folder, the env block and the `/data` volume; the `connect` one-liner
+and that it prompts rather than taking a key as a flag; where the pairing code
+comes from on each path (a log viewer, or stderr); the connector walkthrough from
+spec §10.2; that a restart keeps the connection but a new tunnel URL does not;
+that the free plan allows one connector; and `--anthropic-only` as a recommended
+hardening, with the reason it is not the default.
 
-State plainly that the operator key now sits on a machine reachable from the
-internet through a tunnel, and that the on-chain caps are what bound the loss.
+State plainly, for each path, where the operator key ends up: a platform secret
+store, or a machine reachable from the internet through a tunnel, or memory only.
+And that the on-chain caps are what bound the loss in every case.
 
 - [ ] **Step 2: Add the same to `mcp/README.md`**
 
-Shorter: the `--http` invocation, the pairing code, and a link to the setup
-guide's new section. Keep the existing hot-key warning where it is.
+Shorter: the `connect` one-liner, the `--http` invocation for a host, the
+pairing code, and a link to the setup guide's new section. Keep the existing
+hot-key warning where it is.
+
+- [ ] **Step 2b: Point `docs/quickstart.md` at the new section**
+
+One line at the end saying that a reader using Claude in a browser wants section
+3 of the setup guide instead. **Do not add steps to quickstart itself** — its
+scope deliberately stops at connecting, and it has already been trimmed twice
+for creeping past that.
 
 - [ ] **Step 3: Update `docs/RESUME.md`**
 
@@ -2101,7 +2746,7 @@ twice; do not add a third.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add mcp/README.md docs/mcp-setup.md docs/RESUME.md CLAUDE.md
+git add mcp/README.md docs/mcp-setup.md docs/quickstart.md docs/RESUME.md CLAUDE.md
 git commit -m "docs: the setup guide had no path for a client that can only take a URL"
 ```
 
@@ -2147,10 +2792,23 @@ spends nothing, so a failure here costs no money.
 
 - [ ] **Step 5: Prove the restart claim**
 
-Kill the server, start it again with the **same** `LEASH_PUBLIC_URL`, and call
-`leash_status` again. It must work without re-pairing — that is the whole
-reason the grant file exists. If it asks to reconnect, the refresh path is
-broken and Task 4's persistence test is passing for the wrong reason.
+Kill the server, start it again with the **same** `LEASH_PUBLIC_URL` and the same
+`LEASH_GRANTS_PATH`, and call `leash_status` again. It must work without
+re-pairing — that is the whole reason the grant file exists. If it asks to
+reconnect, the refresh path is broken and Task 4's persistence test is passing
+for the wrong reason.
+
+- [ ] **Step 5b: Do the same on the deployed path**
+
+Deploy with `deploy/`, connect a second connector to `https://<app>/mcp`, call
+`leash_status`, then redeploy and call it again. The redeploy is the case the
+volume exists for: without `/data` mounted the grant file is recreated empty and
+the connector silently needs re-pairing, which is exactly the failure the local
+test cannot see.
+
+Also confirm `/healthz` answers and the platform reports the machine healthy —
+a failing check gets the machine cycled, which drops the connector for reasons
+that look like nothing to do with health checks.
 
 - [ ] **Step 6: Record what happened**
 
@@ -2172,19 +2830,37 @@ git commit -m "docs: claude.ai connected to a self-hosted Leash server on mainne
 
 **Spec coverage.** §1–2 → Tasks 1, 7. §3 (auth constraints) → Tasks 4, 5, 6.
 §3.1 (no new dependency) → Global Constraints, verified by Task 8. §4
-(architecture) → Tasks 1–7. §5 (config) and §5.1 (tunnel ordering) → Task 7,
-and the ordering is asserted in Task 9's `buildRunCommands` test. §6 (consent
-flow) → Tasks 4, 5, 6. §6.1 (stderr, pairing code) → Tasks 4, 7, and asserted
-against the packed bin in Task 8. §6.2 (URL is not a credential) → Task 10's
-docs. §7 (persistence) → Task 3. §8 (nonce, stderr) → Task 2 and Task 8. §9
-(error paths) → Task 6's 401 tests. §10 (wizard artifact) → Task 9. §11
-(testing) → every task. §13 (risks) → Task 11.
+(architecture) → Tasks 1–7. §5 (config) → Task 7. §5.1 (a deployed host is the
+primary path) → Task 8b, and the ordering in the wizard copy in Task 9. §5.2
+(tunnel ordering, local only) → Task 9's copy and Task 10's docs. §5.3
+(`connect`) → Task 7b, whose tests pin that the key cannot be a flag. §6
+(consent flow) → Tasks 4, 5, 6. §6.1 (stderr, pairing code) → Tasks 4, 7, 7b,
+and asserted against the packed bin in Task 8. §6.2 (URL is not a credential) →
+Task 10's docs. §7 (persistence) → Task 3, and its container case — the volume —
+in Task 8b and Task 11 Step 5b. §8 (nonce, stderr) → Task 2 and Task 8. §9
+(error paths) → Task 6's 401 tests. §10 (wizard artifact) → Task 9, with §10.1's
+two sub-sections and §10.2's walkthrough. §11 (testing) → every task. §12
+(deferred `--tunnel` and browser-session pairing) → no task, by design. §13
+(risks) → Task 11.
+
+**One thing the container path added that the spec did not have.** Binding
+`0.0.0.0` gives up the SDK's loopback DNS-rebinding protection, so Task 8b adds
+Host-header validation against `publicUrl.hostname` and a `/healthz` route
+outside every guard. Both are in Task 8b's tests. This is a real gap the deploy
+decision surfaced, not a scope addition: without it the recommended path is the
+least protected one.
 
 **Naming consistency.** `createLeashServer`, `Mutex.run`, `GrantStore.open`,
 `hashToken`, `takeGrant`, `LeashOAuthProvider`, `newPairingCode`,
 `provider.approve`, `renderConsent`, `renderConsentError`, `buildApp`,
-`HttpOptions`, `isAnthropicIp`, `loadHttpConfig`, `HttpArgs`, `buildDotEnv`,
-`buildRunCommands` — each defined once and referenced under that exact name.
+`HttpOptions`, `isAnthropicIp`, `loadHttpConfig`, `HttpArgs`,
+`OPERATOR_PK_SHAPE`, `ATTRIBUTION_TAG_SHAPE`, `parseConnectFlags`, `ConnectFlags`,
+`ask`, `askSecret`, `runConnect`, `buildDeployEnv`, `buildConnectCommand` — each
+defined once and referenced under that exact name.
+
+`buildDotEnv` and `buildRunCommands` appeared in an earlier draft of Task 9 and
+**no longer exist anywhere**: the deploy path replaced the hand-authored `.env`
+and `connect` replaced the two-command block. Do not create them.
 
 **Known ordering dependency.** Task 4 imports `renderConsent` from Task 5. If
 executing strictly in order, create `mcp/src/http/consent.ts` with the real

@@ -159,14 +159,65 @@ elsewhere: the day Anthropic adds a range, every connector breaks silently and
 the user has no way to read the cause off the symptom. Documented and
 recommended, never assumed.
 
-### 5.1 The tunnel ordering constraint
+### 5.1 A deployed host is the primary path, not the tunnel
+
+An earlier draft of this spec documented laptop-plus-tunnel as *the* way to run
+this, and buried a deploy target as an aside. That has it backwards, and the
+symptom was visible in the walkthrough: three terminal commands and two
+copy-pastes wedged into the middle of an otherwise browser-only journey.
+
+The terminal step is not a UX blemish to polish. It is what optimising for the
+wrong host looks like. Anyone running an agent wallet with real money in it
+wants the server always-on; a laptop that sleeps and a quick tunnel whose URL
+changes every run are the properties of a demo, not of a deployment.
+
+So the documented order is:
+
+1. **Deploy it somewhere** (Fly, Railway, Render, any container host). The
+   platform issues a stable URL *before* the process starts, so
+   `LEASH_PUBLIC_URL` is simply that URL — there is no ordering constraint,
+   nothing to copy between terminals, and no terminal at all: the five values
+   and the public URL go into the platform's environment UI, and the pairing
+   code is read out of the platform's log viewer. This path ships as a
+   `Dockerfile` plus one documented deploy config.
+2. **Local with a tunnel** — for trying it out, and for developing on it.
+
+### 5.2 The tunnel ordering constraint, on the local path only
 
 Because `LEASH_PUBLIC_URL` must be known at startup, and a `trycloudflare.com`
 URL is random per run, the tunnel has to be started *before* the server. This is
-inherent, not incidental, and the documentation must lead with it rather than
-let a user discover it from a metadata mismatch. A named tunnel or the user's
-own domain removes the constraint entirely, and is the recommendation for anyone
-running this for more than an afternoon.
+inherent, not incidental, and the local walkthrough must lead with it rather
+than let a user discover it from a metadata mismatch.
+
+### 5.3 `connect`: one line instead of a hand-authored `.env`
+
+On the local path, asking a user to transcribe five variables into a file they
+create by hand is a step where one wrong character produces an error message
+about something else. The wizard therefore emits a single command, and the bin
+grows a `connect` subcommand to accept it:
+
+```
+npx -y leash-agentpay connect \
+  --account 0x… --token 0x… --fee-adapter 0x… --tag celo_…
+```
+
+Those four are public values and are safe in shell history. The operator key is
+**not** a flag: `connect` prompts for it on stdin with echo off, so it never
+reaches argv, `ps`, or the shell's history file. It asks for the public URL the
+same way.
+
+The two paths therefore use the mechanism each is actually suited to, and the
+difference is worth stating in the docs rather than hiding:
+
+| | Where the key lives | Survives a restart |
+|---|---|---|
+| Deployed host, `--http` | The platform's secret store | Yes |
+| Local, `connect` | The process's memory only, never on disk | No — it prompts again |
+| Local, `.env` + `--http` | A file you wrote | Yes |
+
+`connect` not writing a key to disk is a feature, not an omission. Whether a
+private key gets persisted is the user's decision to make deliberately, not a
+side effect of the shortest path through our documentation.
 
 ## 6. The consent flow
 
@@ -250,25 +301,43 @@ alone.
 The wizard's final stage needs two tabs:
 
 - **Claude Code / Desktop** — the `.mcp.json` block as it is today.
-- **Claude web** — the same five values as a `.env`, plus the walkthrough below.
+- **Claude web** — the deployed-host path first, and the local one-liner second.
 
-The walkthrough, which belongs in both the wizard tab and `docs/mcp-setup.md`:
+### 10.1 What the Claude web tab shows
 
-1. Save the five values as `.env`.
-2. `npx cloudflared tunnel --url http://localhost:8787` — read the URL it prints.
-3. `set -a; source .env; set +a`, then
-   `LEASH_PUBLIC_URL=<that URL> npx -y leash-agentpay --http 8787`.
-4. Read the pairing code off stderr.
-5. claude.ai → Settings → Connectors → Add custom connector.
-6. Paste `<that URL>/mcp`. **Leave Advanced settings empty** — `/register`
+**Deploy it (recommended).** The five values to paste into the host's
+environment UI, plus `LEASH_PUBLIC_URL` set to the URL that host gives out.
+Nothing here is a terminal command.
+
+**Or run it locally.** The single `connect` line from §5.3, with the four public
+values already substituted, ready to copy:
+
+```
+npx -y leash-agentpay connect --account 0x… --token 0x… --fee-adapter 0x… --tag celo_…
+```
+
+It prompts for the operator key and the public URL, so neither appears in the
+block the wizard renders — which also means the wizard still never displays a
+key, exactly as the `.mcp.json` tab never does.
+
+### 10.2 The connector walkthrough
+
+Common to both, and belonging in `docs/mcp-setup.md` too:
+
+1. Start the server by whichever path above, and read the **pairing code** — off
+   stderr locally, or out of the host's log viewer.
+2. claude.ai → Settings → Connectors → Add custom connector.
+3. Paste `<your URL>/mcp`. **Leave Advanced settings empty** — `/register`
    handles client registration, so there is no client ID or secret to supply.
-7. Connect, then paste the pairing code on the consent page. That page is served
-   by the user's own machine, which is worth saying out loud on it.
-8. Enable the connector in a chat; `leash_status` is the cheapest thing to call
+4. Connect, then paste the pairing code on the consent page. That page is served
+   by the machine running the server, which is worth saying out loud on it.
+5. Enable the connector in a chat; `leash_status` is the cheapest thing to call
    first, because it spends nothing.
 
-Step 2 before step 3 is the ordering constraint from §5.1, and the free plan
-allows only one connector — both belong in the copy, not in a footnote.
+On the local path only, the tunnel must be running before the server starts
+(§5.2), and a new tunnel URL means removing and re-adding the connector, because
+the URL is part of the resource identity. The free plan allows one connector.
+All of that belongs in the copy, not in a footnote.
 
 This is copy, not logic, and it is cheap. It is also load-bearing: without it B
 ships and nobody finds the door.
@@ -279,7 +348,8 @@ ships and nobody finds the door.
 |---|---|
 | `provider.test.ts` | Wrong pairing code refused; code single-use; expiry refused; PKCE challenge returned matches what was stored; refresh rotates and the old refresh dies; unknown or expired access token refused |
 | `grants.test.ts` | File written `0600`; reload restores grants; a corrupt file throws instead of starting empty |
-| `app.test.ts` | `POST /mcp` with no token → 401 carrying `resource_metadata`; well-known documents carry a `resource` matching `LEASH_PUBLIC_URL` character for character |
+| `app.test.ts` | `POST /mcp` with no token → 401 carrying `resource_metadata`; well-known documents carry a `resource` matching the resource server URL character for character; a wrong `Host` → 421, and `/healthz` answers outside every guard |
+| `connect.test.ts` | `--operator-pk` refused as a flag; a missing or malformed flag named; a tag the server would refuse rejected one layer earlier; the secret prompt does not echo, and says which path to use when there is no TTY |
 | `parity.test.ts` | The tool list is identical across both transports |
 | `mutex.test.ts` | Two concurrent pays serialise |
 | `bundle.test.ts` | Extended: `--http` starts and serves `/.well-known/oauth-authorization-server` |
@@ -296,6 +366,27 @@ work.
 CIMD; `static_headers`; the IP guard on by default; the hosted Vercel route;
 multi-tenancy; per-user operator keys; KMS.
 
+Two UX improvements were designed and **deliberately deferred**, so that the
+next person to look at this does not mistake their absence for an oversight:
+
+- **`--tunnel`, where the server spawns cloudflared and reads its own public URL
+  back.** It would delete the ordering constraint and the second terminal
+  outright. Deferred on two grounds: scraping a URL out of another program's
+  stderr is brittle, and a tool that holds a private key downloading and
+  executing a third-party binary is a trade that needs a deliberate decision,
+  not a convenience default. If it is ever built, it must be opt-in and must use
+  a `cloudflared` already on `PATH`.
+- **Browser-session pairing instead of typing the code.** The CLI opens
+  `<public-url>/pair?t=<one-time>` in the local browser, which sets an HttpOnly
+  cookie on the same origin the consent page is served from; the consent page
+  then shows a single Authorise button. This is arguably *better* security than
+  a typed code — possession of a browser session on the host machine is exactly
+  the principal we mean to authenticate — but it puts a one-time token in a URL,
+  which §3 rejects elsewhere. It is defensible here (local to local, single-use,
+  short TTL) and that argument deserves its own review rather than being smuggled
+  in under a deadline. The typed code stays as the fallback for headless hosts in
+  any case.
+
 ## 13. Risks
 
 The code is the smaller half. The larger half is the **first real connection**:
@@ -306,7 +397,10 @@ traffic at all, because no `WWW-Authenticate` pointer was returned and the
 well-known paths 404. Budget a session for it rather than assuming a clean first
 run.
 
-Self-hosting's own limits are inherent and must be documented, not engineered
+The local path's limits are inherent and must be documented, not engineered
 around: the machine has to stay awake, the tunnel has to stay up, and a new
 tunnel URL means removing and re-adding the connector, because the URL is part
-of the resource identity.
+of the resource identity. Every one of those disappears on the deployed path,
+which is why §5.1 makes that the primary one — the right response to this class
+of friction was to change which host we document first, not to add machinery
+that hides it.
