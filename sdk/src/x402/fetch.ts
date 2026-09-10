@@ -1,6 +1,29 @@
 import type { Account } from 'viem'
-import { parseChallenge, selectTerms, type X402Terms } from './challenge.js'
+import { parseChallenge, parseChallengeV2, selectTerms, type X402Terms } from './challenge.js'
 import { buildAuthorization, signPayment } from './payment.js'
+import { X402ChallengeError } from './challenge.js'
+
+/**
+ * The wire names, per version.
+ *
+ * v2 did not extend v1's headers, it replaced them: `X-PAYMENT` became
+ * `PAYMENT-SIGNATURE` and `X-PAYMENT-RESPONSE` became `PAYMENT-RESPONSE`.
+ * Sending the wrong pair is not a soft failure — the gateway sees no payment
+ * at all and answers 402 again, after the authorization has been signed.
+ */
+const HEADERS = {
+  v1: { payment: 'X-PAYMENT', settlement: 'x-payment-response' },
+  v2: { challenge: 'PAYMENT-REQUIRED', payment: 'PAYMENT-SIGNATURE', settlement: 'PAYMENT-RESPONSE' },
+} as const
+
+/** Decodes a base64 header, blaming the header rather than leaking a SyntaxError. */
+function decodeHeader(value: string, name: string): unknown {
+  try {
+    return JSON.parse(Buffer.from(value, 'base64').toString())
+  } catch {
+    throw new X402ChallengeError('malformed_challenge', `the ${name} header is not base64 JSON`)
+  }
+}
 
 export type X402Quote = { terms: X402Terms; x402Version: number }
 
@@ -63,7 +86,13 @@ export async function quote(args: {
       { mayHaveSettled: false, status: res.status },
     )
   }
-  const challenge = parseChallenge(await res.json())
+  // v2 moved the challenge out of the body and into a header, leaving the body
+  // `{}`. Reading the body first therefore reports every v2 gateway as
+  // `malformed_challenge` — which is exactly what agent402.tools did.
+  const encoded = res.headers.get(HEADERS.v2.challenge)
+  const challenge = encoded
+    ? parseChallengeV2(decodeHeader(encoded, HEADERS.v2.challenge))
+    : parseChallenge(await res.json())
   return { terms: selectTerms(challenge, args.preferAsset), x402Version: challenge.x402Version }
 }
 
@@ -91,14 +120,16 @@ export async function payAndFetch(args: {
     x402Version: args.quote.x402Version,
   })
 
+  const wire = args.quote.x402Version >= 2 ? HEADERS.v2 : HEADERS.v1
+
   const res = await f(args.url, {
     method: args.method ?? 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-PAYMENT': header },
+    headers: { 'Content-Type': 'application/json', [wire.payment]: header },
     body: args.body,
   })
 
   let settlement: X402Settlement | undefined
-  const encoded = res.headers.get('x-payment-response')
+  const encoded = res.headers.get(wire.settlement)
   if (encoded) {
     try {
       settlement = JSON.parse(Buffer.from(encoded, 'base64').toString())

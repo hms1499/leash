@@ -80,19 +80,25 @@ export async function signPayment(args: {
     message: authorization,
   })
 
-  const payment = {
-    x402Version,
-    scheme: terms.scheme,
-    network: terms.network,
-    payload: {
-      signature,
-      authorization: Object.fromEntries(
-        Object.entries(authorization).map(([k, v]) => [
-          k,
-          typeof v === 'bigint' ? v.toString() : v,
-        ]),
-      ),
-    },
+  const payload = {
+    signature,
+    authorization: Object.fromEntries(
+      Object.entries(authorization).map(([k, v]) => [
+        k,
+        typeof v === 'bigint' ? v.toString() : v,
+      ]),
+    ),
   }
+
+  // Only the envelope changed between versions. v1 restates the scheme and
+  // network as two loose fields; v2 echoes the chosen entry whole as `accepted`
+  // alongside the `resource` block, so the facilitator verifies against exactly
+  // what it offered rather than against a copy we retyped. The signature inside
+  // is byte-identical either way.
+  const payment =
+    x402Version >= 2
+      ? { x402Version, resource: terms.resourceInfo, accepted: terms.raw, payload }
+      : { x402Version, scheme: terms.scheme, network: terms.network, payload }
+
   return Buffer.from(JSON.stringify(payment)).toString('base64')
 }
