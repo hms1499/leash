@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { meterState, spendBand } from '../lib/meter.js'
+import { bandSentence, meterState, spendBand } from '../lib/meter.js'
 
 const base = {
   daily: 1_000_000n, remaining: 1_000_000n,
@@ -187,5 +187,32 @@ describe('spendBand and the payee allowlist', () => {
       expect(spendBand({ ...band, allowlistEnabled: enabled, balance: 0n })).toEqual({ kind: 'unfunded' })
       expect(spendBand({ ...band, allowlistEnabled: enabled, remaining: 0n })).toEqual({ kind: 'exhausted' })
     }
+  })
+})
+
+/**
+ * The four §5 state-vocabulary strings, held to the word. The point of a
+ * state vocabulary is that it is not reworded, and until 2026-09-10 nothing
+ * asserted it -- the strings lived in a ternary inside Meter.tsx, which this
+ * project cannot test at all (vitest runs in node; spec §2.2 forbids adding a
+ * component-testing dependency).
+ *
+ * `ceiling` has no case here because it has none in the function: its figure
+ * and its clause are announced from the markup that already carries them.
+ */
+describe('bandSentence', () => {
+  it('states the §5 vocabulary unchanged', () => {
+    expect(bandSentence({ kind: 'loading' }, 'USDC')).toBe('Reading the chain…')
+    expect(bandSentence({ kind: 'paused' }, 'USDC'))
+      .toBe('Paused by the owner — every spend is refused')
+    expect(bandSentence({ kind: 'unfunded' }, 'USDC'))
+      .toBe('This account holds no USDC — every spend will fail')
+    expect(bandSentence({ kind: 'exhausted' }, 'USDC'))
+      .toBe('The allowance is spent — resets at UTC midnight')
+  })
+
+  it('carries the symbol it was given rather than assuming USDC', () => {
+    expect(bandSentence({ kind: 'unfunded' }, 'cUSD'))
+      .toBe('This account holds no cUSD — every spend will fail')
   })
 })

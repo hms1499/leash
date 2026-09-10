@@ -12,17 +12,23 @@ export const LABEL_STYLE: React.CSSProperties = {
   color: 'var(--dim)',
 }
 
+/**
+ * The remaining span attributes pass through. A label is a span with four
+ * fixed values, and a closed prop list meant a caller that needed one ARIA
+ * attribute -- Meter states its band in a label, and that band has to
+ * announce itself -- had to abandon the primitive and hand-write the look.
+ * That is how LABEL_STYLE came to be exported in the first place.
+ */
 export default function Label({
-  className = '', style, children,
+  className = '', style, children, ...rest
 }: {
-  className?: string
   /** Merged last, so a caller can recolour a label -- an error label is
    *  --bad -- without restating what makes it a label. */
   style?: React.CSSProperties
   children: React.ReactNode
-}) {
+} & Omit<React.HTMLAttributes<HTMLSpanElement>, 'style' | 'children'>) {
   return (
-    <span className={className} style={{ ...LABEL_STYLE, ...style }}>
+    <span className={className} style={{ ...LABEL_STYLE, ...style }} {...rest}>
       {children}
     </span>
   )

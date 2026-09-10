@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { formatDisplayAmount } from '../lib/policy.js'
-import { meterState, spendBand } from '../lib/meter.js'
+import { bandSentence, meterState, spendBand } from '../lib/meter.js'
 import Label from './ui/Label'
 import Stat from './ui/Stat'
 import { PROSE } from './ui/prose'
@@ -91,7 +91,13 @@ export default function Meter({
           the only figure that is always true, because it is the minimum of
           all three. docs/design-system.md §7. */}
       {band.kind === 'ceiling' && (
-        <div className="mb-3">
+        // The block announces itself. This figure is the one design-system §7
+        // calls "the number that moves on camera when the agent spends", and
+        // it sat in a static <Stat>: an owner listening to the dashboard heard
+        // nothing change. `aria-atomic` so the label, the figure and the
+        // clause are read as one phrase -- a number announced alone does not
+        // say which number it is.
+        <div className="mb-3" role="status" aria-atomic="true">
           <Stat
             label="Maximum next direct payment"
             value={`${formatDisplayAmount(band.amount, decimals)} ${symbol}`}
@@ -149,24 +155,23 @@ export default function Meter({
         />
       </svg>
 
-      {/* Which sentence this is, is decided in lib/meter.ts so it can be
-          tested; only the wording lives here. These four are the state
-          vocabulary of design-system §5 and are not to be reworded. The fifth,
-          `ceiling`, is the figure above the track. */}
+      {/* Both the sentence and the choice of sentence are decided in
+          lib/meter.ts, so the words a reader sees and the words a screen
+          reader hears cannot drift apart. The fifth band, `ceiling`, is the
+          figure above the track. */}
       {band.kind !== 'ceiling' && (
         <Label
           className="block mt-2"
+          // Its sibling above, for the four bands that replace the figure
+          // rather than accompany it. The two are mutually exclusive, so they
+          // never compete for the reader's ear.
+          role="status"
+          aria-atomic="true"
           style={{
             color: locked || band.kind === 'unfunded' ? 'var(--bad)' : 'var(--dim)',
           }}
         >
-          {band.kind === 'loading'
-            ? 'Reading the chain…'
-            : band.kind === 'paused'
-              ? 'Paused by the owner — every spend is refused'
-              : band.kind === 'unfunded'
-                ? `This account holds no ${symbol} — every spend will fail`
-                : 'The allowance is spent — resets at UTC midnight'}
+          {bandSentence(band, symbol)}
         </Label>
       )}
 

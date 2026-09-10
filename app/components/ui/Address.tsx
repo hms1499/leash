@@ -55,20 +55,43 @@ export default function Address({
             })()
           }}
         >
-          {state === 'copied'
-            ? 'Copied'
-            : state === 'failed'
-              ? 'Copy failed — select it manually'
-              : shown}
+          {/* The address stays on screen and the outcome is spoken beside it.
+              Swapping the label for the outcome was two defects in one: a
+              screen reader was told nothing, because the accessible name is
+              the aria-label above and it never changed; and "Copy failed —
+              select it manually" is six times the width of a truncated
+              address, so the row reflowed -- the exact thing `.num` and
+              tabular figures exist to prevent (CLAUDE.md). It reflowed while
+              telling the reader to go and select the text by hand. */}
+          {shown}
         </button>
       )
     : <span className={className} style={style}>{shown}</span>
 
-  if (!explorer) return text
+  // One region for both outcomes rather than a live region per state: they are
+  // mutually exclusive and would otherwise compete. `aria-atomic` so the whole
+  // phrase is read, not the word that changed.
+  const outcome = (
+    <span
+      role="status"
+      aria-atomic="true"
+      className={state === 'idle' ? 'sr-only' : 'ml-2'}
+      style={state === 'idle' ? undefined : { color: state === 'copied' ? 'var(--ok)' : 'var(--bad)' }}
+    >
+      {state === 'copied'
+        ? 'Address copied'
+        : state === 'failed'
+          ? 'Copy failed — select the address and copy it by hand'
+          : ''}
+    </span>
+  )
+
+  if (!explorer) return <span className="inline">{text}{copy && outcome}</span>
 
   return (
     <span className="inline-flex items-center gap-2">
       {text}
+      {copy && outcome}
       {/* The glyph is the whole link (design-system §2), which left a target
           about ten pixels wide. This one is fixed-width and never wraps, so it
           takes a real 44x44 box rather than the vertical-only extension the

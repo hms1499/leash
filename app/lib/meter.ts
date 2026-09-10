@@ -113,3 +113,34 @@ export function spendBand({
     restrictedToApprovedPayees: allowlistEnabled,
   }
 }
+
+/**
+ * What a band says. The four §5 state-vocabulary strings, and only those.
+ *
+ * They lived in Meter.tsx as a nested ternary, which was fine while the only
+ * reader was a pair of eyes. They are here so a test can hold them to the
+ * word: the point of a state vocabulary is that it is not reworded, and
+ * nothing asserted that until now.
+ *
+ * `ceiling` is deliberately not a case. Its figure and its clause are two
+ * elements in the layout and announcing them meant either duplicating the
+ * page's dominant number into a second hidden copy -- which reads twice to
+ * anyone browsing, and broke three e2e locators by existing -- or composing a
+ * sentence that could drift from the one on screen. The block announces
+ * itself instead, through aria-atomic on the markup that is already there.
+ */
+export function bandSentence(
+  band: Exclude<SpendBand, { kind: 'ceiling' }>,
+  symbol: string,
+): string {
+  switch (band.kind) {
+    case 'loading':
+      return 'Reading the chain…'
+    case 'paused':
+      return 'Paused by the owner — every spend is refused'
+    case 'unfunded':
+      return `This account holds no ${symbol} — every spend will fail`
+    case 'exhausted':
+      return 'The allowance is spent — resets at UTC midnight'
+  }
+}
