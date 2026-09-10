@@ -178,13 +178,51 @@ export default function LimitsDrawer({
     }
   }
 
+  /**
+   * Closing throws away whatever is in the two fields. `dirty` already
+   * existed -- it stops the chain overwriting a value mid-edit -- and was
+   * never consulted here, so a half-typed daily limit vanished on a click
+   * with nothing said. On the form that decides how much an agent may spend,
+   * that is the wrong thing to do quietly.
+   */
+  function close() {
+    // The browser's own dialog, not a modal of ours. design-system §6 lists
+    // six primitives and says a screen needing a seventh has found a new
+    // primitive, not a one-off -- and one confirm does not justify inventing
+    // the app's first modal, its focus trap and its scrim.
+    if (dirty && !window.confirm('Discard the unsaved spending limits?')) return
+    setDirty(false)
+    setError(null)
+    disarmRemove()
+    setOpen(false)
+  }
+
+  /**
+   * Escape closes it. This is a disclosure rather than a modal -- it does not
+   * cover the page and does not trap focus -- but it is a panel that opened,
+   * and a reader who opened one expects Escape to be the way back out.
+   */
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event: KeyboardEvent) => {
+      // The arming hook owns Escape while a destructive control is armed:
+      // cancelling that is the nearer of the two undos, and closing the panel
+      // out from under the warning would be the wrong one.
+      if (event.key === 'Escape' && !removeArmed) close()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+    // `close` is rebuilt every render, so it cannot be a dependency; these
+    // three are everything it reads that changes.
+  }, [open, removeArmed, dirty])
+
   return (
     <>
       <Button
         variant="ghost"
         aria-expanded={open}
         aria-controls="protection-editor"
-        onClick={() => setOpen(!open)}
+        onClick={() => (open ? close() : setOpen(true))}
       >
         {open ? 'Close protection editor' : 'Edit protection'}
       </Button>

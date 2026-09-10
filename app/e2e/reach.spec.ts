@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * Measured on a phone, because that is where the answer differs. MiniPay runs
+ * The reach-and-read checks: how big a control is under a thumb, and where
+ * focus is when the page changes under a reader.
+ *
+ * Measured on a phone, because that is where the first answer differs. MiniPay runs
  * this on one (spec §2.1), and controls set at --t-data (13px) with px-4 py-2
  * came out ~36px tall -- over WCAG 2.2's 24 CSS px floor and under the 44pt
  * iOS asks for. `Address` was worse: its copy button and its Celoscan `↗` had
@@ -79,4 +82,27 @@ test('the enlarged targets did not widen the page on a phone', async ({ page }) 
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
       .toBeLessThanOrEqual(PHONE.width)
   }
+})
+
+/**
+ * Every panel below the stepper is replaced wholesale on a step change, and
+ * focus stayed on the button that caused it. A screen reader was told nothing
+ * about a screen that had entirely changed.
+ */
+test('the wizard step heading can take focus, and does not take it on load', async ({ page }) => {
+  await page.goto('/setup')
+  const first = page.getByRole('heading', { name: 'Create your protected account' })
+  await expect(first).toBeVisible()
+
+  // Focus is not stolen on load: the reader is wherever they meant to be.
+  await expect(first).not.toBeFocused()
+
+  // Step 2 is locked until an account exists, so the reachable change is the
+  // one the wizard makes on its own. Driving it through the stepper needs a
+  // wallet; asserting the contract that the heading can hold focus is what is
+  // testable with none, and it is the half that was missing.
+  await expect(first).toHaveAttribute('tabindex', '-1')
+  await expect(first).toHaveAttribute('id', 'stage-heading')
+  await first.focus()
+  await expect(first).toBeFocused()
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAccount, useDeployContract, useWriteContract } from 'wagmi'
 import ConnectButton from '../../components/ConnectButton'
 import McpHandoff from '../../components/McpHandoff'
@@ -62,6 +62,13 @@ const SETUP_ABI = [
   { type: 'function', name: 'allowlistEnabled', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
 ] as const
 
+/**
+ * Where focus lands when the wizard changes step. Every stage carries it on
+ * the one element that says what this step is -- its heading, or on the
+ * recovery branch that has no heading, the sentence explaining why.
+ */
+const STAGE_HEADING_ID = 'stage-heading'
+
 const STEPS: ReadonlyArray<{ id: SetupStage; title: string; short: string }> = [
   { id: 1, title: 'Create account', short: 'Create' },
   { id: 2, title: 'Set protection', short: 'Protect' },
@@ -98,6 +105,35 @@ export default function Onboard() {
   const { writeContractAsync } = useWriteContract()
 
   const [activeStage, setActiveStage] = useState<SetupStage>(1)
+  /**
+   * Which stage the previous render showed. `null` on the first one, because
+   * a page that grabs focus as it loads has taken it from wherever the reader
+   * actually was -- the address bar, or the top of the document they meant to
+   * read from the start.
+   */
+  const shownStage = useRef<SetupStage | null>(null)
+
+  /**
+   * Move focus to the new step's heading when the step changes.
+   *
+   * Every panel below the stepper is replaced wholesale on a step change and
+   * focus stayed on the button that caused it, so a screen reader was told
+   * nothing about a screen that had entirely changed -- and a keyboard user
+   * carried on tabbing from the stepper through four buttons to reach content
+   * that was already in front of them. This also fires on the automatic
+   * resets: a disconnected wallet drops the wizard to step 1, and that is a
+   * change the reader did not ask for and most needs to hear about.
+   */
+  useEffect(() => {
+    if (shownStage.current === null) { shownStage.current = activeStage; return }
+    if (shownStage.current === activeStage) return
+    shownStage.current = activeStage
+    // The panel for the new stage mounts in the same commit, so the element
+    // is there by the time an effect runs. If a branch renders without one --
+    // the loading shape of a stage -- doing nothing is right: leaving focus
+    // where it is beats throwing it to the document body.
+    document.getElementById(STAGE_HEADING_ID)?.focus()
+  }, [activeStage])
   const [account, setAccount] = useState<`0x${string}` | null>(null)
   const [deploying, setDeploying] = useState(false)
   const [restoring, setRestoring] = useState(false)
@@ -651,7 +687,7 @@ export default function Onboard() {
       {activeStage === 1 && (
         <Panel as="section" className="p-6 mt-6">
           <Label className="block">Step 1 of 4</Label>
-          <h2 className="mt-2" style={HEADING}>Create your protected account</h2>
+          <h2 id={STAGE_HEADING_ID} tabIndex={-1} className="mt-2" style={HEADING}>Create your protected account</h2>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             This account holds the agent&apos;s budget. You remain its owner and control every protection setting.
           </p>
@@ -720,7 +756,7 @@ export default function Onboard() {
       {activeStage === 2 && account && (
         <Panel as="section" className="p-6 mt-6">
           <Label className="block">Step 2 of 4</Label>
-          <h2 className="mt-2" style={HEADING}>Set protection</h2>
+          <h2 id={STAGE_HEADING_ID} tabIndex={-1} className="mt-2" style={HEADING}>Set protection</h2>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             These limits are enforced by the account on Celo, even if the agent&apos;s prompt or code fails.
           </p>
@@ -813,7 +849,7 @@ export default function Onboard() {
       {activeStage === 3 && account && (
         <Panel as="section" className="p-6 mt-6">
           <Label className="block">Step 3 of 4</Label>
-          <h2 className="mt-2" style={HEADING}>Add & fund your agent</h2>
+          <h2 id={STAGE_HEADING_ID} tabIndex={-1} className="mt-2" style={HEADING}>Add & fund your agent</h2>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             Authorize a separate agent wallet, then fund the two balances it needs to operate.
           </p>
@@ -947,7 +983,7 @@ export default function Onboard() {
           above; this makes the shape non-fatal. */}
       {activeStage === 4 && !(account && readiness.ready && confirmedLimits) && (
         <Panel as="section" className="p-6 mt-6">
-          <p className="text-sm" style={{ color: 'var(--bad)' }}>
+          <p id={STAGE_HEADING_ID} tabIndex={-1} className="text-sm" style={{ color: 'var(--bad)' }}>
             This account&apos;s setup could not be summarised. Go back a step to
             check its limits, agent and balances.
           </p>
@@ -960,7 +996,7 @@ export default function Onboard() {
       {activeStage === 4 && account && readiness.ready && confirmedLimits && (
         <Panel as="section" className="p-6 mt-6">
           <Label className="block">Step 4 of 4</Label>
-          <h2 className="mt-2" style={HEADING}>Your agent account is ready</h2>
+          <h2 id={STAGE_HEADING_ID} tabIndex={-1} className="mt-2" style={HEADING}>Your agent account is ready</h2>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             The on-chain protections, agent permission and both operating balances have been verified.
           </p>
