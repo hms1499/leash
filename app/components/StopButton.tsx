@@ -98,7 +98,7 @@ export default function StopButton({
         <Button
           variant="stop"
           disabled={busy}
-          onClick={() => (armed ? void send(true) : arm())}
+          onClick={() => (armed ? void send(true) : arm(true))}
         >
           {busy ? 'Stopping…' : armed ? 'Confirm stop' : '■ Stop'}
         </Button>

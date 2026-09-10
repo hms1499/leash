@@ -28,9 +28,15 @@ export const ARM_TIMEOUT_MS = 8000
  * three presses and explained none of it. On `■ Stop` — the control an owner
  * reaches for when something is going wrong — a click on empty space did the
  * same thing.
+ *
+ * `armed` holds what is armed rather than whether anything is, because one of
+ * the three callers has a row of them: AgentAccessPanel arms a single operator
+ * out of a list, and arming a second has to disarm the first. A boolean there
+ * would leave two buttons both reading "Confirm revoke" while only one of them
+ * meant it.
  */
-export function useArming() {
-  const [armed, setArmed] = useState(false)
+export function useArming<T = true>() {
+  const [armed, setArmed] = useState<T | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const clear = useCallback(() => {
@@ -40,19 +46,21 @@ export function useArming() {
     }
   }, [])
 
-  const disarm = useCallback(() => { clear(); setArmed(false) }, [clear])
+  const disarm = useCallback(() => { clear(); setArmed(null) }, [clear])
 
-  const arm = useCallback(() => {
+  // Arming a second target disarms the first: `clear` cancels the running
+  // timer, so the new one is not cut short by the old one's deadline.
+  const arm = useCallback((target: T) => {
     clear()
-    setArmed(true)
-    timer.current = setTimeout(() => { timer.current = null; setArmed(false) }, ARM_TIMEOUT_MS)
+    setArmed(target)
+    timer.current = setTimeout(() => { timer.current = null; setArmed(null) }, ARM_TIMEOUT_MS)
   }, [clear])
 
   // Escape is bound to the document, not to the control. The whole point of
   // this hook is that focus is free to leave the button; a handler bound to
   // the button would be deaf at exactly the moment it is needed.
   useEffect(() => {
-    if (!armed) return
+    if (armed === null) return
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') disarm() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)

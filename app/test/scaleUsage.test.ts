@@ -64,7 +64,9 @@ const RAW_TYPE_DEBT: Record<string, number> = {
 }
 
 const OFF_SCALE_GAP_DEBT: Record<string, number> = {
-  'app/setup/page.tsx': 44,
+  // 44 on 2026-09-10. One `mt-5` left when the two competing alert regions
+  // below the stepper became one `mt-6`.
+  'app/setup/page.tsx': 43,
   'components/AccountsPage.tsx': 3,
   'components/AgentAccessPanel.tsx': 3,
   'components/AgentPanel.tsx': 3,

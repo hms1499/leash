@@ -321,7 +321,7 @@ export default function LimitsDrawer({
                           onClick={() => (
                             !allowlistEnabled || removeArmed
                               ? void setPayeeAccess(false)
-                              : armRemove()
+                              : armRemove(true)
                           )}
                         >
                           {recipientBusy ? 'Removing…' : removeArmed ? 'Confirm removal' : 'Remove address'}

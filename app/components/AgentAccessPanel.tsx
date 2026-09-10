@@ -5,6 +5,7 @@ import { useAccount, useWriteContract } from 'wagmi'
 import { isValidAddress } from '../lib/address.js'
 import { publicClient, REQUIRED_CHAIN_ID, SET_OPERATOR_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
+import { useArming } from '../lib/arming.js'
 import { readLocal, removeLocal, writeLocal } from '../lib/browserStorage.js'
 import Address from './ui/Address'
 import Button from './ui/Button'
@@ -41,7 +42,10 @@ export default function AgentAccessPanel({
   const [busy, setBusy] = useState(false)
   // Which row is armed, by address: one shared boolean would arm every
   // Revoke button at once on a multi-operator account.
-  const [arming, setArming] = useState<string | null>(null)
+  // The third caller of the same two-beat confirm, and the one that made the
+  // hook hold a target rather than a flag: this arms one operator out of a
+  // row of them.
+  const { armed: arming, arm: armRevoke, disarm: disarmRevoke } = useArming<string>()
   const [note, setNote] = useState<string | null>(null)
   const { address: connected, chainId } = useAccount()
   const { writeContractAsync } = useWriteContract()
@@ -120,7 +124,7 @@ export default function AgentAccessPanel({
       setNote('The transaction was not sent.')
     } finally {
       setBusy(false)
-      setArming(null)
+      disarmRevoke()
     }
   }
 
@@ -155,9 +159,8 @@ export default function AgentAccessPanel({
                   <Button
                     variant="stop"
                     disabled={busy}
-                    onBlur={() => setArming(null)}
                     onClick={() => (
-                      arming === op ? void revokeAccess(op) : setArming(op)
+                      arming === op ? void revokeAccess(op) : armRevoke(op)
                     )}
                   >
                     {busy && arming === op

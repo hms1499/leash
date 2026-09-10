@@ -681,8 +681,20 @@ export default function Onboard() {
         </ol>
       </nav>
 
-      {error && <p role="alert" className="mt-5 text-sm" style={{ color: 'var(--bad)' }}>{error}</p>}
-      {restoreNote && <p role="alert" className="mt-5 text-sm" style={{ color: 'var(--bad)' }}>{restoreNote}</p>}
+      {/* One region, not two. Both were assertive and adjacent, so a failed
+          read and a failed write landing together interrupted each other and
+          a reader heard a fragment of each. They say different things --
+          §5's "Read failed" and its wallet-rejection line -- and both are
+          worth hearing whole. `mt-6` because this is a block between blocks
+          (§3); the two `mt-5` it replaces were off the scale. */}
+      {(error || restoreNote) && (
+        <div role="alert" className="mt-6">
+          {error && <p className="text-sm" style={{ color: 'var(--bad)' }}>{error}</p>}
+          {restoreNote && (
+            <p className="text-sm mt-3" style={{ color: 'var(--bad)' }}>{restoreNote}</p>
+          )}
+        </div>
+      )}
 
       {activeStage === 1 && (
         <Panel as="section" className="p-6 mt-6">
