@@ -50,6 +50,10 @@ Deploy your own account first — see the setup guide. **Do not point
 | `FEE_ADAPTER` | Which stablecoin pays gas. The value above is the USDC adapter, so the agent needs **no CELO at all**. |
 | `CELO_RPC_URL` | Optional. Defaults to `https://forno.celo.org`. |
 
+`npx` caches by package spec, so a bare `leash-agentpay` can keep starting a copy
+you already have long after a newer one is published. Pin the version you mean —
+`leash-agentpay@0.3.1` — when it matters which build is running.
+
 The server holds no keys of its own and adds no logic. It reads the chain and
 signs with the operator key you give it.
 
@@ -71,7 +75,11 @@ compromised-in-waiting and give it nothing to lose:
 |---|---|
 | `leash_status` | Remaining daily allowance, both caps, balances, and when the allowance resets. Tell your agent to call this before spending. |
 | `leash_pay` | Pay a Celo address. Per-transaction cap, daily cap and the payee allowlist all apply. |
-| `leash_fetch` | Call an x402-gated URL and pay for it. `quote_only: true` returns the price without paying. |
+| `leash_fetch` | Call an x402-gated URL and pay for it. Speaks x402 **v1 and v2**, so gateways that put the challenge in the `PAYMENT-REQUIRED` header are reachable too. `quote_only: true` returns the price without paying. |
+
+A v2 gateway advertises every chain it takes in one challenge — a dozen or more,
+most of which your wallet cannot pay on. The client selects the terms matching
+`SPEND_TOKEN` and ignores the rest, rather than letting the gateway pick.
 
 Every refusal comes back as JSON an agent can act on, never as a revert hex —
 an agent routes around the first and stalls on the second:
@@ -103,11 +111,21 @@ work around.
 counts days as `block.timestamp / 1 days`.
 
 **`leash_fetch` gives a weaker guarantee than `leash_pay`.** x402 requires the
-agent to sign for itself, so funds must first move to the operator wallet via
-`topUpOperator`. The per-transaction and daily caps apply to that draw, but the
-**payee allowlist cannot** — once money leaves the contract, the contract cannot
-police where it goes. The guarantee for x402 is therefore *"the agent can never
-reach more than X per day"*, not *"the agent can only ever pay these people"*.
+agent to sign for itself, so any shortfall must first move to the operator
+wallet via `topUpOperator`. The per-transaction and daily caps apply to that
+draw, but the **payee allowlist cannot** — once money leaves the contract, the
+contract cannot police where it goes.
+
+**A purchase the operator can already afford skips the draw entirely**, and then
+no cap is consulted at all: `drawn_from_account` comes back `0.000000` and
+`spent_today` does not move. This is the hot-key warning above, restated as a
+number — whatever float sits in the operator wallet is exactly what your agent
+can spend on x402 without the contract ever being asked. Keep it small, and keep
+the bulk in the account.
+
+So the guarantee for x402 is *"the agent can never draw more than X per day out
+of the account"*. It is not *"the agent can only ever pay these people"*, and it
+is not *"every x402 purchase is capped"*.
 
 ## License
 

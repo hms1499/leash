@@ -169,13 +169,19 @@ Desktop, or your own client):
 |---|---|
 | `leash_status` | Remaining daily allowance, caps, balances, and when the allowance resets. Meant to be called *before* spending. |
 | `leash_pay` | Pay a Celo address from the agent wallet. Every refusal returns only the figures its own revert supplied, names who can clear it, and says plainly whether waiting will help. |
-| `leash_fetch` | Call an x402-gated HTTP resource, paying per request. Funds are drawn through the policy first, so a purchase the policy refuses never happens. `quote_only` prices it for free. |
+| `leash_fetch` | Call an x402-gated HTTP resource, paying per request. Speaks x402 v1 and v2. A shortfall is drawn through the policy, so the caps bound what leaves the account. `quote_only` prices it for free. |
 
 The x402 path is the one worth reading twice. The order is
 **quote → check the caller's ceiling → draw through the contract → sign once** —
 and step three is a `revert`, not a guideline. Gas for the draw is deliberately
 included *inside* the drawn amount, so it counts against the daily cap like any
 other spend rather than being a free channel around it.
+
+Step three is also the one that can be skipped, and the honest version of this
+claim has to say so: when the operator wallet can already afford the price,
+there is no draw, no cap is consulted, and `spent_today` does not move. What the
+policy bounds is what *leaves the account* — never what an agent holding its own
+float can spend. That float is the real x402 exposure, so keep it thin.
 
 ---
 

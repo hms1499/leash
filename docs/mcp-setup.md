@@ -213,7 +213,7 @@ not the balance.
 |---|---|
 | `leash_status` | Remaining daily allowance, both caps, balances, and when the allowance resets. Tell your agent to call this before spending. |
 | `leash_pay` | Pay a Celo address. Per-transaction cap, daily cap, and the payee allowlist (if enabled) all apply. |
-| `leash_fetch` | Call an x402-gated URL and pay for it. Pass `quote_only: true` to see the price without paying. |
+| `leash_fetch` | Call an x402-gated URL and pay for it. Speaks x402 v1 and v2. Pass `quote_only: true` to see the price without paying. |
 
 When the policy refuses, the tool returns JSON your agent can act on —
 
@@ -231,8 +231,18 @@ When the policy refuses, the tool returns JSON your agent can act on —
 counts days as `block.timestamp / 1 days`.
 
 **`leash_fetch` gives a weaker guarantee than `leash_pay`.** x402 requires the
-agent to sign for itself, so funds must first move to the operator wallet via
-`topUpOperator`. The per-transaction and daily caps apply to that draw, but the
-**payee allowlist cannot** — once money leaves the contract, the contract cannot
-police where it goes. The guarantee for x402 is therefore *"the agent can never
-reach more than X per day"*, not *"the agent can only ever pay these people"*.
+agent to sign for itself, so any shortfall must first move to the operator
+wallet via `topUpOperator`. The per-transaction and daily caps apply to that
+draw, but the **payee allowlist cannot** — once money leaves the contract, the
+contract cannot police where it goes.
+
+**A purchase the operator can already afford skips the draw entirely**, and then
+no cap is consulted at all: `drawn_from_account` comes back `0.000000` and
+`spent_today` does not move. Two mainnet purchases behaved exactly this way, so
+this is the ordinary case for a small buy, not an edge case. Whatever float sits
+in the operator wallet is what the agent can spend on x402 without the contract
+being asked — keep it thin and keep the bulk in the account.
+
+So the guarantee for x402 is *"the agent can never draw more than X per day out
+of the account"*. It is not *"the agent can only ever pay these people"*, and it
+is not *"every x402 purchase is capped"*.
