@@ -1,20 +1,34 @@
 {
   "name": "leash-agentpay",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "description": "Give an AI agent a wallet on Celo with spend limits enforced on-chain. MCP server.",
   "license": "MIT",
   "author": "hms1499",
-  "keywords": ["mcp", "celo", "agent", "wallet", "x402", "stablecoin", "spend-limit"],
+  "keywords": [
+    "mcp",
+    "celo",
+    "agent",
+    "wallet",
+    "x402",
+    "stablecoin",
+    "spend-limit"
+  ],
   "homepage": "https://github.com/hms1499/leash#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hms1499/leash.git",
     "directory": "mcp"
   },
-  "bin": { "leash-agentpay": "dist/index.js" },
-  "files": ["dist"],
-  "engines": { "node": ">=20" },
+  "bin": {
+    "leash-agentpay": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsup",
     "test": "vitest run --exclude '**/*.gate.test.ts' --exclude '**/bundle.test.ts'",
