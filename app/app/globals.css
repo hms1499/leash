@@ -98,6 +98,39 @@ body {
   opacity: 0.75;
 }
 
+/* Extends a small inline control's pointer target to 44px tall without
+ * changing what it occupies in the layout.
+ *
+ * Measured 2026-09-10: the copy button and the Celoscan link in `Address` drew
+ * a ~17px target with no padding at all — under WCAG 2.2's 24 CSS px floor,
+ * and far under the 44pt a phone asks for. Padding was the obvious fix and the
+ * wrong one: `Address` is rendered `full break-all` in AccountsPage, where the
+ * 42 characters have to be free to wrap on a 375px screen, and inline-flex or
+ * a min-height would stop them.
+ *
+ * Vertical only, deliberately. A box extended sideways would overlap the
+ * sibling `↗` sitting 8px away and steal its taps.
+ */
+.tap-tall { position: relative; }
+.tap-tall::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
+/* The focus ring the small inline controls never had. Same 2px as Button and
+ * .field; `currentColor` because `Address` is drawn in --dim on the landing
+ * and in the label tone on the dashboard, and the ring has to follow. */
+.tap-focus:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* Money is always mono and always tabular, so digits do not change width
    as values update live. */
 .num {

@@ -1,6 +1,16 @@
 type Variant = 'primary' | 'ghost' | 'stop'
 
+/**
+ * `min-h-[44px]` is a touch target, not a type decision. The face below is
+ * --t-data (13px), which with px-4 py-2 measured ~36px tall -- over WCAG 2.2's
+ * 24 CSS px but under the 44pt iOS asks for, and MiniPay runs this on a phone
+ * (spec §2.1). The extra height goes into the box, so the label keeps its step
+ * and the scale is untouched. `inline-flex` is what makes the min-height do
+ * anything: on an inline-block button the text would sit at the top of a
+ * taller box.
+ */
 const BASE =
+  'inline-flex items-center justify-center min-h-[44px] ' +
   'rounded cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ' +
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 px-4 py-2'
 

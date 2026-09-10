@@ -24,7 +24,10 @@ export default function ActionLink({
   return (
     <Link
       href={href}
-      className={`rounded px-4 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className}`.trimEnd()}
+      // Same 44px floor as Button, and for the same reason: this renders at
+      // --t-data, which leaves a ~36px box on a phone. Keeping the two in step
+      // matters because they sit side by side in the wizard header.
+      className={`inline-flex items-center justify-center min-h-[44px] rounded px-4 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className}`.trimEnd()}
       style={{
         fontFamily: 'var(--mono)', fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)',
         ...tone[variant],
