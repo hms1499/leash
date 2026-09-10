@@ -9,6 +9,7 @@ import {
 import { formatDisplayAmount, validateLimits } from '../lib/policy.js'
 import { isValidAddress } from '../lib/address.js'
 import { pollUntil } from '../lib/confirm.js'
+import { useArming } from '../lib/arming.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
 import Button from './ui/Button'
@@ -63,7 +64,7 @@ export default function LimitsDrawer({
   // without a verified address ("An empty allowlist blocks every direct
   // payment"); removing the last one reaches the same dead end from the other
   // side, and had no gate at all.
-  const [removeArming, setRemoveArming] = useState(false)
+  const { armed: removeArmed, arm: armRemove, disarm: disarmRemove } = useArming()
   const { writeContractAsync } = useWriteContract()
   const { chainId } = useAccount()
 
@@ -165,7 +166,7 @@ export default function LimitsDrawer({
       ) === next)
       if (confirmed) {
         setPayeeAllowed(next)
-        setRemoveArming(false)
+        disarmRemove()
         setRecipientNote(next ? '✓ Recipient approved.' : '✓ Recipient removed.')
       } else {
         setRecipientNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
@@ -255,10 +256,21 @@ export default function LimitsDrawer({
                         setPayee(event.target.value)
                         setPayeeAllowed(null)
                         setRecipientNote(null)
-                        setRemoveArming(false)
+                        disarmRemove()
                       }}
                       disabled={recipientBusy}
                     />
+                    {/* Above the button, not below it. This warning is what the
+                        first press exists to reveal, and a reader who has to
+                        scan past the control to find it has already decided. */}
+                    {removeArmed && (
+                      <p role="alert" className="text-sm mt-3" style={{ color: 'var(--bad)' }}>
+                        Recipient protection is on. If this is the last approved
+                        address, every direct payment will be refused until another
+                        is approved — and the contract cannot be asked how many
+                        remain. Press Escape to cancel.
+                      </p>
+                    )}
                     <div className="flex flex-wrap items-center gap-2 mt-3">
                       {payeeAllowed === null ? (
                         <Button variant="ghost" disabled={recipientBusy} onClick={() => void checkPayee()}>
@@ -268,14 +280,13 @@ export default function LimitsDrawer({
                         <Button
                           variant="stop"
                           disabled={recipientBusy}
-                          onBlur={() => setRemoveArming(false)}
                           onClick={() => (
-                            !allowlistEnabled || removeArming
+                            !allowlistEnabled || removeArmed
                               ? void setPayeeAccess(false)
-                              : setRemoveArming(true)
+                              : armRemove()
                           )}
                         >
-                          {recipientBusy ? 'Removing…' : removeArming ? 'Confirm removal' : 'Remove address'}
+                          {recipientBusy ? 'Removing…' : removeArmed ? 'Confirm removal' : 'Remove address'}
                         </Button>
                       ) : (
                         <Button variant="primary" disabled={recipientBusy} onClick={() => void setPayeeAccess(true)}>
@@ -288,14 +299,6 @@ export default function LimitsDrawer({
                         </span>
                       )}
                     </div>
-                    {removeArming && (
-                      <p role="alert" className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
-                        Recipient protection is on. If this is the last approved
-                        address, every direct payment will be refused until another
-                        is approved — and the contract cannot be asked how many
-                        remain.
-                      </p>
-                    )}
 
                     <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
                       <p className="text-sm" style={{ color: 'var(--dim)' }}>

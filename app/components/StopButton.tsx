@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, SET_PAUSED_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
+import { useArming } from '../lib/arming.js'
 import Button from './ui/Button'
 import Label from './ui/Label'
 
@@ -24,7 +25,7 @@ export default function StopButton({
   account: `0x${string}`; paused: boolean; isOwner: boolean; loading: boolean
   onChanged: () => void
 }) {
-  const [arming, setArming] = useState(false)
+  const { armed, arm, disarm } = useArming()
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const { writeContractAsync } = useWriteContract()
@@ -75,7 +76,7 @@ export default function StopButton({
       setNote('The transaction was not sent.')
     } finally {
       setBusy(false)
-      setArming(false)
+      disarm()
     }
   }
 
@@ -97,10 +98,9 @@ export default function StopButton({
         <Button
           variant="stop"
           disabled={busy}
-          onClick={() => (arming ? void send(true) : setArming(true))}
-          onBlur={() => setArming(false)}
+          onClick={() => (armed ? void send(true) : arm())}
         >
-          {busy ? 'Stopping…' : arming ? 'Confirm stop' : '■ Stop'}
+          {busy ? 'Stopping…' : armed ? 'Confirm stop' : '■ Stop'}
         </Button>
       )}
     </span>
