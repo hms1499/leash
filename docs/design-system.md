@@ -76,6 +76,33 @@ Six steps. Each has one job; a seventh means one of these is doing two.
 `--t-heading` is the rank that was missing. Moving `Section` and the wizard's
 steps onto it rebuilds the whole hierarchy without touching a single colour.
 
+### What the scale actually replaced, measured again on 2026-09-10
+
+Less than this section claimed. The six steps were introduced and then applied
+where the work happened to reach; the rest of the app kept the two sizes it
+had. Counted across `app/` and `components/`:
+
+```
+text-sm      93          ← the 39 above, grown
+text-xs      27          ← never a step at all; 12px is not on this scale
+             ---
+             120 raw sizes, 53 of them in app/setup/page.tsx
+```
+
+`test/type.test.ts` stayed green through all of it, because it asserts that
+`globals.css` matches `lib/type.ts` — that the tokens agree with each other,
+not that anything uses them.
+
+`test/scaleUsage.test.ts` is the missing half. It counts the raw sizes per
+file against a recorded figure and fails when one grows, when a file appears
+that is not on the list, or when a file is cleaned up without its number being
+lowered. The debt is therefore visible, countable, and can only shrink.
+
+It is a ratchet on purpose. 120 call sites is not a mechanical substitution:
+`text-sm` on prose is `--t-body`, on a feed row it is `--t-data`, and each
+`text-xs` is a decision between 13px and 11px that wants a person looking at
+the screen.
+
 ### Rules
 
 - **`--t-display` appears at most once per screen.** Two numbers at the same size means
@@ -141,6 +168,16 @@ spacing system fighting Tailwind's helps nobody.
 | `12` | 48 | between major sections |
 
 Nothing else. `mt-1` and `mt-8/10/14/16` are removed.
+
+**They were not.** Re-measured 2026-09-10: `mt-1` appears 17 times, `mt-4` 32,
+`mt-5` 17, and `mt-8`/`mt-20` survive — 90 off-scale margins and gaps, 44 of
+them in the wizard. `test/scaleUsage.test.ts` holds the same ratchet over
+these that it holds over the type sizes.
+
+That test watches margins, gaps and `space-y` only. Padding is left to a
+person: `PAGE` is itself `px-4`, and the table above never claimed the four
+steps governed padding — the `p-4 ×21` in the measurement below is a count of
+the problem, not a rule about it.
 
 ### The page is one width
 
@@ -390,7 +427,16 @@ All three wear the same shell: the header band, one sentence at
   no renderer to suppress). Left alone deliberately.
 - **Light mode.** The palette is dark-only and the contrast work assumes it.
 - **Mobile beyond what exists.** Spec §2.1 asks for mobile-first because
-  MiniPay is a phone; the current layout is responsive and untested at width.
+  MiniPay is a phone; the current layout is responsive and was untested at
+  width. Partly decided since: measured at 375px on 2026-09-10, "Connect
+  wallet" drew a 36.1px target and "My accounts" 38.1px, and `Address` drew
+  about seventeen pixels with no padding at all. `Button` and `ActionLink`
+  now carry a 44px floor in the box rather than in the type, `Address` gets
+  it from `.tap-tall` — a pseudo-element, because AccountsPage renders it
+  `full break-all` and those 42 characters have to stay free to wrap.
+  `e2e/reach.spec.ts` measures the rendered box, not the class list. The rest
+  of mobile — layout at width, landscape, the wizard on a small screen — is
+  still undecided.
 
 ---
 
