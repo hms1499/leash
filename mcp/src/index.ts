@@ -61,7 +61,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'leash_fetch',
       description:
-        'Call an HTTP resource that charges per request over x402, paying from the agent wallet. Funds are drawn through the on-chain policy first, so a request the policy refuses never happens. Use quote_only to see the price without paying.',
+        // Do not restore the old promise here ("drawn through the on-chain
+        // policy first, so a request the policy refuses never happens"). It was
+        // false, and two mainnet purchases proved it: both were affordable from
+        // the agent wallet, so no draw happened, `spent_today` never moved and
+        // no cap was consulted. An agent reads this line to decide what it is
+        // allowed to do, so it must state the guarantee that actually holds.
+        'Call an HTTP resource that charges per request over x402, paying from the agent wallet. Any shortfall is drawn from the account through the on-chain policy, so the per-transaction and daily caps bound what leaves it — but funds already sitting in the agent wallet are outside the policy\'s reach, and the payee allowlist never applies to x402. Use quote_only to see the price without paying.',
       inputSchema: {
         type: 'object',
         properties: {
