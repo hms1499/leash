@@ -120,6 +120,15 @@ file against a recorded figure and fails when one grows, when a file appears
 that is not on the list, or when a file is cleaned up without its number being
 lowered. The debt is therefore visible, countable, and can only shrink.
 
+`e2e/faces.spec.ts` is the half that was missing from *both*. The two vitest
+suites read source: one checks the tokens agree with each other, the other
+counts class names. Neither can see a face produced by an inline style, a
+font-weight utility or a family switch — and measured in Chromium on
+2026-09-11 the landing page rendered **17 distinct faces** while every source
+test was green. It counts what the eye receives, per route, and ratchets down:
+17 on the landing, 9 on the wizard, 6 on the account list, 12 on the
+dashboard.
+
 It is a ratchet on purpose. 120 call sites is not a mechanical substitution:
 `text-sm` on prose is `--t-body`, on a feed row it is `--t-data`, and each
 `text-xs` is a decision between 13px and 11px that wants a person looking at
