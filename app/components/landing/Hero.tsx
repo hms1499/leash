@@ -12,8 +12,17 @@ export default function Hero() {
         className="mt-4"
         style={{
           fontFamily: 'var(--mono)',
-          fontSize: 'clamp(2.25rem, 8vw, var(--t-display))',
-          lineHeight: 'var(--t-display-line)',
+          // --t-title, not --t-display. §2 reserves the display step for a
+          // number and §7 says this screen carries none: if a sentence can be
+          // 44px, the dashboard's 44px figure stops meaning "this is the
+          // number", which is the whole load that step carries. Meter.tsx was
+          // already declining to draw a 44px figure here on that authority.
+          //
+          // The clamp() goes with it. --t-title carries its own breakpoint in
+          // globals.css -- 30px, 36px from 640px up -- and a second responsive
+          // mechanism on the same element is how two rules come to disagree.
+          fontSize: 'var(--t-title)',
+          lineHeight: 'var(--t-title-line)',
           fontWeight: 600,
           color: 'var(--text)',
         }}

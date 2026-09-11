@@ -447,6 +447,20 @@ Then limits, the agent panel, the feed.
 
 **Dominant: the headline**, at `--t-title`. No `--t-display` on this screen: nothing here is a number.
 
+**The hero was at `--t-display` until 2026-09-11.** `Hero.tsx` set
+`clamp(2.25rem, 8vw, var(--t-display))`, which measures 44px on a desktop —
+the display step, on the screen this section says carries none. `Meter.tsx`
+had meanwhile been written to *avoid* a 44px figure here, citing this
+paragraph: "a 44px figure in LiveProof would outrank the headline it is
+supposed to support." That precaution is only coherent if the headline is not
+itself at 44px, so the component was protecting a rule the hero broke.
+
+The hero is `--t-title` now — 30px, 36px from 640px up — and the `clamp()`
+went with it, because the step already carries its own breakpoint and two
+responsive mechanisms on one element is how two rules come to disagree.
+`e2e/faces.spec.ts` asserts the count of display-step elements per route
+rather than trusting either the document or the component.
+
 The content here is already strong — the Without/With table, the three steps,
 the tool list, the copyable `.mcp.json`. It was failing only because every part
 of it was set at the same size. `--t-heading` on section titles is most of the

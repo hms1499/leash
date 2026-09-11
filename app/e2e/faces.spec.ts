@@ -18,7 +18,7 @@ import { test, expect, type Page } from '@playwright/test'
 const CEILING: Record<string, number> = {
   // Measured in Chromium at 1280px. The first figures, before any call site
   // moved, were 17 / 9 / 6 / 12.
-  '/': 13,
+  '/': 12,
   '/setup': 7,
   '/accounts': 6,
   '/a/0xA73DB76f20c5ede3ABE883565D22905760F83982': 10,
@@ -59,5 +59,46 @@ for (const [route, ceiling] of Object.entries(CEILING)) {
       + 'docs/design-system.md §2 defines seven steps. Lower the ceiling in '
       + 'this file when a route is cleaned up, so the list stays honest.')
       .toBeLessThanOrEqual(ceiling)
+  })
+}
+
+/**
+ * §2: --t-display appears at most once per screen, and is only ever a number.
+ * §7: the landing carries none at all -- "nothing here is a number".
+ *
+ * Measured 2026-09-11, Hero.tsx rendered at 44px, which is the display step.
+ * Meter.tsx:26-34 meanwhile declines to render a 44px figure on that screen,
+ * citing §7, because "a 44px figure in LiveProof would outrank the headline it
+ * is supposed to support" -- a precaution that is only coherent if the
+ * headline is not itself at 44px. The component was protecting a rule the
+ * hero broke.
+ */
+const DISPLAY_ELEMENTS: Record<string, number> = {
+  '/': 0,
+  '/setup': 0,
+  '/accounts': 0,
+  // The dashboard's row is added in Task 7, with the change that earns it.
+}
+
+for (const [route, allowed] of Object.entries(DISPLAY_ELEMENTS)) {
+  test(`${route} renders ${allowed} element(s) at the display step`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto(route)
+    await page.waitForLoadState('networkidle')
+    const count = await page.evaluate(() => {
+      const display = getComputedStyle(document.documentElement)
+        .getPropertyValue('--t-display').trim()
+      let n = 0
+      for (const el of document.querySelectorAll('*')) {
+        let draws = false
+        for (const node of el.childNodes) {
+          if (node.nodeType === 3 && node.textContent?.trim()) { draws = true; break }
+        }
+        if (!draws) continue
+        if (getComputedStyle(el).fontSize === display) n++
+      }
+      return n
+    })
+    expect(count).toBe(allowed)
   })
 }
