@@ -797,7 +797,7 @@ since the meter was built. This gives it numbers.
 
 | Token | Value | For | Spent by |
 |---|---|---|---|
-| `--m-fast` | 90ms | a state the reader just caused | `.motion-reveal` — `LimitsDrawer` opening in flow, `Address`'s copy outcome landing; `.motion-control` — `Button` crossing between enabled and disabled |
+| `--m-fast` | 90ms | a state the reader just caused | `.motion-press` — every control, on `:active`; `.motion-reveal` — `LimitsDrawer` opening in flow, `Address`'s copy outcome landing; `.motion-control` — `Button` crossing between enabled and disabled |
 | `--m-slow` | 400ms | the meter's geometry moving to a new value | `.meter-fill`, and nothing else, ever |
 
 ### Rules
@@ -812,6 +812,16 @@ since the meter was built. This gives it numbers.
   reintroduce exactly the reflow the class exists to prevent, and would show a
   sequence of values that were never true. The meter's *geometry* may ease.
   The number it describes changes in one frame.
+- **A press is not a hover.** `.motion-press` scales a control to 0.98 while
+  it is held, and it is the one piece of a consumer app's feel that survives
+  §1: it says the control took the press, which is information. A shadow
+  lifting says the control floats, which §13 refuses, and a hover transition
+  fires on a pointer merely passing over — the reader may not have meant it.
+  The rule below is about the second kind and this is the first. A control
+  that answers a press with nothing is also the case a reader notices: a
+  wallet confirmation can take seconds, and until it opens this is the only
+  thing that answered the finger. `test/surface.test.ts` fails on a file with
+  a raw `<button>` or `<summary>` that does not take one.
 - **No ambient motion.** Nothing moves that the reader did not cause. No
   entrance on scroll, no transition on hover, no pulse on a live value. This
   is a screen someone watches while an agent spends real money; a page that

@@ -135,3 +135,40 @@ test('the landing page does not scroll sideways on a phone', async ({ browser })
     await context.close()
   }
 })
+
+/**
+ * §12: a control answers a press. A unit test can prove `.motion-press` is in
+ * globals.css and that every file with a raw control mentions it; only the
+ * browser proves the rule reached the element and that the transform actually
+ * takes hold while the button is held down.
+ *
+ * The wizard's step buttons are used rather than a link on the landing: they
+ * are `<button>`, they are on the one screen where a reader presses several
+ * things in a row, and step 1 is always enabled.
+ */
+test('a control answers a press', async ({ page }) => {
+  await page.goto('/setup')
+  const step = page.getByRole('navigation', { name: 'Setup progress' })
+    .getByRole('button').first()
+  await expect(step).toBeVisible()
+
+  const idle = await step.evaluate((el) => getComputedStyle(el).transform)
+  // `none`, not a matrix: nothing is scaled until the finger is down.
+  expect(idle).toBe('none')
+
+  const box = await step.boundingBox()
+  if (box === null) throw new Error('the step button has no box to press')
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  try {
+    // 0.98 in a 2D matrix: matrix(0.98, 0, 0, 0.98, tx, ty).
+    await expect.poll(() => step.evaluate((el) => getComputedStyle(el).transform))
+      .toMatch(/^matrix\(0\.98, 0, 0, 0\.98,/)
+  } finally {
+    await page.mouse.up()
+  }
+
+  // And it lets go: a control stuck at 0.98 would read as permanently pressed.
+  await expect.poll(() => step.evaluate((el) => getComputedStyle(el).transform))
+    .toBe('none')
+})

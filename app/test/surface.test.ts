@@ -127,7 +127,7 @@ describe('motion', () => {
    * three cases and is spent on none of them is not a rule, it is a note.
    */
   it('spends --m-fast on the states §12 named, from the token', () => {
-    for (const rule of ['.motion-reveal {', '.motion-control {']) {
+    for (const rule of ['.motion-reveal {', '.motion-control {', '.motion-press {']) {
       const at = css.indexOf(rule)
       expect(at, `${rule} is missing from globals.css`).toBeGreaterThan(-1)
       expect(css.slice(at, css.indexOf('}', at))).toContain('var(--m-fast)')
@@ -148,6 +148,32 @@ describe('motion', () => {
   })
 
   /**
+   * A press is the one piece of a consumer app's feel that survives §1: it
+   * says the control took the press, which is information, where a shadow
+   * lifting says the control floats, which §13 refuses. It is also the case a
+   * reader notices by its absence -- a wallet confirmation can take seconds,
+   * and until it opens the only thing that answered the finger is this.
+   *
+   * A file-level ratchet rather than a per-tag one: a JSX opening tag can
+   * carry an arrow function, so `>` is not a reliable end of it. The coarse
+   * version still catches the case that matters, which is a new file with a
+   * hand-rolled control in it -- the way the focus ring reached ten files.
+   */
+  it('has no file with a raw control that does not take a press', () => {
+    const offenders = FILES
+      .filter((f) => {
+        const src = readFileSync(join(ROOT, f), 'utf8')
+        // Comments stripped first: Label.tsx names `<button>` in prose,
+        // explaining which component owns one, and that is documentation
+        // rather than a control.
+        const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+        return /<(?:button|summary)[\s>]/.test(code) && !code.includes('motion-press')
+      })
+    expect(offenders, 'a <button> or <summary> here answers a press with nothing. '
+      + 'Use ui/Button, or add `motion-press`. docs/design-system.md §12.').toEqual([])
+  })
+
+  /**
    * Two classes and the meter are the whole vocabulary. A duration written
    * inline at a call site is how the focus ring reached fourteen copies, and
    * it also escapes `lib/surface.ts` -- the file these tests read to know what
@@ -156,7 +182,7 @@ describe('motion', () => {
   it('has no component writing a duration of its own', () => {
     const offenders = FILES
       .map((f) => ({ f, hits: [...readFileSync(join(ROOT, f), 'utf8')
-        .matchAll(/transitionDuration|animationDuration|(?<![\w-])(?:duration|animate)-\[/g)].length }))
+        .matchAll(/transitionDuration|animationDuration|(?<![\w-])(?:duration|animate|active:scale)-\[?/g)].length }))
       .filter(({ hits }) => hits > 0)
       .map(({ f, hits }) => `${f}: ${hits}`)
     expect(offenders).toEqual([])

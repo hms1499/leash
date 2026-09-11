@@ -278,7 +278,7 @@ export default function LimitsDrawer({
                 </Button>
 
                 <details className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
-                  <summary className="cursor-pointer focus-ring" style={{ borderRadius: 'var(--r-mark)', outlineColor: 'var(--text)' }}>
+                  <summary className="motion-press cursor-pointer focus-ring" style={{ borderRadius: 'var(--r-mark)', outlineColor: 'var(--text)' }}>
                     <span className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold">Recipient protection</span>
                       <Label>{allowlistEnabled ? 'On' : 'Optional · Off'}</Label>

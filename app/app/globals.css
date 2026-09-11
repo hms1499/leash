@@ -247,6 +247,24 @@ body {
  * disabled treatment is `disabled:opacity-45` and nothing else moves. */
 .motion-control { transition: opacity var(--m-fast) linear; }
 
+/* A press. §12's table already names this case -- "a state the reader just
+ * caused" -- and a finger going down on a control is the most literal one
+ * there is. It is not the hover transition §12 refuses: hover is the pointer
+ * passing over something, which the reader may not have meant, while this
+ * only ever fires on a deliberate press and ends with it.
+ *
+ * 0.98, and the scale is the whole effect. The reference for this was
+ * Uniswap, where a press also carries a shadow lifting and a background
+ * easing; §13 has no layer above the page and §4 gives a control one ground,
+ * so what survives the translation is the part that says "this took the
+ * press" and nothing that says "this floats".
+ *
+ * `:not(:disabled)` because a disabled control must stay inert: it already
+ * reads at 45% opacity with `cursor: not-allowed`, and a button that shrinks
+ * under the finger and then does nothing is the worst of both. */
+.motion-press { transition: transform var(--m-fast) ease-out; }
+.motion-press:active:not(:disabled) { transform: scale(0.98); }
+
 /* --m-slow's one user, and §12 says it may only ever have one: a second thing
  * at 400ms competes with the meter for the eye, and the meter is the
  * instrument. `width` is a geometry presentation attribute on an SVG rect and

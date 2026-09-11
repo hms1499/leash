@@ -68,7 +68,7 @@ export default function McpHandoff({
   return (
     <Panel as="section" className="p-6">
       <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
-        <summary className="cursor-pointer focus-ring"
+        <summary className="motion-press cursor-pointer focus-ring"
           style={{ borderRadius: 'var(--r-mark)', outlineColor: 'var(--text)' }}>
           <Label>Connect your agent runtime</Label>
           <span className="block text-sm mt-1" style={{ color: 'var(--dim)' }}>

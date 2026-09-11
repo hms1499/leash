@@ -673,7 +673,7 @@ export default function Onboard() {
                 <button
                   type="button" disabled={!unlocked} aria-current={current ? 'step' : undefined}
                   onClick={() => setActiveStage(step.id)}
-                  className="w-full p-3 text-left focus-ring disabled:cursor-not-allowed disabled:opacity-45"
+                  className="motion-press w-full p-3 text-left focus-ring disabled:cursor-not-allowed disabled:opacity-45"
                   style={{ minHeight: 72, borderRadius: 'var(--r-box)',
                     background: current ? 'var(--panel)' : 'transparent',
                     border: `1px solid ${current ? 'var(--line-control)' : 'var(--line)'}`, outlineColor: 'var(--text)' }}
@@ -727,7 +727,7 @@ export default function Onboard() {
             ))}
           </div>
           <details className="mt-5 text-sm" style={{ color: 'var(--dim)' }}>
-            <summary className="cursor-pointer focus-ring"
+            <summary className="motion-press cursor-pointer focus-ring"
               style={{ borderRadius: 'var(--r-mark)', color: 'var(--text)', outlineColor: 'var(--text)' }}>
               What you need before creating
             </summary>
@@ -827,14 +827,14 @@ export default function Onboard() {
             <div className={`${PANEL_GRID} mt-4`}>
               <button type="button" aria-pressed={recipientMode === 'any'} disabled={recipientBusy}
                 onClick={() => void chooseAnyRecipient()}
-                className="col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45"
+                className="motion-press col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45"
                 style={{ ...STATUS_BOX, borderColor: recipientMode === 'any' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
                 <span style={SUBHEAD}>Any recipient</span>
                 <span className="block mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>Best for agents with changing payees.</span>
               </button>
               <button type="button" aria-pressed={recipientMode === 'protected'} disabled={recipientBusy}
                 onClick={() => { setRecipientMode('protected'); setRecipientNote(null) }}
-                className="col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45"
+                className="motion-press col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45"
                 style={{ ...STATUS_BOX, borderColor: recipientMode === 'protected' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
                 <span style={SUBHEAD}>Approved recipients only</span>
                 <span className="block mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>Best when payees are known in advance.</span>

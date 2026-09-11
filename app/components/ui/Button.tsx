@@ -12,7 +12,7 @@ type Variant = 'primary' | 'ghost' | 'stop'
 const BASE =
   'inline-flex items-center justify-center min-h-[44px] ' +
   'cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ' +
-  'motion-control focus-ring px-4 py-2'
+  'motion-control motion-press focus-ring px-4 py-2'
 
 /**
  * Tailwind 3's preflight resets button cursors to `auto`, so the pointer is
