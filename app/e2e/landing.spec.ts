@@ -189,14 +189,14 @@ test('a control answers the pointer resting on it', async ({ page }) => {
   await expect(ghost).toBeVisible()
 
   const border = () => ghost.evaluate((el) => getComputedStyle(el).borderTopColor)
-  // --line-control #626A73 at rest, --dim #8A9199 under the pointer.
-  expect(await border()).toBe('rgb(98, 106, 115)')
+  // --line-control #7B838E at rest, --dim #959CA5 under the pointer.
+  expect(await border()).toBe('rgb(123, 131, 142)')
 
   await ghost.hover()
-  await expect.poll(border).toBe('rgb(138, 145, 153)')
+  await expect.poll(border).toBe('rgb(149, 156, 165)')
 
   // And it lets go, so a control the pointer has merely passed over does not
   // stay lit as if it were still under it.
   await page.mouse.move(0, 0)
-  await expect.poll(border).toBe('rgb(98, 106, 115)')
+  await expect.poll(border).toBe('rgb(123, 131, 142)')
 })

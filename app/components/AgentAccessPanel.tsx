@@ -150,8 +150,8 @@ export default function AgentAccessPanel({
             {operators.map((op) => (
               <div
                 key={op}
-                className="flex flex-col gap-3 rounded p-6 sm:flex-row sm:items-center sm:justify-between"
-                style={{ background: 'var(--well)', border: '1px solid var(--line)' }}
+                className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between"
+                style={{ background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 'var(--r-box)' }}
               >
                 <div>
                   <Label className="block" style={{ color: 'var(--ok)' }}>Authorized</Label>

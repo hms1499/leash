@@ -8,16 +8,34 @@
  * and changed: --bad from #C4544F (4.38 on the ground, and it carries body
  * text) and --meter-fill from #2C3540 (1.61 against its own track, which is
  * the whole information content of the meter). Spec §3.1.
+ *
+ * ## The grounds were lifted off black on 2026-09-11
+ *
+ * §4 had measured its three dark grounds against each other and found them
+ * 1.03 to 1.11 apart, and concluded a surface could never be told from the
+ * page behind it. The ratio was right and the unit was wrong: a contrast
+ * ratio is built for a glyph against its background, and between two dark
+ * neighbours it compresses to nothing. In L* -- perceptual lightness, which
+ * is what an eye uses on two adjacent fills -- `--panel` stood **4.1** above
+ * `--bg` and `--well` **1.2** below it.
+ *
+ * The grounds now sit at **8.2** and **2.8**, which is the smallest step that
+ * reads as a separate surface rather than as a rendering artefact. Two
+ * foregrounds had to move with them, and that is the whole cost: `--bad` on
+ * the lighter panel fell to 3.99 and `--line-control` to 2.77, both under
+ * their bars. Lifting each clears it with headroom (5.17 and 3.97) and the
+ * bright-ground rule improves as a side effect -- `--bg` on `--bad` goes from
+ * 4.79 to 6.21.
  */
 export const PALETTE = {
-  bg: '#0B0D10',
-  panel: '#14171C',
-  well: '#07090B',
+  bg: '#12151B',
+  panel: '#20262F',
+  well: '#0B0E12',
   text: '#E8EAED',
-  dim: '#8A9199',
+  dim: '#959CA5',
   celo: '#FCFF52',
   ok: '#4E9E7E',
-  bad: '#D0605B',
+  bad: '#DE7A72',
   meterFill: '#5C6E88',
   /**
    * Control borders. --line is rgba(255,255,255,.10), which is 1.32:1 on
@@ -25,7 +43,7 @@ export const PALETTE = {
    * button. Measured 2026-09-05: this clears 3:1 on all three dark grounds
    * (3.27 panel, 3.55 bg, 3.64 well) with a little headroom.
    */
-  lineControl: '#626A73',
+  lineControl: '#7B838E',
   /**
    * The primary button while the pointer is on it. §4's grounds are all within
    * 1.11 of each other -- `--panel` on `--bg` is 1.08, `--well` on `--bg` is
@@ -63,6 +81,21 @@ export function relativeLuminance(hex: string): number {
   const g = parseInt(h.slice(2, 4), 16)
   const b = parseInt(h.slice(4, 6), 16)
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+}
+
+/**
+ * CIE L*, the perceptual lightness of a colour on a 0-100 scale.
+ *
+ * `contrastRatio` is the right tool for a foreground on a ground and the wrong
+ * one for two adjacent fills: it is a ratio of luminances plus a constant, so
+ * between two dark neighbours it lands near 1.00 whatever the eye can see.
+ * That is how §4 came to record its grounds as 1.03-1.11 apart and conclude a
+ * surface could not be distinguished, when the real distance was 4.1 points of
+ * lightness -- small, but not nothing.
+ */
+export function lightness(hex: string): number {
+  const y = relativeLuminance(hex)
+  return y > 0.008856 ? 116 * Math.cbrt(y) - 16 : 903.3 * y
 }
 
 export function contrastRatio(a: string, b: string): number {

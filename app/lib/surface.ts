@@ -34,12 +34,19 @@
  * control, and that is the distinction the missing fourth was carrying.
  */
 export const RADIUS = {
-  /** A panel, a card, a band: something the layout sits on. */
-  surface: '8px',
+  /**
+   * A panel, a card, a band: something the layout sits on.
+   *
+   * 8px until 2026-09-11, which was the corner of a dialog box rather than of
+   * a card. The four names and what they distinguish are unchanged -- §10's
+   * argument is that a status dot and a submit button must not claim to be
+   * the same kind of object, and that survives any particular number.
+   */
+  surface: '16px',
   /** A control or a well: Button, ActionLink, .field, a code block. */
-  box: '4px',
+  box: '10px',
   /** A mark laid over text: the ring on an inline link, a small badge. */
-  mark: '2px',
+  mark: '4px',
   /** A state dot, and only ever that. A pill in this UI means "status". */
   dot: '9999px',
 } as const

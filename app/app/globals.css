@@ -11,26 +11,26 @@
  * breaks WCAG AA fails the suite.
  */
 :root {
-  --bg: #0B0D10;
-  --panel: #14171C;
-  --well: #07090B;
-  --line: rgba(255, 255, 255, 0.10);
+  --bg: #12151B;
+  --panel: #20262F;
+  --well: #0B0E12;
+  --line: rgba(255, 255, 255, 0.12);
   /* Divider vs control border: --line is deliberately faint, and a button
      needs to be seen. Asserted in test/tokens.test.ts. */
-  --line-control: #626A73;
+  --line-control: #7B838E;
   /* The primary button under the pointer. §4's grounds are 1.03-1.11 apart, so
      a hover cannot be a fill here; a solid control moves its own ground
      instead. Asserted against lib/tokens.ts. */
   --celo-hover: #E6E93C;
   --text: #E8EAED;
-  --dim: #8A9199;
+  --dim: #959CA5;
   /* Celo brand yellow, verified 2026-09-03 by fetching celo.org/brand-kit and
      inspecting that first-party page's own rendered CSS -- not from memory and
      not from an aggregator. Used in exactly two roles, the primary action and
      the cap line. A third use dilutes both. Spec §2.5. */
   --celo: #FCFF52;
   --ok: #4E9E7E;
-  --bad: #D0605B;
+  --bad: #DE7A72;
   /* The fill never touches the cap line: a 2px --well gap keeps the line on the
      dark track, because --bad on this fill is 1.36:1 and the lock indicator
      would vanish exactly when it matters. Spec §3.1. */
@@ -51,9 +51,9 @@
      control or well, a mark laid over text, a state dot. The first count
      missed the inline numeric radii and reported three. Asserted against
      lib/surface.ts. docs/design-system.md §10. */
-  --r-surface: 8px;
-  --r-box: 4px;
-  --r-mark: 2px;
+  --r-surface: 16px;
+  --r-box: 10px;
+  --r-mark: 4px;
   --r-dot: 9999px;
 
   /* One focus ring, declared once.

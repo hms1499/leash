@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { PALETTE, contrastRatio, DARK_GROUNDS, BRIGHT_GROUNDS } from '../lib/tokens.js'
+import { BRIGHT_GROUNDS, DARK_GROUNDS, PALETTE, contrastRatio, lightness } from '../lib/tokens.js'
 
 const css = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8')
 
@@ -123,24 +123,45 @@ describe('non-text boundaries clear AA UI contrast', () => {
  * own ground, so the hover yellow is a second bright ground and has to clear
  * the same bar -- the rule is about what a reader can read, and a pointer
  * resting on a button does not suspend it.
- *
- * A fill was not an option anywhere else: the three dark grounds are 1.03 to
- * 1.11 apart, which is why every other control hovers on its line instead.
  */
 describe('the hover ground', () => {
   it('still takes the primary button label', () => {
     expect(contrastRatio(PALETTE.celoHover, PALETTE.bg)).toBeGreaterThanOrEqual(4.5)
   })
 
-  it('is a step the eye can see, unlike a ground', () => {
+  it('is a step the eye can see', () => {
     // --celo to --celo-hover, against the ground the button sits on.
     const before = contrastRatio(PALETTE.celo, PALETTE.bg)
     const after = contrastRatio(PALETTE.celoHover, PALETTE.bg)
     expect(before - after).toBeGreaterThan(1)
-    // And the fill that was rejected: no pair of grounds clears even 1.2.
-    for (const [a, b] of [[PALETTE.bg, PALETTE.panel], [PALETTE.bg, PALETTE.well], [PALETTE.panel, PALETTE.well]]) {
-      expect(contrastRatio(a, b)).toBeLessThan(1.2)
-    }
+  })
+})
+
+/**
+ * The grounds, measured in the unit an eye actually uses on two adjacent
+ * fills. §4 read them at 1.03-1.11 with `contrastRatio` and concluded a
+ * surface could not be told from the page -- true of the numbers, wrong about
+ * the tool: a contrast ratio is a foreground instrument and compresses to
+ * nothing between dark neighbours.
+ *
+ * In L* the old grounds stood 4.1 and 1.2 apart, and they stand 8.2 and 2.8
+ * apart now. The floor below is what stops a future edit from flattening them
+ * back while every contrast assertion above stays green.
+ */
+describe('the grounds are separate surfaces', () => {
+  it('lifts --panel clear of --bg', () => {
+    expect(lightness(PALETTE.panel) - lightness(PALETTE.bg)).toBeGreaterThanOrEqual(6)
+  })
+
+  it('sinks --well below --bg, by less, because a well is a recess and not a card', () => {
+    const step = lightness(PALETTE.bg) - lightness(PALETTE.well)
+    expect(step).toBeGreaterThanOrEqual(2)
+    expect(step).toBeLessThan(lightness(PALETTE.panel) - lightness(PALETTE.bg))
+  })
+
+  /** Still dark. A lift that ends in a light theme is a different product. */
+  it('keeps every ground dark', () => {
+    for (const g of DARK_GROUNDS) expect(lightness(PALETTE[g])).toBeLessThan(20)
   })
 })
 

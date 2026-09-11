@@ -336,13 +336,30 @@ named**, because they were not, and that omission cost a real bug.
 
 ### The five grounds
 
-| Ground | Hex | Where |
-|---|---|---|
-| `--bg` | `#0B0D10` | page |
-| `--panel` | `#14171C` | `Panel`, the meter band |
-| `--well` | `#07090B` | inputs, code blocks |
-| `--bad` | `#D0605B` | **the header band while paused** |
-| `--celo` | `#FCFF52` | **the primary button** |
+| Ground | Hex | L* | Where |
+|---|---|---|---|
+| `--bg` | `#12151B` | 6.7 | page |
+| `--panel` | `#20262F` | 14.9 | `Panel`, the meter band |
+| `--well` | `#0B0E12` | 3.9 | inputs, code blocks |
+| `--bad` | `#DE7A72` | — | **the header band while paused** |
+| `--celo` | `#FCFF52` | — | **the primary button** |
+
+**The three dark grounds were lifted off black on 2026-09-11.** They had been
+`#0B0D10` / `#14171C` / `#07090B`, and this section had measured them against
+each other with `contrastRatio` — 1.03 to 1.11 — and concluded that a surface
+could never be told from the page behind it. The ratio was right and the unit
+was wrong: a contrast ratio is built for a glyph on a ground, and between two
+dark neighbours it compresses to nothing. In **L***, the perceptual lightness
+an eye actually uses on two adjacent fills, `--panel` stood 4.1 above `--bg`
+and `--well` 1.2 below it. They stand at **8.2** and **2.8** now, and
+`test/tokens.test.ts` holds a floor under both.
+
+Two foregrounds had to move with them, which is the whole cost of the lift:
+on the lighter panel `--bad` fell to 3.99 and `--line-control` to 2.77, both
+under their bars. `--bad` went `#D0605B` → `#DE7A72` (5.17 on panel) and
+`--line-control` `#626A73` → `#7B838E` (3.97). `--dim` was lifted with them,
+`#8A9199` → `#959CA5`, for the same reason. The bright-ground rule improved as
+a side effect: `--bg` on `--bad` was 4.79 and is 6.21.
 
 The last two are the ones nobody had written down. The contrast test checked
 `bg` and `panel` only, so a foreground could sit on a bright ground unchecked —
@@ -350,16 +367,17 @@ and one did.
 
 ### The rule
 
-Measured 2026-09-05, every foreground against every ground:
+Measured again on 2026-09-11 after the lift, every foreground against every
+ground:
 
 ```
-             bg    panel    well     bad    celo
---text     16.14   14.90   16.55    3.16    1.12
---dim       6.11    5.64    6.26    1.20    2.97
---celo     18.13   16.74   18.58    3.55    1.00
---ok        6.04    5.57    6.19    1.18    3.00
---bad       5.10    4.71    5.23    1.00    3.55
---bg        1.00    1.08    1.03    5.10   18.13
+                  bg  panel   well    bad   celo
+--text         15.17  12.63  16.05   2.44   1.12
+--dim           6.60   5.49   6.98   1.06   2.58
+--celo         17.03  14.18  18.02   2.74   1.00
+--ok            5.67   4.72   6.00   1.09   3.00
+--bad           6.21   5.17   6.57   1.00   2.74
+--bg            1.00   1.20   1.06   6.21  17.03
 ```
 
 Two lines fall out of it, and they replace every argument about colour:
@@ -375,13 +393,15 @@ darker than `--bg`, so everything on it clears by more.
 ### What the pointer may change
 
 Added 2026-09-11. The obvious hover is the one every consumer app uses: fill
-the control with the next ground along. Measured against the table above, the
-three dark grounds are **1.03 to 1.11 apart** — `--panel` on `--bg` is 1.08 —
-so that fill is invisible here. They are grounds for whole regions; the eye
-reads them at the size of a panel, not the size of a button.
+the control with the next ground along. It was rejected that morning because
+the grounds were 1.03 to 1.11 apart and the fill would have been invisible —
+and the lift above has since made it possible, at 8.2 points of L*.
 
-The line has room that a ground does not: `--line-control` is 3.55 on `--bg`
-and `--dim` is 6.11. So:
+It stays rejected, on a different argument. A ground says *what kind of
+surface this is*: page, card, recess. A control that borrows `--panel` on
+hover claims for a moment to be a card, which is the one thing §13 spends its
+whole section keeping straight. The line has the room to say it instead —
+`--line-control` is 4.77 on `--bg` and `--dim` is 6.60. So:
 
 > **On hover a control moves toward the colour it already wears**, at
 > `--m-fast`, in `globals.css` and nowhere else.
@@ -389,7 +409,7 @@ and `--dim` is 6.11. So:
 | Variant | Rest | Hover |
 |---|---|---|
 | ghost | `--line-control` line, `--text` label | line → `--dim` |
-| primary | `--celo` ground, `--bg` label | ground → `--celo-hover` (#E6E93C, 14.90 on `--bg`) |
+| primary | `--celo` ground, `--bg` label | ground → `--celo-hover` (#E6E93C, 14.00 on `--bg`) |
 | stop | `--bad` line and label | ground → `--bad`, label → `--bg` |
 | ghost/stop on the paused header | `--bg` line and label on `--bad` | ground → `--bg`, label leaves it |
 | text-only: a copy button, `↗`, a `<summary>` | — | underline |
@@ -707,10 +727,17 @@ about how modern it looks.
 
 | Token | Value | For |
 |---|---|---|
-| `--r-surface` | 8px | a panel, a card, a band — something the layout sits *on* |
-| `--r-box` | 4px | a control or a well: `Button`, `ActionLink`, `.field`, a code block |
-| `--r-mark` | 2px | a mark laid over text: the ring on an inline link, the wordmark, a small badge |
+| `--r-surface` | 16px | a panel, a card, a band — something the layout sits *on* |
+| `--r-box` | 10px | a control or a well: `Button`, `ActionLink`, `.field`, a code block |
+| `--r-mark` | 4px | a mark laid over text: the ring on an inline link, the wordmark, a small badge |
 | `--r-dot` | 9999px | a state dot, and only ever that |
+
+**The three finite values doubled on 2026-09-11** (8 → 16, 4 → 10, 2 → 4).
+The set, the names and what they distinguish did not move: the argument below
+is that a status dot and a submit button must not claim to be the same kind of
+object, and no particular number carries that. 8px was the corner of a dialog
+box; a card in 2026 has a softer one, and at 10px a 44px-tall button is still
+nowhere near a pill.
 
 ### Why four and not one
 
@@ -742,9 +769,12 @@ money is the worst possible outcome of a shape.
   inline numeric radii, so the next literal fails the suite rather than
   waiting a month to be counted. That second assertion is the one this section
   needed and did not have.
-- **`rounded` and `--r-box` are both 4px today. Prefer the token.** The
-  coincidence is not the rule; the token is. `Button`, `ActionLink` and
-  `BrandLink` set `borderRadius` from it.
+- **`rounded` was 4px and so was `--r-box`, and that coincidence has ended.**
+  Tailwind's `rounded` is still 4px; the token is 10px. The three call sites
+  that had been relying on the two agreeing — a `--well` row in
+  `AgentAccessPanel` and the two balance boxes in `AgentPanel` — set
+  `borderRadius: var(--r-box)` now. `rounded-full` stays: it is `--r-dot` by
+  another name and only marks wear it.
 - **Radius is never a state.** Nothing grows a corner on hover or on focus.
   The ring says focus (§11).
 
@@ -899,6 +929,15 @@ most useful thing this section does.
 A soft grey shadow on a #0B0D10 ground is very nearly invisible, so it buys no
 depth; what it delivers instead is the one ornament §1 refuses. Three grounds
 already express every level this app has.
+
+**Re-measured on 2026-09-11, after §4 lifted the grounds off black.** The
+argument was worth re-testing, because a shadow has more to darken on
+`#12151B` than it had on `#0B0D10`: a black shadow at 45% opacity drops the
+ground by **3.5** points of L* now, against 1.7 before. But the step from
+`--bg` to `--panel` is **8.2**, so the ground still says it more than twice as
+loudly — and there is nothing in this app that sits *above* the page for a
+shadow to lift. Panels sit on it. The rule stands, and now it stands on a
+number rather than on an impression.
 
 `test/surface.test.ts` holds a ratchet at zero over both `shadow-*` and
 `z-*`, which at zero is a ban.
