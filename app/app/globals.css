@@ -41,6 +41,35 @@
   --t-data: 13px;     --t-data-line: 1.55;
   --t-label: 11px;    --t-label-line: 1.3;
 
+  /* The corner says what kind of thing this is, not how modern it looks.
+     Three values, measured in place on 2026-09-11 (4px ×10, 2px ×8, 9999px
+     ×4) and named here so there can be no fourth. A box has an inside, a mark
+     is laid over text, a dot is a state. Asserted against lib/surface.ts.
+     docs/design-system.md §10. */
+  --r-box: 4px;
+  --r-mark: 2px;
+  --r-dot: 9999px;
+
+  /* One focus ring, declared once.
+     Measured the same day, the three Tailwind focus utilities were written by
+     hand at 14 call sites across 10 files, with the colour set separately at
+     19. All 14 are correct; nothing makes the 15th correct. §4 records what
+     that pattern already cost once, when --line-control was added for Button
+     and every input in the app was missed.
+     The colour is not a token: a ring is drawn on the ground *outside* the
+     control and has to clear 3:1 against it, which is a per-variant decision.
+     `primary` rings in --celo while its own text is --bg. §11. */
+  --ring-w: 2px;
+  --ring-gap: 2px;
+  --ring-inset: -2px;
+
+  /* Two durations. §8 left motion undecided and the app has none at all --
+     zero CSS transitions on 2026-09-11 -- so this decides it as a ceiling
+     rather than as a feature: fast is a state the reader just caused, slow is
+     the meter's geometry, and nothing else moves. §12. */
+  --m-fast: 90ms;
+  --m-slow: 400ms;
+
   /* Mono is what a reader looks at; sans is what they read. The landing page
      has to persuade someone skimming, and that is where mono costs most. */
   --mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
@@ -76,14 +105,14 @@ body {
 .field {
   background: var(--well);
   border: 1px solid var(--line-control);
-  border-radius: 4px;
+  border-radius: var(--r-box);
 }
 
 /* :focus-visible, not :focus, so a pointer click does not draw a ring the
    mouse user did not ask for. --text is 14.90:1 on --panel. */
 .field:focus-visible {
-  outline: 2px solid var(--text);
-  outline-offset: 2px;
+  outline: var(--ring-w) solid var(--text);
+  outline-offset: var(--ring-gap);
 }
 
 /* An invalid value keeps the ring but states itself in the border. */
@@ -126,9 +155,9 @@ body {
  * .field; `currentColor` because `Address` is drawn in --dim on the landing
  * and in the label tone on the dashboard, and the ring has to follow. */
 .tap-focus:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
-  border-radius: 2px;
+  outline: var(--ring-w) solid currentColor;
+  outline-offset: var(--ring-gap);
+  border-radius: var(--r-mark);
 }
 
 /* Money is always mono and always tabular, so digits do not change width
@@ -143,3 +172,52 @@ body {
    not here. A `display: none` on an <animate> element applies and achieves
    nothing: SMIL has no renderer to suppress, so the animation keeps running.
    The only way to stop it is not to mount it. */
+
+/* The ring itself, for everything that is not .field or .tap-focus.
+ *
+ * Named `.focus-ring`, not `.ring`: Tailwind ships utilities called `ring`
+ * and `ring-inset` that draw a box-shadow, and a class of ours under the same
+ * name would be generated alongside ours and paint a shadow this design does
+ * not have (§13).
+ *
+ * The colour is currentColor and is meant to be overridden. A ring is drawn
+ * on the ground *outside* the control, so it has to clear 3:1 against that
+ * ground -- a per-variant decision, not a constant. Button's `primary` rings
+ * in --celo while its own text is --bg; `ghost` on the paused header rings in
+ * --bg, because --text measures 3.16 on that band and --bad measures 1.00.
+ * Components say so with `outlineColor`, which is what all 19 call sites
+ * already do; currentColor is the right answer everywhere else.
+ * docs/design-system.md §11.
+ */
+.focus-ring:focus-visible {
+  outline: var(--ring-w) solid currentColor;
+  outline-offset: var(--ring-gap);
+}
+
+/* The same ring turned inward, for a full-bleed row inside a panel. An
+ * outside ring on SecurityBoundary's proof links is drawn past the panel edge
+ * and clipped; this one lands on the row itself. Two offsets, not a free
+ * number -- the negative value is the only reason a second class exists. */
+.focus-ring-inset:focus-visible {
+  outline: var(--ring-w) solid currentColor;
+  outline-offset: var(--ring-inset);
+}
+
+/* The ground drifts; the data snaps -- and for a reader who has asked the OS
+ * to stop animating, nothing drifts either.
+ *
+ * This is the CSS half of the guard. The SMIL half cannot live here: a
+ * `display: none` on an <animate> element applies and achieves nothing, so
+ * Meter.tsx does not mount it (see the note above .num). A blanket rule is
+ * right for transitions because the alternative is remembering the media
+ * query at every call site, which is the same failure mode the focus ring
+ * had. 1ms rather than 0 so `transitionend` still fires and nothing that
+ * waits on it hangs. §12. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -11,8 +11,10 @@ export default function BrandLink({
     <Link
       href="/"
       aria-label="Leash home"
-      className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+      className="focus-ring"
       style={{
+        // A mark laid over text, not a box: the wordmark has no inside. §10.
+        borderRadius: 'var(--r-mark)',
         fontFamily: 'var(--mono)',
         fontSize: large ? 'var(--t-title)' : 'var(--t-label)',
         lineHeight: large ? 'var(--t-title-line)' : 'var(--t-label-line)',

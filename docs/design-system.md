@@ -421,10 +421,11 @@ All three wear the same shell: the header band, one sentence at
 
 ## 8. Not decided here
 
-- **Motion.** Nobody has complained that the app feels dead, and the meter
-  already honours `prefers-reduced-motion` by not mounting the animation
-  (`Meter.tsx` — a `display:none` on `<animate>` does nothing, since SMIL has
-  no renderer to suppress). Left alone deliberately.
+- **Motion.** ~~Nobody has complained that the app feels dead~~ — **decided in
+  §12 on 2026-09-11.** The meter still honours `prefers-reduced-motion` by not
+  mounting the animation (`Meter.tsx` — a `display:none` on `<animate>` does
+  nothing, since SMIL has no renderer to suppress); what §12 adds is a ceiling
+  on everything else.
 - **Light mode.** The palette is dark-only and the contrast work assumes it.
 - **Mobile beyond what exists.** Spec §2.1 asks for mobile-first because
   MiniPay is a phone; the current layout is responsive and was untested at
@@ -463,3 +464,261 @@ So: edit both, or the suite will tell you. And when a rule here changes,
 change it here first. A rule that lives only in a comment is a rule that gets
 dropped and leaves nothing behind — which is exactly how spec §4.1 came to
 describe a visual direction that had not existed for a day.
+
+---
+
+# v2 — the axes that were empty
+
+Added 2026-09-11. §1–§9 decided type, spacing, colour, state language and
+components, and nothing else. Five axes were left with no rule at all, which
+is not the same as having no values: the app had values for every one of them,
+arrived at by whoever wrote each line.
+
+Counted across `app/` and `components/` before any of this was written:
+
+```
+radius        4px ×10, 2px ×8, 9999px ×4    three values, never named
+focus ring    14 hand-written call sites in 10 files, colour set at 19
+motion        0 CSS transitions
+elevation     0 shadows, 0 z-index, 0 overlays
+padding       p-6 ×27, p-4 ×11, p-3 ×8, p-5 ×5, and 20 more
+```
+
+Four of those five were already coherent. §9's lesson applies to them exactly
+as it applies to a number — **a rule that lives only in the code is a rule
+that gets dropped and leaves nothing behind.** What follows mostly names what
+the app already does, and in the two places where it does not, records the
+gap as a debt that can only shrink.
+
+These sections come after §9 rather than before it because renumbering would
+break every `§n` reference in the code comments. §9 is still the last word on
+how to change this file.
+
+---
+
+## 10. Radius: the corner says what kind of thing it is
+
+Three values, and the choice between them is about what a thing **is**, not
+about how modern it looks.
+
+| Token | Value | For |
+|---|---|---|
+| `--r-box` | 4px | anything with an inside: `Panel`, `Button`, `.field`, a status box |
+| `--r-mark` | 2px | a mark laid over text: the ring on an inline link, the wordmark, a small badge |
+| `--r-dot` | 9999px | a state dot, and only ever that |
+
+### Why three and not one
+
+One radius on everything is the tell of a kit rather than a system. It makes a
+status dot and a submit button claim to be the same kind of object, and in an
+interface whose entire job is to distinguish *a thing that happened* from *a
+thing you can do*, that is a claim this design cannot afford.
+
+So: **a pill in this UI means status.** The `rounded-full` marks in `Feed` and
+`ProtectionModel` are events and states; none of them is pressable. A
+pill-shaped control would read as a badge, and a badge that turns out to spend
+money is the worst possible outcome of a shape.
+
+### Rules
+
+- **There is no fourth radius.** `test/surface.test.ts` asserts the set, so a
+  `--r-card: 12px` fails the suite rather than passing review.
+- **`rounded` and `--r-box` are both 4px today. Prefer the token.** The
+  coincidence is not the rule; the token is. `Button`, `ActionLink` and
+  `BrandLink` set `borderRadius` from it.
+- **Radius is never a state.** Nothing grows a corner on hover or on focus.
+  The ring says focus (§11).
+
+---
+
+## 11. Focus: one ring, declared once
+
+Measured 2026-09-11, the three Tailwind focus utilities
+
+```
+focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+```
+
+were written out by hand at **14 call sites across 10 files**, with the
+outline colour set separately at **19**. Every one of them was correct.
+
+That is the point. Nothing made the fifteenth correct, and §4 already records
+what this pattern costs: `--line-control` was introduced for `Button`, and
+every input in the app was missed — including the two fields that set how much
+an agent may spend. The ring had simply not yet had its turn.
+
+### The tokens
+
+| Token | Value | Why |
+|---|---|---|
+| `--ring-w` | 2px | 1px was the defect. Measured 2026-09-05, an enabled input fell back to Chrome's `auto 1px rgb(0,95,204)`. |
+| `--ring-gap` | 2px | the ring sits outside the control, where there is room |
+| `--ring-inset` | −2px | turned inward, for a full-bleed row whose outside ring would be clipped by the panel edge |
+
+Two classes in `globals.css` spend them: `.focus-ring` and
+`.focus-ring-inset`. The negative offset is the only reason a second class
+exists; a third would mean the offset had become a free number again.
+
+**Not `.ring`.** Tailwind ships `ring` and `ring-inset` as box-shadow
+utilities. A class of ours under either name would be emitted alongside
+Tailwind's and paint a shadow this design does not have (§13) — on the one
+control state where a reader most needs to see the truth. The test asserts the
+name is not taken.
+
+### The colour is deliberately not a token
+
+A ring is a non-text UI boundary drawn on the ground **outside** the control,
+so it has to clear 3:1 against *that* ground — which is a per-variant
+decision, not a constant.
+
+`Button`'s `primary` rings in `--celo` while its own text is `--bg`. Its
+`ghost` on the paused header rings in `--bg`, because `--text` measures 3.16
+on that band and `--bad` measures 1.00 — the same invisible-warning arithmetic
+§4 was written to make impossible. The classes default to `currentColor`,
+which is right wherever a control is drawn in the colour it should ring in,
+and every call site that differs says so with `outlineColor`.
+
+### What is left
+
+`Button`, `ActionLink` and `BrandLink` moved onto `.focus-ring`; **11
+hand-written rings remain**, in the seven files `test/scaleUsage.test.ts`
+records. They are correct and they are debt. The ratchet means the count can
+fall and cannot rise.
+
+The rule for anything new: **a control does not build its own focus ring.**
+Use a primitive, or `.focus-ring`.
+
+---
+
+## 12. Motion: the ground drifts, the data snaps
+
+§8 left this undecided and the app has none at all — zero CSS transitions on
+2026-09-11. So this is a ceiling, not a feature. Nothing here asks for
+movement that does not exist; it says which movement would be allowed if
+someone reached for it.
+
+`globals.css` has carried the sentence *the ground drifts; the data snaps*
+since the meter was built. This gives it numbers.
+
+| Token | Value | For |
+|---|---|---|
+| `--m-fast` | 90ms | a state the reader just caused: a disclosure opening, a copy landing, a control enabling |
+| `--m-slow` | 400ms | the meter's geometry moving to a new value |
+
+### Rules
+
+- **Money never animates its digits.** `.num` is `tabular-nums` so a figure
+  that changes live does not reflow (`CLAUDE.md`); a counted-up number would
+  reintroduce exactly the reflow the class exists to prevent, and would show a
+  sequence of values that were never true. The meter's *geometry* may ease.
+  The number it describes changes in one frame.
+- **No ambient motion.** Nothing moves that the reader did not cause. No
+  entrance on scroll, no transition on hover, no pulse on a live value. This
+  is a screen someone watches while an agent spends real money; a page that
+  moves on its own makes the one movement that matters — the meter — stop
+  being a signal.
+- **`--m-slow` has exactly one user.** A second thing at 400ms competes with
+  the meter for the eye, and the meter is the instrument.
+- **`prefers-reduced-motion` is handled once, globally.** A blanket rule at
+  the end of `globals.css` collapses every transition and animation to 1ms.
+  1ms rather than 0 so `transitionend` still fires and nothing waiting on it
+  hangs. Per-component media queries are how the focus ring ended up written
+  fourteen times.
+- **The SMIL half cannot live in CSS.** `display: none` on an `<animate>`
+  element applies and achieves nothing, so `Meter.tsx` does not mount it. The
+  global guard covers CSS transitions; SMIL is still a mount decision.
+
+---
+
+## 13. Elevation: there is no layer above the page
+
+Measured 2026-09-11: **zero shadows, zero `z-index`, zero overlays.**
+`LimitsDrawer` expands in flow with `aria-expanded`/`aria-controls`;
+`AccountSwitcher` is a native `<select>`, which puts its list in the browser's
+own layer rather than ours.
+
+That is a decision and it is now written down, which by §5's standard is the
+most useful thing this section does.
+
+### The rule
+
+> **Depth is a change of ground, never a shadow.**
+> `--well` (#07090B) sits below `--bg` (#0B0D10) sits below `--panel`
+> (#14171C).
+
+A soft grey shadow on a #0B0D10 ground is very nearly invisible, so it buys no
+depth; what it delivers instead is the one ornament §1 refuses. Three grounds
+already express every level this app has.
+
+`test/surface.test.ts` holds a ratchet at zero over both `shadow-*` and
+`z-*`, which at zero is a ban.
+
+### If a real overlay is ever needed
+
+Use `<dialog>`. It renders in the browser's top layer, above everything,
+**without a `z-index`** — so the ban survives the feature. It also brings
+focus trapping and Escape, which `LimitsDrawer` had to implement by hand
+(and note what it chose for the destructive case: `window.confirm`, the
+browser's own dialog, rather than a modal of ours).
+
+If that turns out to be wrong, §9 applies: change this section first and the
+test second.
+
+---
+
+## 14. Padding: the fourth step, and the one exception
+
+§3 gave margins and gaps four steps and then said of padding that *the table
+above never claimed the four steps governed it* — reading `4` as an error was
+left to a person, so `test/scaleUsage.test.ts` did not look.
+
+It looks now, because the judgement the regex was missing turns out to be one
+sentence.
+
+### The rule
+
+**The four steps of §3 govern padding too — 2, 3, 6, 12 — and `4` is legal on
+the horizontal axis only.**
+
+That exception is not a compromise; it is the measurement. `PAGE` is `px-4`
+and §3 spends a paragraph on why the gutter is 16px and not 24. `Button` is
+`px-4 py-2` because a control is wider than it is tall. Both are deliberate.
+`p-4` on a panel is the one that drifted, at 11 uses.
+
+| Step | px | Meaning |
+|---|---|---|
+| `2` | 8 | inside a single control |
+| `3` | 12 | a tight inner box: a code block, a feed row |
+| `6` | 24 | a panel — the dominant value already, at 27 uses |
+| `12` | 48 | a full-bleed band |
+| `x-4` | 16 | the page gutter, and the horizontal half of a control |
+
+And the relationship that makes it feel composed rather than merely
+consistent: **a container's padding is one step above the gap between its
+children.** A `Panel` at `p-6` holds rows at `gap-3`. A control at `py-2`
+holds its parts at `gap-2` — the floor, where the two meet.
+
+### The debt
+
+**38 off-scale paddings on 2026-09-11**, `p-4` the largest share at 11, and 13
+of the 38 in `app/setup/page.tsx` — the same file that holds 53 of the raw
+type sizes and 43 of the off-scale margins. The wizard is where this design
+system's debt lives, and that is now three ratchets pointing at one file.
+
+Unlike §2's 120 and §3's 90, this one is small enough to pay off in a sitting.
+
+---
+
+## 15. Still not decided
+
+- **Light mode.** Unchanged from §8: the palette is dark-only and the contrast
+  work assumes it.
+- **Mobile beyond reach.** §8's last bullet stands. Reach is fixed and
+  measured; layout at width, landscape, and the wizard on a small screen are
+  not.
+- **Density.** One size of everything, on every screen. A dashboard watched on
+  a phone and one watched on a desk may not want the same `Panel` padding, and
+  nobody has measured whether that matters here.
+- **Iconography.** There is none, deliberately — `↗` and `✓` are text. If a
+  real icon ever arrives it needs a rule about size, stroke and alignment to
+  the type scale, and none exists.

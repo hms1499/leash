@@ -11,8 +11,8 @@ type Variant = 'primary' | 'ghost' | 'stop'
  */
 const BASE =
   'inline-flex items-center justify-center min-h-[44px] ' +
-  'rounded cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ' +
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 px-4 py-2'
+  'cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ' +
+  'focus-ring px-4 py-2'
 
 /**
  * Tailwind 3's preflight resets button cursors to `auto`, so the pointer is
@@ -42,6 +42,10 @@ export default function Button({
     fontFamily: 'var(--mono)',
     fontSize: 'var(--t-data)',
     lineHeight: 'var(--t-data-line)',
+    // --r-box, not Tailwind's `rounded`. The two are both 4px today, so this
+    // is not a visual change; it is the difference between a coincidence and
+    // a rule. design-system.md §10.
+    borderRadius: 'var(--r-box)',
   }
 
   /**

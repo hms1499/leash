@@ -126,8 +126,16 @@ describe('the field treatment', () => {
     expect(field).not.toMatch(/var\(--line\)/)
   })
 
+  /**
+   * The width moved to --ring-w on 2026-09-11 so that the input, the button
+   * and the inline links cannot disagree about it (design-system.md §11).
+   * This asserts the token is what draws the ring -- a literal `2px` here
+   * would pass while the rest of the app moved to some other number, which is
+   * the drift the token exists to stop. The value itself is asserted once, in
+   * test/surface.test.ts.
+   */
   it('rings focus in this palette rather than the browser default', () => {
-    expect(css).toMatch(/\.field:focus-visible\s*\{[^}]*outline:\s*2px solid/)
+    expect(css).toMatch(/\.field:focus-visible\s*\{[^}]*outline:\s*var\(--ring-w\) solid var\(--text\)/)
   })
 
   // :focus would ring a mouse user who never asked to see where focus is.
