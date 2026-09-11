@@ -288,6 +288,34 @@ describe('the bright band', () => {
 })
 
 /**
+ * §17: the mark is filled geometry in `currentColor` and carries no stroke.
+ *
+ * Both halves are load-bearing. A hex here would be a second place where a
+ * colour has to be remembered, and the first place anyone forgets is the
+ * bright band -- the defect §4 was just fixed for. A stroke has a width that
+ * does not scale with the type step the mark is set at, so the wordmark and a
+ * hero would carry two different line weights.
+ */
+describe('the mark', () => {
+  const mark = readFileSync(join(ROOT, 'components/ui/Mark.tsx'), 'utf8')
+
+  it('takes its colour from whatever it sits in', () => {
+    expect(mark).toContain('fill="currentColor"')
+    expect(mark.match(/#[0-9A-Fa-f]{3,8}/g)).toBeNull()
+  })
+
+  it('is drawn in fill, not in stroke', () => {
+    expect(mark).not.toMatch(/stroke[-A-Za-z]*[=:]/)
+  })
+
+  /** Height, not width: the mark is measured the way the type beside it is. */
+  it('is set by its height', () => {
+    expect(mark).toContain("height: size")
+    expect(mark).toContain("width: 'auto'")
+  })
+})
+
+/**
  * §13: this app has no layer above the page, and that is a decision rather
  * than an omission. Depth is a change of ground (--well < --bg < --panel), so
  * a soft grey shadow would be both invisible on #0B0D10 and the one ornament

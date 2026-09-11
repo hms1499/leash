@@ -200,3 +200,29 @@ test('a control answers the pointer resting on it', async ({ page }) => {
   await page.mouse.move(0, 0)
   await expect.poll(border).toBe('rgb(123, 131, 142)')
 })
+
+/**
+ * §17: the mark takes its colour from whatever it sits in. A unit test can
+ * prove `Mark.tsx` writes `currentColor` and no hex; only the browser proves
+ * the cascade delivered it — and that the drawing is not a seven-pixel smudge
+ * at the step it was set to, which is what it was before its height doubled.
+ */
+test('the brand mark is drawn in the colour of the brand', async ({ page }) => {
+  await page.goto('/')
+  const brand = page.getByRole('navigation', { name: 'Primary' }).getByLabel('Leash home')
+  await expect(brand).toBeVisible()
+
+  const mark = await brand.locator('svg').evaluate((el) => {
+    const cs = getComputedStyle(el)
+    const box = el.getBoundingClientRect()
+    return { fill: cs.fill, colour: getComputedStyle(el.parentElement as Element).color,
+             height: Math.round(box.height), width: Math.round(box.width) }
+  })
+
+  // --celo, and the same value the wordmark beside it is set in.
+  expect(mark.fill).toBe(mark.colour)
+  expect(mark.fill).toBe('rgb(252, 255, 82)')
+  // Twice the label step, and a width that follows from the 10:21 viewBox.
+  expect(mark.height).toBeGreaterThanOrEqual(20)
+  expect(mark.width).toBeGreaterThanOrEqual(9)
+})

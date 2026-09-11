@@ -1,17 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <!--
-    The product in one mark: a bar that runs out of room.
+    The mark: two cubes, stacked, meeting at a point. Drawn by the maintainer
+    and adopted on 2026-09-11, replacing a drawing of the meter.
 
-    The dark track is --well, the spent portion --meter-fill, and the wall on
-    the right is --celo. It is the meter, reduced until only the idea is left,
-    which is the one thing every screen in this app is drawing. Deliberately
-    not a letter or a padlock: the argument is not secrecy, it is a limit.
+    The geometry is the one in components/ui/Mark.tsx, placed in a nested
+    viewBox rather than recomputed here: one drawing, two files, and the inner
+    coordinates stay comparable line for line.
 
-    Values are the palette's, copied rather than tokenised because a favicon
-    is a standalone file with no access to CSS custom properties.
+    The colours are the palette's, copied because a favicon is a standalone
+    file with no access to CSS custom properties -- and copied is exactly why
+    test/tokens.test.ts checks them. The previous version of this file still
+    carried #0B0D10 and #07090B after §4 lifted the grounds, so the one image
+    a reader sees before the page even loads was painted in a palette the app
+    no longer used.
+
+    The mark is 22 of 32 tall: at 16px a tab icon is 16 pixels for everything,
+    and leaving it any more margin than this loses the open lids to blur.
   -->
-  <rect width="32" height="32" rx="7" fill="#0B0D10"/>
-  <rect x="6" y="13" width="20" height="6" rx="1" fill="#07090B"/>
-  <rect x="6" y="13" width="11" height="6" rx="1" fill="#5C6E88"/>
-  <rect x="23" y="10" width="3" height="12" rx="1" fill="#FCFF52"/>
+  <rect width="32" height="32" rx="7" fill="#12151B"/>
+  <svg x="10.76" y="5" width="10.48" height="22" viewBox="0 0 10 21" fill="#FCFF52">
+    <path fill-rule="evenodd" d="M5 0 10 2.5 5 5 0 2.5Z M5 0.56 8.88 2.5 5 4.44 1.12 2.5Z"/>
+    <path d="M0 2.5 4.65 5 5 10.5 0 8Z"/>
+    <path d="M10 2.5 5.35 5 5 10.5 10 8Z"/>
+    <path fill-rule="evenodd" d="M5 10.5 10 13 5 15.5 0 13Z M5 11.06 8.88 13 5 14.94 1.12 13Z"/>
+    <path d="M0 13 4.65 15.5 5 21 0 18.5Z"/>
+    <path d="M10 13 5.35 15.5 5 21 10 18.5Z"/>
+  </svg>
 </svg>

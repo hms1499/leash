@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Mark from './Mark'
 
 /** The brand is always an escape route, including from public account links. */
 export default function BrandLink({
@@ -22,7 +23,7 @@ export default function BrandLink({
       // the wizard was checked, where `large` was hiding it. Moving the four
       // headers onto AppHeader made the brand one size everywhere and the
       // test finally saw it.
-      className="focus-ring inline-flex items-center min-h-[44px]"
+      className="motion-press focus-ring inline-flex items-center gap-2 min-h-[44px]"
       style={{
         // A mark laid over text, not a box: the wordmark has no inside. §10.
         borderRadius: 'var(--r-mark)',
@@ -35,6 +36,11 @@ export default function BrandLink({
         outlineColor: onBright ? 'var(--bg)' : 'var(--celo)',
       }}
     >
+      {/* The mark is 1:2.1 -- tall and narrow -- so sized at the type step
+          beside it, it would be seven pixels wide and read as a smudge. §17:
+          a mark is set by its height against the cap height of the type it
+          sits with, and this one needs twice the step to carry. */}
+      <Mark size={large ? 'calc(var(--t-title) * 1.6)' : 'calc(var(--t-label) * 2)'} />
       LEASH
     </Link>
   )
