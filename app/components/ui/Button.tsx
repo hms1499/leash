@@ -12,13 +12,19 @@ type Variant = 'primary' | 'ghost' | 'stop'
 const BASE =
   'inline-flex items-center justify-center min-h-[44px] ' +
   'cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ' +
-  'focus-ring px-4 py-2'
+  'motion-control focus-ring px-4 py-2'
 
 /**
  * Tailwind 3's preflight resets button cursors to `auto`, so the pointer is
  * set here rather than inherited. And a disabled button used to render
  * identically to a live one -- only the label changed -- which on a control
  * that spends real money is the wrong thing to leave ambiguous.
+ *
+ * `motion-control` is the 90ms §12 set aside for a control enabling and nothing
+ * spent. Every write in this app disables its button for the length of a
+ * wallet confirmation and a chain read, and the return crossing -- the moment
+ * the control is live again -- is the one the reader is waiting on. It arrived
+ * in a single frame, indistinguishable from a re-render.
  *
  * The focus ring is ours to build: no component library ships in this project
  * (spec §2.2), so nothing supplies it if this does not.

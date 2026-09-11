@@ -229,7 +229,12 @@ export default function LimitsDrawer({
         {open ? 'Close protection editor' : 'Edit protection'}
       </Button>
       {open && (
-        <Panel className="p-6 mt-3">
+        // §13 has no layer above the page, so this editor expands in flow and
+        // pushes the panels below it down. `motion-reveal` is the 90ms §12 set
+        // aside for a disclosure opening: without it, a panel the reader
+        // asked for and the shove it gives the page arrive in the same frame
+        // and nothing says which caused which.
+        <Panel className="motion-reveal p-6 mt-3">
           <div id="protection-editor">
             {loading ? (
               <Label className="block">Reading the current limits…</Label>

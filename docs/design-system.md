@@ -781,21 +781,32 @@ Use a primitive, or `.focus-ring`.
 
 ## 12. Motion: the ground drifts, the data snaps
 
-§8 left this undecided and the app has none at all — zero CSS transitions on
-2026-09-11. So this is a ceiling, not a feature. Nothing here asks for
-movement that does not exist; it says which movement would be allowed if
-someone reached for it.
+§8 left this undecided and the app had none at all — zero CSS transitions on
+2026-09-11. This was written as a ceiling: it named two durations for movement
+that did not exist, and said which movement would be allowed if someone
+reached for it.
+
+Both are spent now, and on exactly the cases named below — a rule that lists
+three uses and is spent on none of them is a note, not a rule.
+`test/surface.test.ts` asserts each token is drawn from `var(--m-…)` at its
+call site, that `--m-slow` has exactly one user, and that no component writes
+a duration of its own.
 
 `globals.css` has carried the sentence *the ground drifts; the data snaps*
 since the meter was built. This gives it numbers.
 
-| Token | Value | For |
-|---|---|---|
-| `--m-fast` | 90ms | a state the reader just caused: a disclosure opening, a copy landing, a control enabling |
-| `--m-slow` | 400ms | the meter's geometry moving to a new value |
+| Token | Value | For | Spent by |
+|---|---|---|---|
+| `--m-fast` | 90ms | a state the reader just caused | `.motion-reveal` — `LimitsDrawer` opening in flow, `Address`'s copy outcome landing; `.motion-control` — `Button` crossing between enabled and disabled |
+| `--m-slow` | 400ms | the meter's geometry moving to a new value | `.meter-fill`, and nothing else, ever |
 
 ### Rules
 
+- **A transition does not run on first render, and that is load-bearing.**
+  The meter's fill arrives at today's figure rather than sweeping up to it;
+  what eases is the *next* change, when an agent spends and the bar moves
+  towards a wall that is visibly where it was. An entrance on load is movement
+  the reader did not cause, which the next rule but one refuses.
 - **Money never animates its digits.** `.num` is `tabular-nums` so a figure
   that changes live does not reflow (`CLAUDE.md`); a counted-up number would
   reintroduce exactly the reflow the class exists to prevent, and would show a

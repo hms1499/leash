@@ -68,6 +68,24 @@ test('the meter animates when the OS has not asked otherwise', async ({ page }) 
   await expect(page.locator('.meter animate')).toHaveCount(1)
 })
 
+/**
+ * §12 gave the meter's geometry 400ms and nothing spent it: the fill jumped to
+ * a new width in one frame, which on the app's one instrument is the movement
+ * a reader is most likely to be watching for. A unit test can read the rule
+ * out of globals.css; only the browser says the rule reached the element.
+ */
+test('the meter eases its geometry rather than jumping', async ({ page }) => {
+  await page.goto(`/a/${ACCOUNT}`)
+  const fill = page.locator('.meter .meter-fill')
+  await expect(fill).toHaveCount(1, { timeout: 30_000 })
+  const eased = await fill.evaluate((el) => {
+    const cs = getComputedStyle(el)
+    return { property: cs.transitionProperty, duration: cs.transitionDuration }
+  })
+  expect(eased.property).toContain('width')
+  expect(eased.duration).toBe('0.4s')
+})
+
 test('the dashboard does not scroll sideways on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 760 })
   await page.goto(`/a/${ACCOUNT}`)

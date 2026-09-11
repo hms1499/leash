@@ -149,8 +149,15 @@ export default function Meter({
       >
         <rect width={TRACK} height="14" fill="var(--well)" />
 
+        {/* `meter-fill` eases this rect's width over --m-slow. A CSS
+            transition does not run on the first render, so the bar arrives at
+            today's figure rather than sweeping up to it -- §12 allows movement
+            the reader caused, and loading a page is not that. What it does
+            catch is the next poll: an agent spends, and the wall the bar is
+            travelling towards is visibly where it was. The figure above still
+            changes in one frame; only the geometry eases. */}
         {!paused && !loading && (
-          <rect width={width} height="14" fill="var(--meter-fill)">
+          <rect className="meter-fill" width={width} height="14" fill="var(--meter-fill)">
             {/* Mounted only when motion is allowed. Hiding an <animate> in CSS
                 matches, applies, and achieves nothing: SMIL has no renderer to
                 suppress, so it keeps running and keeps costing a phone its

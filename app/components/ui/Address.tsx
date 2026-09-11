@@ -86,7 +86,10 @@ export default function Address({
     <span
       role="status"
       aria-atomic="true"
-      className={state === 'idle' ? 'sr-only' : 'ml-2'}
+      // `motion-reveal` is §12's 90ms for a copy landing. The outcome appears beside
+      // an address that does not move, which is the point: the row must not
+      // reflow (see the note above), so the only thing that may change is this.
+      className={state === 'idle' ? 'sr-only' : 'motion-reveal ml-2'}
       style={state === 'idle' ? undefined : { color: state === 'copied' ? 'var(--ok)' : 'var(--bad)' }}
     >
       {state === 'copied'

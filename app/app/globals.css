@@ -220,6 +220,39 @@ body {
   outline-offset: var(--ring-inset);
 }
 
+/* §12 named --m-fast for three things -- a disclosure opening, a copy landing,
+ * a control enabling -- and then nothing spent it: measured 2026-09-11 the app
+ * had zero CSS transitions, so all three arrived in one frame with no sign
+ * that the app had registered the click. These two classes are that token's
+ * only users, and they are deliberately the whole vocabulary.
+ *
+ * Every one of them fires because the reader did something. §12 bans the other
+ * kind outright: no entrance on scroll, no transition on hover, no pulse on a
+ * live value. A page that moves on its own makes the one movement that matters
+ * -- the meter -- stop being a signal. And the guard below collapses both to
+ * 1ms for a reader who has asked the OS to stop.
+ *
+ * 2px, not 8: this is a thing appearing where it already was, not a thing
+ * flying in. Anything further reads as an entrance, and an entrance is what
+ * §12 refuses. */
+/* `motion-`, not `m-`: Tailwind owns `m-*` for margin, and a class of ours in
+ * that namespace reads as a spacing utility at every call site. */
+@keyframes motion-reveal {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: none; }
+}
+/* A disclosure the reader opened, or the outcome of a copy they asked for. */
+.motion-reveal { animation: motion-reveal var(--m-fast) ease-out; }
+/* A control crossing between enabled and disabled. Opacity only -- the
+ * disabled treatment is `disabled:opacity-45` and nothing else moves. */
+.motion-control { transition: opacity var(--m-fast) linear; }
+
+/* --m-slow's one user, and §12 says it may only ever have one: a second thing
+ * at 400ms competes with the meter for the eye, and the meter is the
+ * instrument. `width` is a geometry presentation attribute on an SVG rect and
+ * transitions like any other property. */
+.meter-fill { transition: width var(--m-slow) ease-out; }
+
 /* The ground drifts; the data snaps -- and for a reader who has asked the OS
  * to stop animating, nothing drifts either.
  *

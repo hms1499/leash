@@ -121,6 +121,48 @@ describe('motion', () => {
   })
 
   /**
+   * §12 was written as a ceiling: it named two durations for an app that had
+   * zero CSS transitions, so both tokens described movement that did not
+   * exist. They are spent now, and these say on what -- a rule that names
+   * three cases and is spent on none of them is not a rule, it is a note.
+   */
+  it('spends --m-fast on the states §12 named, from the token', () => {
+    for (const rule of ['.motion-reveal {', '.motion-control {']) {
+      const at = css.indexOf(rule)
+      expect(at, `${rule} is missing from globals.css`).toBeGreaterThan(-1)
+      expect(css.slice(at, css.indexOf('}', at))).toContain('var(--m-fast)')
+    }
+  })
+
+  /**
+   * §12: "--m-slow has exactly one user." A second thing at 400ms competes
+   * with the meter for the eye, and the meter is the instrument. One is also
+   * the floor -- it was zero until the fill was given the transition the
+   * token was named for.
+   */
+  it('spends --m-slow on the meter, and on nothing else', () => {
+    expect([...css.matchAll(/var\(--m-slow\)/g)]).toHaveLength(1)
+    const at = css.indexOf('.meter-fill {')
+    expect(at).toBeGreaterThan(-1)
+    expect(css.slice(at, css.indexOf('}', at))).toContain('transition: width var(--m-slow)')
+  })
+
+  /**
+   * Two classes and the meter are the whole vocabulary. A duration written
+   * inline at a call site is how the focus ring reached fourteen copies, and
+   * it also escapes `lib/surface.ts` -- the file these tests read to know what
+   * the app is allowed to spend.
+   */
+  it('has no component writing a duration of its own', () => {
+    const offenders = FILES
+      .map((f) => ({ f, hits: [...readFileSync(join(ROOT, f), 'utf8')
+        .matchAll(/transitionDuration|animationDuration|(?<![\w-])(?:duration|animate)-\[/g)].length }))
+      .filter(({ hits }) => hits > 0)
+      .map(({ f, hits }) => `${f}: ${hits}`)
+    expect(offenders).toEqual([])
+  })
+
+  /**
    * The guard is blanket and global on purpose. The alternative is
    * remembering the media query at every call site, which is exactly how the
    * focus ring came to be written out by hand fourteen times.
