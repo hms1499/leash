@@ -11,7 +11,18 @@ export default function BrandLink({
     <Link
       href="/"
       aria-label="Leash home"
-      className="focus-ring"
+      // The 44px floor goes in the box, as it does on Button and ActionLink,
+      // not in a .tap-tall pseudo-element: that one extends the hit area
+      // without extending the box, and e2e/reach.spec.ts measures the
+      // rendered box on purpose -- a class can be present and beaten by a
+      // more specific rule. Address wears the pseudo-element because its 42
+      // characters have to stay free to wrap; a six-letter wordmark does not.
+      //
+      // Measured 2026-09-11 at 375px: 14.3px. Every screen had this and only
+      // the wizard was checked, where `large` was hiding it. Moving the four
+      // headers onto AppHeader made the brand one size everywhere and the
+      // test finally saw it.
+      className="focus-ring inline-flex items-center min-h-[44px]"
       style={{
         // A mark laid over text, not a box: the wordmark has no inside. §10.
         borderRadius: 'var(--r-mark)',

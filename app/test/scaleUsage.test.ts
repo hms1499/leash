@@ -97,7 +97,7 @@ const RAW_TYPE_DEBT: Record<string, number> = {
 const OFF_SCALE_GAP_DEBT: Record<string, number> = {
   // 44 on 2026-09-10. One `mt-5` left when the two competing alert regions
   // below the stepper became one `mt-6`.
-  'app/setup/page.tsx': 43,
+  'app/setup/page.tsx': 41,
   'components/AccountsPage.tsx': 3,
   'components/AgentAccessPanel.tsx': 3,
   'components/AgentPanel.tsx': 3,
@@ -111,7 +111,6 @@ const OFF_SCALE_GAP_DEBT: Record<string, number> = {
   'components/landing/LiveProof.tsx': 1,
   'components/landing/ProtectionModel.tsx': 4,
   'components/landing/SecurityBoundary.tsx': 2,
-  'components/landing/SiteHeader.tsx': 1,
   'components/landing/UseCaseGrid.tsx': 2,
   'components/ui/Section.tsx': 1,
 }

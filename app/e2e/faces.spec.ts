@@ -19,7 +19,11 @@ const CEILING: Record<string, number> = {
   // Measured in Chromium at 1280px. The first figures, before any call site
   // moved, were 17 / 9 / 6 / 12.
   '/': 12,
-  '/setup': 7,
+  // 8, not 7. The wizard traded a `large` 36px wordmark for the one every
+  // other screen wears: --t-label at the wordmark's declared 700 (§2). Its
+  // 36px mono 500 stays as the page heading, so the route gains a face. The
+  // brand is one size everywhere now, which is the point of AppHeader.
+  '/setup': 8,
   '/accounts': 6,
   // 11, not 10. This is the one entry that has ever risen, and it rose
   // because --t-display appeared on a screen that was missing it: the figure

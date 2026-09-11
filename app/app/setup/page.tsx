@@ -7,7 +7,7 @@ import McpHandoff from '../../components/McpHandoff'
 import NetworkBadge from '../../components/NetworkBadge'
 import Address from '../../components/ui/Address'
 import ActionLink from '../../components/ui/ActionLink'
-import BrandLink from '../../components/ui/BrandLink'
+import AppHeader from '../../components/ui/AppHeader'
 import Panel from '../../components/ui/Panel'
 import Label, { LABEL_STYLE } from '../../components/ui/Label'
 import { PROSE, SUBHEAD } from '../../components/ui/prose'
@@ -639,22 +639,28 @@ export default function Onboard() {
   }
 
   return (
-    <main className={`${PAGE} py-12`}>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <BrandLink large />
-          <h1 className="mt-5" style={{ ...HEADING, fontSize: 'var(--t-title)' }}>
+    <>
+      {/* The wordmark was `large` here and nowhere else -- a --t-title brand
+          directly above a --t-title page heading, which is two elements
+          claiming the same rank. AppHeader renders it at one size on every
+          screen. */}
+      <AppHeader
+        actions={
+          <>
+            <ActionLink href="/accounts">My accounts</ActionLink>
+            <NetworkBadge />
+          </>
+        }
+      />
+      <main className={`${PAGE} py-12`}>
+        <header>
+          <h1 style={{ ...HEADING, fontSize: 'var(--t-title)' }}>
             Set up a protected agent account
           </h1>
           <p className="mt-2" style={{ ...PROSE, maxWidth: '62ch', color: 'var(--dim)' }}>
             Create the account, decide what the agent may spend, then give it permission and funds.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <ActionLink href="/accounts">My accounts</ActionLink>
-          <NetworkBadge />
-        </div>
-      </header>
+        </header>
 
       <nav aria-label="Setup progress" className="mt-8">
         <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1064,6 +1070,7 @@ export default function Onboard() {
           </div>
         </Panel>
       )}
-    </main>
+      </main>
+    </>
   )
 }

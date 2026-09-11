@@ -176,6 +176,11 @@ shouts over the wordmark beside it. They are `--t-data`.
   affordance for "opens on Celoscan", and on the address it is the whole link.
 - **Letter-spacing has two values, not three.** `.16em` on `--t-label`, `.26em`
   on the wordmark. The stray `0.1em` on the stop button goes.
+- **The wordmark is the one declared exception to the scale's weights.** It is
+  `--t-label` at **700** with `.26em`, not the step's own 400 — six letters at
+  11px need the weight to hold the tracking open. `BrandLink` is the only
+  place this is allowed, and `e2e/faces.spec.ts` counts it as its own face on
+  every route so it cannot spread.
 
 ### The font
 
@@ -379,8 +384,8 @@ Two rules that follow:
 
 ## 6. Components
 
-Six primitives. If a screen needs something none of them provides, that is a
-seventh primitive, not a one-off.
+Seven primitives. If a screen needs something none of them provides, that is
+an eighth primitive, not a one-off.
 
 | Component | Its one job |
 |---|---|
@@ -390,8 +395,23 @@ seventh primitive, not a one-off.
 | `Section` | a landing section; its title is `--t-heading` |
 | `Stat` | a label-and-value pair |
 | `Address` | an address: truncated or full, optionally copyable, optionally linked to the explorer |
+| `AppHeader` | the frame above every screen's content. `band` is `none`, `panel` (dashboard) or `danger` (paused); `nav` and `actions` are slots. |
 
-Two notes on the last two:
+**`AppHeader` replaces four hand-built headers.** The landing had a nav, the
+dashboard a full-bleed band, `/accounts` a brand and a badge, and the wizard a
+`large` wordmark sitting directly above a `--t-title` page heading — two
+elements claiming one rank. Because no primitive owned the chrome,
+`/accounts` showed the word `CELO` alone in its top right with nothing beside
+it saying that was a network; in a slot shared with the dashboard's, it reads
+as what it is.
+
+`band="danger"` puts `--bad` on the outer element and `PAGE` on the content
+inside, which is §3's full-bleed rule, and propagates `onBright` to the brand
+so nothing downstream re-derives its ground — the arithmetic §4 exists to make
+impossible. `test/chrome.test.ts` asserts that nothing outside `AppHeader`,
+`Shell` and the footer imports `BrandLink`.
+
+Two notes on two of the others:
 
 **`Stat` was dead** — zero imports — while `Meter` and `LiveProof` each built
 its label-and-value pair by hand, so the two drifted. The right component

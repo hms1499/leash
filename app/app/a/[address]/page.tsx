@@ -7,7 +7,7 @@ import Meter from '../../../components/Meter'
 import Feed from '../../../components/Feed'
 import ConnectButton from '../../../components/ConnectButton'
 import NetworkBadge from '../../../components/NetworkBadge'
-import BrandLink from '../../../components/ui/BrandLink'
+import AppHeader from '../../../components/ui/AppHeader'
 import Label from '../../../components/ui/Label'
 import Panel from '../../../components/ui/Panel'
 import Button from '../../../components/ui/Button'
@@ -237,16 +237,12 @@ function Dashboard({ address }: { address: `0x${string}` }) {
     <main>
       {/* Everything on this band obeys the bright-ground rule: --bg only.
           Mixing --text at 3.16 with --bg at 5.10 was the state this was left
-          in when the invisible-badge bug was fixed in a hurry. */}
-      <header
-        style={{
-          background: state.paused ? 'var(--bad)' : 'var(--panel)',
-          borderBottom: '1px solid var(--line)',
-        }}
-      >
-        <div className={`${PAGE} flex flex-wrap items-center gap-2 py-3`}>
-          <BrandLink onBright={state.paused} />
-          <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          in when the invisible-badge bug was fixed in a hurry. AppHeader
+          propagates the ground to the brand so nothing here re-derives it. */}
+      <AppHeader
+        band={state.paused ? 'danger' : 'panel'}
+        actions={
+          <>
             <AccountSwitcher current={address} />
             {connected && <NetworkBadge onDangerBand={state.paused} />}
             {isOwner && (
@@ -259,9 +255,9 @@ function Dashboard({ address }: { address: `0x${string}` }) {
               />
             )}
             <ConnectButton />
-          </span>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {state.error && state.updatedAt === null ? (
         <div className={`${PAGE} py-6`} role="alert">

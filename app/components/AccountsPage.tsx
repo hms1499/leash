@@ -11,7 +11,7 @@ import ConnectButton from './ConnectButton'
 import NetworkBadge from './NetworkBadge'
 import Address from './ui/Address'
 import ActionLink from './ui/ActionLink'
-import BrandLink from './ui/BrandLink'
+import AppHeader from './ui/AppHeader'
 import Button from './ui/Button'
 import Label from './ui/Label'
 import Panel from './ui/Panel'
@@ -182,24 +182,27 @@ export default function AccountsPage() {
   }
 
   return (
-    <main className={`${PAGE} py-10 space-y-6`}>
-      <header>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <BrandLink />
-          <span className="flex flex-wrap items-center gap-3">
+    <>
+      {/* The network badge used to sit alone in this page's top right with
+          nothing beside it saying it was a network. In the slot it shares with
+          the dashboard's, it reads as the same thing it reads as there. */}
+      <AppHeader
+        actions={
+          <>
             <NetworkBadge />
             {isConnected && <ConnectButton />}
-          </span>
-        </div>
-        <div className="mt-6">
+          </>
+        }
+      />
+      <main className={`${PAGE} py-10 space-y-6`}>
+        <header>
           <h1 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-title)', color: 'var(--text)' }}>
             My protected accounts
           </h1>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             Reopen accounts owned by this wallet or create another protected budget for an agent.
           </p>
-        </div>
-      </header>
+        </header>
 
       {!isConnected ? (
         <Panel className="p-6">
@@ -264,7 +267,8 @@ export default function AccountsPage() {
           </p>
         </>
       )}
-    </main>
+      </main>
+    </>
   )
 }
 
