@@ -440,6 +440,23 @@ it is the minimum of all three. `refusalThreshold()` already computes it.
 
 It also happens to be the number that moves on camera when the agent spends.
 
+**In all five bands, not one.** Until 2026-09-11 the figure rendered only for
+`ceiling`; in `paused`, `unfunded` and `exhausted` the meter said its piece at
+`--t-label` — 11px, uppercase, tracked — and the screen had no dominant
+element at all. The hierarchy inverted exactly when something was wrong, which
+is the same shape of defect as the §4 badge drawn in the colour behind it.
+
+The threshold in those three bands is not unknown, it is **zero**, so it is
+stated: `0.00 USDC` at `--t-display` in `--bad`, with the §5 sentence under it
+naming why. `loading` shows an em dash instead, because a `0.00` during a read
+is a claim about the chain nobody has made (§5), and `bandFigure` returns
+`null` rather than a bigint for exactly that reason.
+
+This is also the meter's empty state. At zero balance the bar is a black track
+with a cap line at the far right and no fill, which reads as broken; a figure
+above it, with a sentence naming why, reads as zero. **The empty state needed
+a number, not an illustration.**
+
 Below it, at `--t-data`: remaining today, account holds, per-transaction cap.
 Then limits, the agent panel, the feed.
 

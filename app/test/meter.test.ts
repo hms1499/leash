@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bandSentence, meterState, spendBand } from '../lib/meter.js'
+import { bandFigure, bandSentence, meterState, spendBand } from '../lib/meter.js'
 
 const base = {
   daily: 1_000_000n, remaining: 1_000_000n,
@@ -214,5 +214,51 @@ describe('bandSentence', () => {
   it('carries the symbol it was given rather than assuming USDC', () => {
     expect(bandSentence({ kind: 'unfunded' }, 'cUSD'))
       .toBe('This account holds no cUSD — every spend will fail')
+  })
+})
+
+describe('bandFigure', () => {
+  /**
+   * The dashboard's dominant element is the refusal threshold (§7), and until
+   * 2026-09-11 it rendered only for `ceiling`. In the other four bands the
+   * meter showed a sentence at --t-label -- 11px, uppercase -- so the
+   * hierarchy inverted exactly when something was wrong, at the one moment an
+   * owner most needs a number.
+   */
+  it('is zero for every band that refuses a spend', () => {
+    expect(bandFigure({ kind: 'paused' })).toBe(0n)
+    expect(bandFigure({ kind: 'unfunded' })).toBe(0n)
+    expect(bandFigure({ kind: 'exhausted' })).toBe(0n)
+  })
+
+  /**
+   * §5: "not observed" is not "failed". A 0.00 during a read would be an
+   * assertion about the chain that nobody has made, so loading has no figure
+   * and Stat renders its em dash.
+   */
+  it('is null while the chain has not been read', () => {
+    expect(bandFigure({ kind: 'loading' })).toBeNull()
+  })
+
+  it('is the ceiling amount when a spend is possible', () => {
+    expect(bandFigure({
+      kind: 'ceiling', amount: 250000n, limitedBy: 'balance',
+      restrictedToApprovedPayees: false,
+    })).toBe(250000n)
+  })
+
+  /** Every band the type allows, so a sixth cannot be added without a figure. */
+  it('has an answer for every band spendBand can return', () => {
+    for (const paused of [true, false]) {
+      for (const balance of [0n, 500000n]) {
+        for (const remaining of [0n, 1000000n]) {
+          const band = spendBand({
+            remaining, perTx: 500000n, balance, allowlistEnabled: false,
+            paused, loading: false,
+          })
+          expect(bandFigure(band)).not.toBeUndefined()
+        }
+      }
+    }
   })
 })

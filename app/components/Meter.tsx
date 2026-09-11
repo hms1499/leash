@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { formatDisplayAmount } from '../lib/policy.js'
-import { bandSentence, meterState, spendBand } from '../lib/meter.js'
-import Label from './ui/Label'
+import { bandFigure, bandSentence, meterState, spendBand } from '../lib/meter.js'
 import Stat from './ui/Stat'
 import { PROSE } from './ui/prose'
 import { PAGE } from './ui/page'
@@ -75,6 +74,7 @@ export default function Meter({
   const { fillPercent, locked, animating } =
     meterState({ daily, remaining, paused, loading, visible, reduced })
   const band = spendBand({ remaining, perTx, balance, allowlistEnabled, paused, loading })
+  const figure = bandFigure(band)
   const width = Math.max(0, Math.min(FILL_MAX, (fillPercent / 100) * FILL_MAX))
 
   return (
@@ -89,32 +89,45 @@ export default function Meter({
           says what is there; 50778cd was opened because the meter showed the
           first and an empty account read as a full allowance. The ceiling is
           the only figure that is always true, because it is the minimum of
-          all three. docs/design-system.md §7. */}
-      {band.kind === 'ceiling' && (
-        // The block announces itself. This figure is the one design-system §7
-        // calls "the number that moves on camera when the agent spends", and
-        // it sat in a static <Stat>: an owner listening to the dashboard heard
-        // nothing change. `aria-atomic` so the label, the figure and the
-        // clause are read as one phrase -- a number announced alone does not
-        // say which number it is.
-        <div className="mb-3" role="status" aria-atomic="true">
-          <Stat
-            label="Maximum next direct payment"
-            value={`${formatDisplayAmount(band.amount, decimals)} ${symbol}`}
-            size={dominant ? 'display' : 'data'}
-          />
-          {/* The figure alone does not say whether to raise a cap or send more
-              money, and those are opposite actions. */}
-          <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
-            limited by the {band.limitedBy}
-            {/* Appended, not a sixth band.kind: the four sentences below are
-                the design-system §5 state vocabulary and are not to be
-                reworded, and this figure is still correct -- it is only
-                incomplete without naming who may receive it. */}
-            {band.restrictedToApprovedPayees && ' \u00b7 approved recipients only'}
-          </p>
-        </div>
-      )}
+          all three. docs/design-system.md §7.
+
+          Present in all five bands, not just `ceiling`. It used to render for
+          that one alone, which meant the screen lost its dominant element in
+          the four states where something was wrong -- the same shape of
+          defect as the §4 badge drawn in the colour behind it. */}
+      {/* The block announces itself. This figure is the one design-system §7
+          calls "the number that moves on camera when the agent spends", and
+          it sat in a static <Stat>: an owner listening to the dashboard heard
+          nothing change. `aria-atomic` so the label, the figure and the
+          clause are read as one phrase -- a number announced alone does not
+          say which number it is. */}
+      <div className="mb-3" role="status" aria-atomic="true">
+        <Stat
+          label="Maximum next direct payment"
+          value={figure === null
+            ? `— ${symbol}`
+            : `${formatDisplayAmount(figure, decimals)} ${symbol}`}
+          size={dominant ? 'display' : 'data'}
+          tone={figure === 0n ? 'bad' : 'normal'}
+        />
+        {/* The figure alone does not say whether to raise a cap or send more
+            money, and those are opposite actions -- and in the other four
+            bands it does not say why it is zero. Both clauses are decided in
+            lib/meter.ts so the words a reader sees and the words a screen
+            reader hears cannot drift apart. */}
+        <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
+          {band.kind === 'ceiling'
+            ? <>
+                limited by the {band.limitedBy}
+                {/* Appended, not a sixth band.kind: the four §5 state
+                    vocabulary sentences are not to be reworded, and this
+                    figure is still correct -- it is only incomplete without
+                    naming who may receive it. */}
+                {band.restrictedToApprovedPayees && ' \u00b7 approved recipients only'}
+              </>
+            : bandSentence(band, symbol)}
+        </p>
+      </div>
 
       <svg
         className="meter block w-full mt-2"
@@ -154,26 +167,6 @@ export default function Meter({
           fill={locked ? 'var(--bad)' : 'var(--celo)'}
         />
       </svg>
-
-      {/* Both the sentence and the choice of sentence are decided in
-          lib/meter.ts, so the words a reader sees and the words a screen
-          reader hears cannot drift apart. The fifth band, `ceiling`, is the
-          figure above the track. */}
-      {band.kind !== 'ceiling' && (
-        <Label
-          className="block mt-2"
-          // Its sibling above, for the four bands that replace the figure
-          // rather than accompany it. The two are mutually exclusive, so they
-          // never compete for the reader's ear.
-          role="status"
-          aria-atomic="true"
-          style={{
-            color: locked || band.kind === 'unfunded' ? 'var(--bad)' : 'var(--dim)',
-          }}
-        >
-          {bandSentence(band, symbol)}
-        </Label>
-      )}
 
       {/* The three constraints the figure above is the minimum of, at --t-data.
           Before the first read there is nothing to state: 0.00 here is

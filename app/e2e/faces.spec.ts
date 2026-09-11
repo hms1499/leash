@@ -21,7 +21,12 @@ const CEILING: Record<string, number> = {
   '/': 12,
   '/setup': 7,
   '/accounts': 6,
-  '/a/0xA73DB76f20c5ede3ABE883565D22905760F83982': 10,
+  // 11, not 10. This is the one entry that has ever risen, and it rose
+  // because --t-display appeared on a screen that was missing it: the figure
+  // used to render for `ceiling` alone, and this account is paused. A ratchet
+  // exists to stop drift, not to stop a scale step from being used where the
+  // design system says it belongs. See §7.
+  '/a/0xA73DB76f20c5ede3ABE883565D22905760F83982': 11,
 }
 
 async function faces(page: Page): Promise<string[]> {
@@ -77,7 +82,10 @@ const DISPLAY_ELEMENTS: Record<string, number> = {
   '/': 0,
   '/setup': 0,
   '/accounts': 0,
-  // The dashboard's row is added in Task 7, with the change that earns it.
+  // The account is paused on mainnet, so this asserts exactly what the
+  // five-band change did: the figure is there in a refusing state, and there
+  // is still only one of it.
+  '/a/0xA73DB76f20c5ede3ABE883565D22905760F83982': 1,
 }
 
 for (const [route, allowed] of Object.entries(DISPLAY_ELEMENTS)) {

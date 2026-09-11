@@ -144,3 +144,26 @@ export function bandSentence(
       return 'The allowance is spent — resets at UTC midnight'
   }
 }
+
+/**
+ * The figure the dashboard renders at --t-display, for every band.
+ *
+ * §7 names the refusal threshold as the dashboard's dominant element, and it
+ * was rendered for `ceiling` alone. In the other four bands the screen had no
+ * dominant element at all: the largest thing on it was the status headline
+ * and the meter said its piece at 11px uppercase. The hierarchy inverted
+ * exactly when something was wrong -- the same shape of defect as the §4
+ * badge drawn in the colour behind it, at the one moment an owner most needs
+ * to read it.
+ *
+ * The threshold in those bands is not unknown, it is zero, so it is stated.
+ *
+ * `loading` is the exception, and the reason this returns a nullable rather
+ * than a bigint: zeroes are not observations (§5), and a 0.00 drawn while the
+ * first read is in flight is a claim about the chain that nobody has made.
+ */
+export function bandFigure(band: SpendBand): bigint | null {
+  if (band.kind === 'loading') return null
+  if (band.kind === 'ceiling') return band.amount
+  return 0n
+}
