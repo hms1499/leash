@@ -25,6 +25,7 @@ import {
 } from '../lib/accountRegistry.js'
 import { publicClient } from '../lib/chain.js'
 import { describeDiscovery, type DiscoveredAccountCandidate } from '../lib/accountDiscovery.js'
+import { HEADING } from './ui/prose'
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const VERIFY_ABI = [
@@ -206,7 +207,7 @@ export default function AccountsPage() {
 
       {!isConnected ? (
         <Panel className="p-6">
-          <h2 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>Connect the owner wallet</h2>
+          <h2 style={HEADING}>Connect the owner wallet</h2>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             Each list is private to its owner wallet. Connect the wallet that created the account.
           </p>
@@ -280,7 +281,7 @@ function AccountRow({ account, number }: {
     <Panel className="p-5">
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
-          <h2 className="mt-1 break-words" style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>
+          <h2 className="mt-1 break-words" style={HEADING}>
             Protected account {number}
           </h2>
           <div className="mt-2"><Address address={account.address} copy full className="num break-all text-left" /></div>

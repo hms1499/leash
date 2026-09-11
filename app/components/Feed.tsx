@@ -5,6 +5,7 @@ import { formatDisplayAmount } from '../lib/policy.js'
 import { relativeAge, rowKey, WINDOW_LABEL, type FeedRow } from '../lib/feed.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
+import { HEADING } from './ui/prose'
 
 export default function Feed({
   account, rows, decimals, symbol, isLoading, hasPolicy, error, head,
@@ -27,26 +28,50 @@ export default function Feed({
     return () => clearInterval(t)
   }, [])
 
+  /**
+   * One frame for every branch.
+   *
+   * Five returns each built their own <Panel className="p-6">, so the heading
+   * could not be passed in without being repeated five times -- and the sixth
+   * branch someone adds next year would forget it. That is why "Recent
+   * activity" lived outside the component, where at 375px it started at the
+   * page gutter while this panel's content started 24px further in. The
+   * misalignment was plainly visible and nothing could see it but an eye.
+   */
+  const Frame = ({ children, pad = 'p-6' }: { children: React.ReactNode; pad?: string }) => (
+    <Panel className={pad}>
+      <div className="flex flex-wrap items-end justify-between gap-2 mb-3">
+        {/* lineHeight and fontWeight included: the copy in the dashboard page
+            set neither, which is where the stray 18px mono 600 came from. */}
+        <h2 style={HEADING}>
+          Recent activity
+        </h2>
+        <Label>{WINDOW_LABEL}</Label>
+      </div>
+      <div data-testid="feed-body">{children}</div>
+    </Panel>
+  )
+
   if (hasPolicy === null) {
-    return <Panel className="p-6"><Label className="block">Reading the chain…</Label></Panel>
+    return <Frame><Label className="block">Reading the chain…</Label></Frame>
   }
 
   // A freshly deployed account has no policy, and every operator path reverts
   // TokenNotConfigured until the owner sets one. Saying so beats an empty list.
   if (!hasPolicy) {
     return (
-      <Panel className="p-6">
+      <Frame>
         <Label className="block">No limits set</Label>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
           Until the owner sets a per-transaction and a daily cap, this account
           refuses every spend. Open <strong>Limits</strong> to set them.
         </p>
-      </Panel>
+      </Frame>
     )
   }
 
   if (isLoading) {
-    return <Panel className="p-6"><Label className="block">Loading activity…</Label></Panel>
+    return <Frame><Label className="block">Loading activity…</Label></Frame>
   }
 
   // A failed log scan must never be shown as a quiet account. forno is
@@ -54,19 +79,19 @@ export default function Feed({
   // then would be the UI asserting something it does not know.
   if (error) {
     return (
-      <Panel className="p-6">
+      <Frame>
         <Label className="block" style={{ color: 'var(--bad)' }}>Could not load activity</Label>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
           The chain did not answer. The allowance above is still correct — it is
           read separately and does not depend on this. Reload to try again.
         </p>
-      </Panel>
+      </Frame>
     )
   }
 
   if (rows.length === 0) {
     return (
-      <Panel className="p-6">
+      <Frame>
         <Label className="block">No activity yet</Label>
         <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
           {/* The span this states is the span that was scanned — the label
@@ -84,12 +109,12 @@ export default function Feed({
             See the full history on Celoscan
           </a>
         </p>
-      </Panel>
+      </Frame>
     )
   }
 
   return (
-    <Panel className="px-4">
+    <Frame pad="px-4 py-6">
       {rows.map((r, index) => (
         <div
           key={rowKey(r)}
@@ -130,6 +155,6 @@ export default function Feed({
           </a>
         </div>
       ))}
-    </Panel>
+    </Frame>
   )
 }

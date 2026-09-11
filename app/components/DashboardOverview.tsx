@@ -4,7 +4,7 @@ import Label, { LABEL_STYLE } from './ui/Label'
 import Panel from './ui/Panel'
 import { formatDisplayAmount } from '../lib/policy.js'
 import { accountHealth } from '../lib/accountHealth.js'
-import { PROSE } from './ui/prose'
+import { HEADING, PROSE } from './ui/prose'
 
 export function AccountOverview({
   account, owner, connected, paused, loading, updatedAt, daily, perTx, balance,
@@ -117,7 +117,7 @@ export function SecurityPolicy({
       <Label className="block">Contract rules</Label>
       <h2
         className="mt-2"
-        style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)', color: 'var(--text)' }}
+        style={{ ...HEADING, color: 'var(--text)' }}
       >
         Protection policy
       </h2>

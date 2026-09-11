@@ -8,7 +8,7 @@ import { planRefuel, transactionsLeft } from '../lib/gasFloat.js'
 import { pollUntil } from '../lib/confirm.js'
 import Address from './ui/Address'
 import Panel from './ui/Panel'
-import { SUBHEAD } from './ui/prose'
+import { HEADING, SUBHEAD } from './ui/prose'
 import Label from './ui/Label'
 import Button from './ui/Button'
 
@@ -172,7 +172,7 @@ export default function AgentPanel({
       <Label className="block">Balances</Label>
       <h2
         className="mt-2"
-        style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)', color: 'var(--text)' }}
+        style={{ ...HEADING, color: 'var(--text)' }}
       >
         Funds and agent gas
       </h2>

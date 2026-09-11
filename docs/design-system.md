@@ -165,6 +165,14 @@ shouts over the wordmark beside it. They are `--t-data`.
 - **Money is always mono and always `tabular-nums`.** The `.num` class already
   does this; it is now a rule rather than a habit, because a figure that
   changes live must not reflow (`CLAUDE.md`).
+- **A step that names a weight is not optional.** `--t-heading` is mono 500,
+  and twelve call sites set the size and left the weight to the browser — so
+  the app drew 18px mono 400 and 18px mono 500 side by side and neither was
+  wrong on purpose. `HEADING` in `components/ui/prose.ts` holds it now, beside
+  `PROSE` and `SUBHEAD`, for the reason that file already gives: four property
+  values about to be typed out by hand in a dozen components is how the app
+  came to have two type sizes doing six jobs. `e2e/faces.spec.ts` counts a
+  weight difference as a separate face, because a reader sees one.
 - **Prose lines cap at ~68 characters.** Wider is unreadable; the mono
   exception in §1 does not exempt sans from measure.
 - **`--t-title` keeps its responsive step.** The hero is `text-3xl sm:text-4xl`

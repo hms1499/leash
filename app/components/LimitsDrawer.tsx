@@ -13,6 +13,7 @@ import { useArming } from '../lib/arming.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
 import Button from './ui/Button'
+import { HEADING } from './ui/prose'
 
 const POLICY_ABI = [
   { type: 'function', name: 'setPolicy', stateMutability: 'nonpayable',
@@ -234,7 +235,7 @@ export default function LimitsDrawer({
             ) : (
               <>
                 <Label className="block">Required</Label>
-                <h2 className="mt-2" style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>
+                <h2 className="mt-2" style={HEADING}>
                   Spending limits
                 </h2>
                 <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>

@@ -395,13 +395,11 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 Could not verify the agent wallet — still trying.
               </Label>
             )}
+            {/* The heading moved inside Feed: five branches each built their
+                own Panel, so a heading out here could not align with any of
+                them -- at 375px it sat on the page gutter while the panel's
+                content sat 24px further in. */}
             <section className="pt-3">
-              <div className="flex flex-wrap items-end justify-between gap-2 mb-2">
-                <h2 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)' }}>
-                  Recent activity
-                </h2>
-                <Label>Last 24 hours</Label>
-              </div>
               <Feed
                 account={address}
                 rows={feed.rows}

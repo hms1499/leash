@@ -11,6 +11,7 @@ import Address from './ui/Address'
 import Button from './ui/Button'
 import Label from './ui/Label'
 import Panel from './ui/Panel'
+import { HEADING } from './ui/prose'
 
 const OPERATOR_ABI = [
   { type: 'function', name: 'setOperator', stateMutability: 'nonpayable',
@@ -133,7 +134,7 @@ export default function AgentAccessPanel({
       <Label className="block">Agent</Label>
       <h2
         className="mt-2"
-        style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)', color: 'var(--text)' }}
+        style={{ ...HEADING, color: 'var(--text)' }}
       >
         Agent permissions
       </h2>

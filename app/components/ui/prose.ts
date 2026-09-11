@@ -32,3 +32,21 @@ export const SUBHEAD: React.CSSProperties = {
   lineHeight: 'var(--t-subhead-line)',
   fontWeight: 500,
 }
+
+/**
+ * A section title, in one place.
+ *
+ * §2 gives --t-heading mono 500, and twelve call sites set the size and left
+ * the weight to the browser -- so the app rendered 18px mono 400 and 18px
+ * mono 500 side by side and neither was wrong on purpose. e2e/faces.spec.ts
+ * counts those as two faces, which is what they are.
+ *
+ * `app/setup/page.tsx` already had this constant locally and already had the
+ * 500. It was the one file that did.
+ */
+export const HEADING: React.CSSProperties = {
+  fontFamily: 'var(--mono)',
+  fontSize: 'var(--t-heading)',
+  lineHeight: 'var(--t-heading-line)',
+  fontWeight: 500,
+}

@@ -172,7 +172,12 @@ export default function Meter({
           Before the first read there is nothing to state: 0.00 here is
           indistinguishable from a spent allowance, and that is the first thing
           a visitor sees. */}
-      <div className="grid grid-cols-2 gap-5 mt-4 sm:grid-cols-3">
+      {/* One column below 640px. grid-cols-2 left the third stat alone on
+          its own row with its 11px .16em label wrapped onto two lines --
+          measured at 375px on 2026-09-11. gap-5 and mt-4 were both off §3's
+          scale. */}
+      <div className="grid gap-3 mt-6 sm:grid-cols-3">
+        <div data-testid="meter-stat">
         <Stat
           label="Remaining today"
           value={loading
@@ -180,17 +185,22 @@ export default function Meter({
             : `${formatDisplayAmount(remaining, decimals)} / ${formatDisplayAmount(daily, decimals)} ${symbol}`}
           tone={locked ? 'bad' : 'normal'}
         />
+        </div>
         {/* The allowance is what policy permits; this is whether the money is
             there. They are different numbers and only the first was shown. */}
+        <div data-testid="meter-stat">
         <Stat
           label="Account holds"
           value={loading ? `— ${symbol}` : `${formatDisplayAmount(balance, decimals)} ${symbol}`}
           tone={band.kind === 'unfunded' ? 'bad' : 'normal'}
         />
+        </div>
+        <div data-testid="meter-stat">
         <Stat
           label="Per-transaction cap"
           value={loading ? `— ${symbol}` : `${formatDisplayAmount(perTx, decimals)} ${symbol}`}
         />
+        </div>
       </div>
       </div>
     </div>

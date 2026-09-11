@@ -106,3 +106,35 @@ test('the wizard step heading can take focus, and does not take it on load', asy
   await first.focus()
   await expect(first).toBeFocused()
 })
+
+/**
+ * Measured at 375px on 2026-09-11: the meter's three stats were laid out
+ * `grid-cols-2`, so the third sat alone on its own row and its 11px .16em
+ * label wrapped onto two lines. Three stats go in one column on a phone.
+ */
+test('the meter stacks its three stats in one column on a phone', async ({ page }) => {
+  await page.setViewportSize(PHONE)
+  await page.goto('/a/0xA73DB76f20c5ede3ABE883565D22905760F83982')
+  await page.waitForLoadState('networkidle')
+  const lefts = await page.locator('[data-testid="meter-stat"]').evaluateAll(
+    (els) => els.map((el) => Math.round(el.getBoundingClientRect().left)),
+  )
+  expect(lefts.length).toBe(3)
+  expect(new Set(lefts).size, `stat left edges: ${lefts.join(', ')}`).toBe(1)
+})
+
+/**
+ * "Recent activity" was the one section heading rendered outside its panel.
+ * At 375px it started at the page gutter while the panel's content started
+ * 24px further in, and the misalignment was plainly visible.
+ */
+test('every section heading aligns with the content it titles', async ({ page }) => {
+  await page.setViewportSize(PHONE)
+  await page.goto('/a/0xA73DB76f20c5ede3ABE883565D22905760F83982')
+  await page.waitForLoadState('networkidle')
+  const heading = await page.getByRole('heading', { name: 'Recent activity' }).boundingBox()
+  const feed = await page.locator('[data-testid="feed-body"]').boundingBox()
+  expect(heading).not.toBeNull()
+  expect(feed).not.toBeNull()
+  expect(Math.round(heading!.x)).toBe(Math.round(feed!.x))
+})
