@@ -27,17 +27,37 @@ describe('globals.css does not drift from type.ts', () => {
 describe('the scale', () => {
   const px = (v: string) => Number(v.replace('px', ''))
 
-  // A scale whose steps are not strictly descending has two steps doing one
-  // job, which is how the app ended up with text-sm carrying 39 uses.
-  it('descends strictly', () => {
-    const sizes = Object.values(SCALE).map((s) => px(s.size))
-    for (let i = 1; i < sizes.length; i++) {
-      expect(sizes[i]).toBeLessThan(sizes[i - 1])
+  /**
+   * Descends, with exactly one tie.
+   *
+   * --t-subhead and --t-body are both 14px and are separated by family, not
+   * size: §1 makes mono what a reader looks at and sans what they read, and a
+   * card title is looked at. That is the only pair allowed to tie, and it has
+   * to be adjacent -- a tie anywhere else is two steps doing one job, which is
+   * how the app ended up with text-sm carrying 39 uses.
+   */
+  it('descends, tying only at subhead and body', () => {
+    const entries = Object.entries(SCALE)
+    const ties: string[] = []
+    for (let i = 1; i < entries.length; i++) {
+      const [prevName, prev] = entries[i - 1]
+      const [name, step] = entries[i]
+      const a = px(prev.size)
+      const b = px(step.size)
+      expect(b).toBeLessThanOrEqual(a)
+      if (b === a) ties.push(`${prevName}/${name}`)
     }
+    expect(ties).toEqual(['subhead/body'])
   })
 
-  it('has exactly six steps', () => {
-    expect(Object.keys(SCALE)).toHaveLength(6)
+  /**
+   * §2's rule is that a seventh step means one of the six is doing two jobs.
+   * Measured 2026-09-11, --t-heading was: it carried section titles *and* the
+   * title of every block below one, because 16 call sites wrote
+   * `text-sm font-semibold` rather than find a rank that did not exist.
+   */
+  it('has exactly seven steps', () => {
+    expect(Object.keys(SCALE)).toHaveLength(7)
   })
 
   // The hero is text-3xl sm:text-4xl today. A flat --t-title would shrink it

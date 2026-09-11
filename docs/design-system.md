@@ -62,13 +62,35 @@ this work: *you cannot tell what to look at first.*
 
 ### The scale
 
-Six steps. Each has one job; a seventh means one of these is doing two.
+Seven steps and six sizes. Each has one job; an eighth means one of these is
+doing two.
+
+`--t-subhead` is the seventh, and it arrived by applying that rule to the
+evidence rather than by wanting another size. Measured 2026-09-11,
+`text-sm font-semibold` — 14px sans 600 — appeared at **16 call sites**, every
+one of them the title of a block below a section title: landing cards, wizard
+sub-steps, the claims in `SecurityBoundary`, the two wallet boxes in
+`AgentPanel`. The scale offered nothing between `--t-heading` (18px) and
+`--t-body` (14px), so sixteen call sites invented the same rank independently.
+
+Putting them on `--t-heading` ranks a card title equal to the section title
+above it, which destroys the hierarchy this section exists to build. Putting
+them on `--t-label` is what this section already rejected. So `--t-heading`
+was doing two jobs — section title *and* sub-block title — and by the rule's
+own test, that is what a seventh step is for.
+
+It shares 14px with `--t-body` and is separated from it by family, not size.
+That is §1 made structural: mono is what a reader looks at, sans is what they
+read, and a card title is looked at. All 16 sites were sans, so all 16 were §1
+violations before they were off-scale. `test/type.test.ts` asserts the tie is
+this pair and no other.
 
 | Token | Size / line-height | Face | Used for |
 |---|---|---|---|
 | `--t-display` | 44px / 1.0 | mono 600 | **one** number per screen |
 | `--t-title` | 30px / 1.2, **36px ≥640px** | mono 600 | hero headline, page title |
 | `--t-heading` | 18px / 1.35 | mono 500 | section titles, wizard steps |
+| `--t-subhead` | 14px / 1.35 | mono 500 | the title of a block below a section title |
 | `--t-body` | 14px / 1.65 | **sans** | prose |
 | `--t-data` | 13px / 1.55 | mono | numbers, addresses, feed rows |
 | `--t-label` | 11px / 1.3, `.16em`, uppercase | mono | field labels, badges |

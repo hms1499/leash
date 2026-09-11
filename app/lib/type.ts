@@ -15,6 +15,17 @@ export const SCALE = {
   display: { size: '44px', line: '1.0' },
   title: { size: '30px', line: '1.2' },
   heading: { size: '18px', line: '1.35' },
+  /**
+   * The title of a block sitting below a section title: a landing card, a
+   * wizard sub-step, a claim in SecurityBoundary.
+   *
+   * Shares 14px with `body` on purpose. The pair is separated by family
+   * rather than size, which is §1's central rule made structural -- mono is
+   * what a reader looks at, sans is what they read, and a card title is
+   * looked at. The 16 call sites this replaces were all sans 600, so all 16
+   * were §1 violations as well as off-scale.
+   */
+  subhead: { size: '14px', line: '1.35' },
   body: { size: '14px', line: '1.65' },
   data: { size: '13px', line: '1.55' },
   label: { size: '11px', line: '1.3' },
