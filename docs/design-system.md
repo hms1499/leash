@@ -983,9 +983,23 @@ number rather than on an impression.
 
 Use `<dialog>`. It renders in the browser's top layer, above everything,
 **without a `z-index`** — so the ban survives the feature. It also brings
-focus trapping and Escape, which `LimitsDrawer` had to implement by hand
-(and note what it chose for the destructive case: `window.confirm`, the
-browser's own dialog, rather than a modal of ours).
+focus trapping and Escape for free (and note what `LimitsDrawer` chose for the
+destructive case: `window.confirm`, the browser's own dialog, rather than a
+modal of ours).
+
+**This section used to say `LimitsDrawer` had implemented that focus trap by
+hand. It has not, and deliberately.** Read on 2026-09-11, the component
+handles Escape in about eight lines and says why in a comment: *"this is a
+disclosure rather than a modal — it does not cover the page and does not trap
+focus"*. Leaving focus on the trigger, with the panel next in the DOM, is the
+pattern a disclosure is supposed to use; trapping focus inside one that does
+not cover the page would be the defect, not the fix.
+
+The distinction matters because it is the whole test for whether a screen
+needs this section. `showModal()` makes everything else inert, and on the form
+that sets an agent's spending limits that would take the meter and the current
+allowance off the screen — the numbers the limits are being set against. An
+overlay has to earn itself by what it prevents. That one prevents nothing.
 
 If that turns out to be wrong, §9 applies: change this section first and the
 test second.
