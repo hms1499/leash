@@ -82,21 +82,16 @@ const HAND_ROLLED_RING = /(focus-visible:outline-2)/g
 /** The debt on 2026-09-10. These numbers may fall. They may not rise. */
 const RAW_TYPE_DEBT: Record<string, number> = {
   'app/a/[address]/page.tsx': 2,
-  'app/setup/page.tsx': 43,
+  'app/setup/page.tsx': 30,
   'components/AccountsPage.tsx': 5,
   'components/AgentAccessPanel.tsx': 6,
-  'components/AgentPanel.tsx': 8,
-  'components/DashboardOverview.tsx': 5,
+  'components/AgentPanel.tsx': 7,
+  'components/DashboardOverview.tsx': 3,
   'components/Feed.tsx': 4,
   'components/LimitsDrawer.tsx': 7,
-  'components/McpHandoff.tsx': 8,
-  'components/landing/Hero.tsx': 1,
+  'components/McpHandoff.tsx': 7,
   'components/landing/HowItWorks.tsx': 1,
   'components/landing/LiveProof.tsx': 5,
-  'components/landing/ProtectionModel.tsx': 4,
-  'components/landing/SecurityBoundary.tsx': 2,
-  'components/landing/SiteFooter.tsx': 1,
-  'components/landing/SiteHeader.tsx': 2,
 }
 
 const OFF_SCALE_GAP_DEBT: Record<string, number> = {
@@ -112,12 +107,11 @@ const OFF_SCALE_GAP_DEBT: Record<string, number> = {
   'components/McpHandoff.tsx': 4,
   'components/Meter.tsx': 2,
   'components/landing/CoreCapabilities.tsx': 1,
-  'components/landing/Hero.tsx': 4,
+  'components/landing/Hero.tsx': 2,
   'components/landing/LiveProof.tsx': 1,
-  'components/landing/ProtectionModel.tsx': 6,
+  'components/landing/ProtectionModel.tsx': 4,
   'components/landing/SecurityBoundary.tsx': 2,
-  'components/landing/SiteFooter.tsx': 1,
-  'components/landing/SiteHeader.tsx': 2,
+  'components/landing/SiteHeader.tsx': 1,
   'components/landing/UseCaseGrid.tsx': 2,
   'components/ui/Section.tsx': 1,
 }
@@ -151,7 +145,6 @@ const HAND_ROLLED_RING_DEBT: Record<string, number> = {
   'components/LimitsDrawer.tsx': 1,
   'components/landing/SecurityBoundary.tsx': 1,
   'components/landing/SiteFooter.tsx': 2,
-  'components/landing/SiteHeader.tsx': 2,
 }
 
 function sources(dir: string, found: string[] = []): string[] {

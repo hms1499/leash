@@ -1,4 +1,4 @@
-import Label from '../ui/Label'
+import Label, { LABEL_STYLE } from '../ui/Label'
 import Panel from '../ui/Panel'
 import { PROSE } from '../ui/prose'
 
@@ -10,7 +10,7 @@ function RoleRow({
 }) {
   return (
     <div className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
-      <span className="text-xs font-semibold" style={{ color: 'var(--text)', fontFamily: 'var(--mono)' }}>
+      <span style={{ ...LABEL_STYLE, color: 'var(--text)' }}>
         {role}
       </span>
       <span style={{ ...PROSE, color: 'var(--dim)' }}>{body}</span>
@@ -34,7 +34,7 @@ export default function ProtectionModel() {
             Held by the contract. Per-payment and daily limits are enforced
             before funds can move.
           </p>
-          <ul className="mt-5 flex flex-wrap gap-2 text-xs" aria-label="Protected account controls">
+          <ul className="mt-6 flex flex-wrap gap-2" style={LABEL_STYLE} aria-label="Protected account controls">
             {['Per-payment cap', 'Daily cap', 'Optional payees'].map((item) => (
               <li
                 key={item}
@@ -51,7 +51,7 @@ export default function ProtectionModel() {
           className="flex items-center justify-center border-y px-4 py-3 sm:flex-col sm:border-x sm:border-y-0 sm:px-3 [border-color:var(--line)]"
           style={{ color: 'var(--dim)' }}
         >
-          <span className="num text-xs text-center">capped top-up</span>
+          <span className="num text-center" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)' }}>capped top-up</span>
           <span className="ml-2 sm:hidden" aria-hidden="true">↓</span>
           <span className="mt-2 hidden sm:inline" aria-hidden="true">→</span>
         </div>
@@ -68,7 +68,7 @@ export default function ProtectionModel() {
             A hot operator key for gas and x402. Anything already here is
             outside the contract&apos;s protections.
           </p>
-          <p className="mt-5 text-xs" style={{ color: 'var(--dim)' }}>
+          <p className="mt-6" style={{ ...PROSE, color: 'var(--dim)' }}>
             Keep only what the next few tasks need.
           </p>
         </div>

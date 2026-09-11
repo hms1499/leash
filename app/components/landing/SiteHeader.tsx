@@ -18,15 +18,19 @@ export default function SiteHeader() {
       >
         <BrandLink />
 
-        <div className="hidden items-center gap-5 md:flex">
+        {/* --t-data, not --t-label. These name destinations, which is the
+            label step's job, but --t-label is uppercase and tracked .16em --
+            a nav set that way shouts over the wordmark beside it. The step is
+            refused deliberately rather than by oversight. §2. */}
+        <div className="hidden items-center gap-6 md:flex">
           {NAV_ITEMS.map((item) => (
             <a
               key={item.href}
               href={item.href}
               target={item.external ? '_blank' : undefined}
               rel={item.external ? 'noreferrer' : undefined}
-              className="rounded-sm text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-              style={{ color: 'var(--dim)', outlineColor: 'var(--text)' }}
+              className="focus-ring"
+              style={{ borderRadius: 'var(--r-mark)', fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: 'var(--dim)', outlineColor: 'var(--text)' }}
             >
               {item.label}{item.external ? ' ↗' : ''}
             </a>
@@ -36,8 +40,8 @@ export default function SiteHeader() {
         <div className="flex items-center gap-3">
           <Link
             href="/accounts"
-            className="rounded-sm text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{ color: 'var(--dim)', outlineColor: 'var(--text)' }}
+            className="focus-ring"
+            style={{ borderRadius: 'var(--r-mark)', fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: 'var(--dim)', outlineColor: 'var(--text)' }}
           >
             My accounts
           </Link>

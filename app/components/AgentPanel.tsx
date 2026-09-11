@@ -187,7 +187,7 @@ export default function AgentPanel({
         <div className="rounded p-4" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
           <div className="flex flex-wrap items-start justify-between gap-2">
             <p style={SUBHEAD}>Agent wallet</p>
-            <span className="num text-xs" style={{ color: low ? 'var(--bad)' : 'var(--ok)' }}>
+            <span className="num" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: low ? 'var(--bad)' : 'var(--ok)' }}>
               {left} gas tx left
             </span>
           </div>

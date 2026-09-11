@@ -136,6 +136,29 @@ the screen.
 
 ### Rules
 
+### `text-xs` was never a step, and what replaced it
+
+12px appeared at 27 call sites and is on no scale in this project. §2 said
+each one "is a decision between 13px and 11px that wants a person looking at
+the screen". Looking at them on 2026-09-11, there were **three** answers, not
+two, and the third is the one that made the rule work:
+
+> **A sentence a reader reads is `--t-body`, dimmed.** A number, an address,
+> a hash or a block of code is `--t-data`. A name for something else on the
+> screen — a badge, a state, the label on a row — is `--t-label`.
+
+Most of the 27 were supporting prose: "Best for agents with changing payees",
+"Enabling for the first time requires two wallet confirmations". Setting a
+sentence in the mono data face is a category error, and setting it in the
+uppercase tracked label step is worse. **Supporting prose is not a smaller
+size; it is `--dim` at the same size.** The scale does not need a small-prose
+step and should not get one.
+
+Two sites refused the label step deliberately and say so in a comment: the
+header nav and the footer nav name destinations, which is the label step's
+job, but `--t-label` is uppercase and tracked `.16em`, and a nav set that way
+shouts over the wordmark beside it. They are `--t-data`.
+
 - **`--t-display` appears at most once per screen.** Two numbers at the same size means
   neither is the number. Choosing which one is a design decision per screen —
   see §7.

@@ -9,7 +9,7 @@ import Address from '../../components/ui/Address'
 import ActionLink from '../../components/ui/ActionLink'
 import BrandLink from '../../components/ui/BrandLink'
 import Panel from '../../components/ui/Panel'
-import Label from '../../components/ui/Label'
+import Label, { LABEL_STYLE } from '../../components/ui/Label'
 import { PROSE, SUBHEAD } from '../../components/ui/prose'
 import Button from '../../components/ui/Button'
 import {
@@ -671,7 +671,7 @@ export default function Onboard() {
                   style={{ minHeight: 72, background: current ? 'var(--panel)' : 'transparent',
                     border: `1px solid ${current ? 'var(--line-control)' : 'var(--line)'}`, outlineColor: 'var(--text)' }}
                 >
-                  <span className="num text-xs" style={{ color: done ? 'var(--ok)' : 'var(--dim)' }}>
+                  <span className="num" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: done ? 'var(--ok)' : 'var(--dim)' }}>
                     {done ? '✓' : `0${step.id}`}
                   </span>
                   <span className="block text-sm mt-1" style={{ color: current ? 'var(--text)' : 'var(--dim)' }}>
@@ -715,7 +715,7 @@ export default function Onboard() {
             ].map(([title, copy]) => (
               <div key={title} className="p-3" style={STATUS_BOX}>
                 <p style={SUBHEAD}>{title}</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--dim)' }}>{copy}</p>
+                <p className="mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>{copy}</p>
               </div>
             ))}
           </div>
@@ -820,14 +820,14 @@ export default function Onboard() {
                 className="rounded p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-45"
                 style={{ ...STATUS_BOX, borderColor: recipientMode === 'any' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
                 <span style={SUBHEAD}>Any recipient</span>
-                <span className="block text-xs mt-1" style={{ color: 'var(--dim)' }}>Best for agents with changing payees.</span>
+                <span className="block mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>Best for agents with changing payees.</span>
               </button>
               <button type="button" aria-pressed={recipientMode === 'protected'} disabled={recipientBusy}
                 onClick={() => { setRecipientMode('protected'); setRecipientNote(null) }}
                 className="rounded p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-45"
                 style={{ ...STATUS_BOX, borderColor: recipientMode === 'protected' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
                 <span style={SUBHEAD}>Approved recipients only</span>
-                <span className="block text-xs mt-1" style={{ color: 'var(--dim)' }}>Best when payees are known in advance.</span>
+                <span className="block mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>Best when payees are known in advance.</span>
               </button>
             </div>
             {recipientMode === 'protected' && (
@@ -839,7 +839,7 @@ export default function Onboard() {
                 <Button variant="ghost" className="mt-3" disabled={recipientBusy} onClick={() => void protectRecipient()}>
                   {recipientBusy ? 'Saving protection…' : recipientProtectionEnabled ? 'Approve another recipient' : 'Approve & enable'}
                 </Button>
-                <p className="text-xs mt-2" style={{ color: 'var(--dim)' }}>
+                <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
                   Enabling for the first time requires two wallet confirmations: approve the address, then enable protection.
                 </p>
               </div>
@@ -899,7 +899,7 @@ export default function Onboard() {
                   <p className="text-sm" style={{ color: 'var(--ok)' }}>✓ Agent wallet authorized</p>
                   <Address address={agent} copy explorer className="num text-sm" />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2 mt-4 text-xs" style={{ color: 'var(--dim)' }}>
+                <div className="grid gap-3 sm:grid-cols-2 mt-4" style={{ ...PROSE, color: 'var(--dim)' }}>
                   <p>✓ Can request policy-checked payments</p>
                   <p>— Cannot change protection settings</p>
                   <p>— Cannot pause or resume the account</p>
@@ -927,14 +927,14 @@ export default function Onboard() {
                 <div className="p-4" style={STATUS_BOX}>
                   <div className="flex items-center justify-between gap-2">
                     <h4 style={SUBHEAD}>Protected account</h4>
-                    <span className="text-xs" style={{ color: readiness.protectedFundsDetected ? 'var(--ok)' : 'var(--dim)' }}>
+                    <span style={{ ...LABEL_STYLE, color: readiness.protectedFundsDetected ? 'var(--ok)' : 'var(--dim)' }}>
                       {readiness.protectedFundsDetected ? 'Ready' : 'Required'}
                     </span>
                   </div>
                   <p className="num mt-3" style={{ color: protectedBalanceRead.failed ? 'var(--bad)' : undefined }}>
                     {protectedBalanceRead.text}
                   </p>
-                  <p className="text-xs mt-2" style={{ color: 'var(--dim)' }}>
+                  <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
                     {protectedBalanceRead.failed
                       ? 'Try Refresh balances to read it again.'
                       : 'Spending budget protected by your limits.'}
@@ -946,21 +946,21 @@ export default function Onboard() {
                   <Button variant="ghost" className="mt-3" disabled={fundingTarget !== null} onClick={() => void fund('protected')}>
                     {fundingTarget === 'protected' ? 'Sending…' : 'Add protected funds'}
                   </Button>
-                  {protectedFundNote && <p className="text-xs mt-2"
-                    style={{ color: noteColor(protectedFundNote, 'Protected funds added.') }}>{protectedFundNote}</p>}
+                  {protectedFundNote && <p className="mt-2"
+                    style={{ ...PROSE, color: noteColor(protectedFundNote, 'Protected funds added.') }}>{protectedFundNote}</p>}
                 </div>
 
                 <div className="p-4" style={STATUS_BOX}>
                   <div className="flex items-center justify-between gap-2">
                     <h4 style={SUBHEAD}>Agent wallet</h4>
-                    <span className="text-xs" style={{ color: readiness.agentGasReady ? 'var(--ok)' : 'var(--dim)' }}>
+                    <span style={{ ...LABEL_STYLE, color: readiness.agentGasReady ? 'var(--ok)' : 'var(--dim)' }}>
                       {readiness.agentGasReady ? 'Ready' : 'Required'}
                     </span>
                   </div>
                   <p className="num mt-3" style={{ color: agentBalanceRead.failed ? 'var(--bad)' : undefined }}>
                     {agentBalanceRead.text}
                   </p>
-                  <p className="text-xs mt-2" style={{ color: readiness.agentGasReady ? 'var(--dim)' : 'var(--bad)' }}>
+                  <p className="mt-2" style={{ ...PROSE, color: readiness.agentGasReady ? 'var(--dim)' : 'var(--bad)' }}>
                     {agentBalanceRead.failed ? 'Try Refresh balances to read it again.'
                       : agentBalanceValue === null ? 'USDC pays Celo transaction fees.'
                       : `About ${agentTransactionsLeft} ${agentTransactionsLeft === 1 ? 'transaction' : 'transactions'} available.`}
@@ -972,8 +972,8 @@ export default function Onboard() {
                   <Button variant="ghost" className="mt-3" disabled={fundingTarget !== null} onClick={() => void fund('agent')}>
                     {fundingTarget === 'agent' ? 'Sending…' : 'Add agent gas'}
                   </Button>
-                  {agentFundNote && <p className="text-xs mt-2"
-                    style={{ color: noteColor(agentFundNote, 'Agent gas added.') }}>{agentFundNote}</p>}
+                  {agentFundNote && <p className="mt-2"
+                    style={{ ...PROSE, color: noteColor(agentFundNote, 'Agent gas added.') }}>{agentFundNote}</p>}
                 </div>
               </div>
               <p className="text-sm mt-4" style={{ color: 'var(--bad)' }}>
@@ -984,7 +984,7 @@ export default function Onboard() {
           <div className="flex flex-wrap items-center gap-3 mt-6 pt-5" style={{ borderTop: '1px solid var(--line)' }}>
             <Button variant="ghost" onClick={() => setActiveStage(2)}>Back</Button>
             <Button variant="primary" disabled={!readiness.ready} onClick={() => setActiveStage(4)}>Review setup</Button>
-            {!readiness.ready && agentAuthorized && <span className="text-xs" style={{ color: 'var(--dim)' }}>
+            {!readiness.ready && agentAuthorized && <span style={{ ...PROSE, color: 'var(--dim)' }}>
               Both balances must be ready before the agent can activate.
             </span>}
           </div>

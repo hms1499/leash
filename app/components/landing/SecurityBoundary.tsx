@@ -30,7 +30,7 @@ function BoundaryList({
       <ul className="mt-4 flex flex-col gap-3">
         {items.map((item) => (
           <li key={item} className="grid grid-cols-[auto_1fr] gap-3">
-            <span className="num text-xs" style={{ color: `var(--${tone})` }} aria-hidden="true">
+            <span className="num" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: `var(--${tone})` }} aria-hidden="true">
               {tone === 'ok' ? '✓' : '!'}
             </span>
             <span style={{ ...PROSE, color: 'var(--dim)' }}>{item}</span>
@@ -72,7 +72,9 @@ export default function SecurityBoundary() {
             }}
           >
             <span style={SUBHEAD}>{proof.claim}</span>
-            <span className="num text-xs" style={{ color: 'var(--dim)' }}>View transaction ↗</span>
+            {/* A name for a destination, but not the label step: uppercase and
+                tracked inside a table row would shout over the claim beside it. */}
+            <span className="num" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: 'var(--dim)' }}>View transaction ↗</span>
           </a>
         ))}
       </Panel>

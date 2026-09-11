@@ -1,6 +1,6 @@
 import ActionLink from './ui/ActionLink'
 import Address from './ui/Address'
-import Label from './ui/Label'
+import Label, { LABEL_STYLE } from './ui/Label'
 import Panel from './ui/Panel'
 import { formatDisplayAmount } from '../lib/policy.js'
 import { accountHealth } from '../lib/accountHealth.js'
@@ -55,8 +55,8 @@ export function AccountOverview({
           </h1>
         </div>
         <span
-          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs"
-          style={{ border: `1px solid ${tone}`, color: tone, fontFamily: 'var(--mono)' }}
+          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5"
+          style={{ ...LABEL_STYLE, border: `1px solid ${tone}`, color: tone }}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: tone }} aria-hidden="true" />
           {summary.badge}
@@ -82,7 +82,7 @@ export function AccountOverview({
         </div>
         <div className="sm:text-right">
           <p className="text-sm" style={{ color: 'var(--dim)' }}>{role}</p>
-          <p className="mt-1 text-xs" style={{ color: 'var(--dim)' }}>
+          <p className="mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>
             {updatedAt === null
               ? 'Reading Celo mainnet…'
               : `Updated ${new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}

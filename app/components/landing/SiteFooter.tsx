@@ -19,7 +19,10 @@ export default function SiteFooter() {
             Open-source spending controls for AI agents on Celo mainnet. You keep ownership; the contract takes no protocol fee.
           </p>
         </div>
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-3 text-xs">
+        {/* Same refusal as the header nav: names for destinations, but not
+            set in the uppercase tracked label step. §2. */}
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-3"
+          style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)' }}>
           <Link
             href="/accounts"
             className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"

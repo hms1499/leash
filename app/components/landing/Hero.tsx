@@ -39,9 +39,9 @@ export default function Hero() {
         <ActionLink href="#live-proof">View live dashboard</ActionLink>
       </div>
       <ul
-        className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs"
+        className="mt-6 flex flex-wrap gap-x-6 gap-y-2"
         aria-label="Product facts"
-        style={{ color: 'var(--dim)', fontFamily: 'var(--mono)' }}
+        style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: 'var(--dim)' }}
       >
         <li>Celo mainnet</li>
         <li>· Open source</li>
