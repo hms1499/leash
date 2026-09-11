@@ -17,3 +17,18 @@ export const PROSE: React.CSSProperties = {
   fontSize: 'var(--t-body)',
   lineHeight: 'var(--t-body-line)',
 }
+
+/**
+ * The rank below a section title, in one place.
+ *
+ * Sixteen call sites wrote `text-sm font-semibold` for this and none of them
+ * was on the scale. Mono rather than sans because §1 makes mono what a reader
+ * looks at, and 500 rather than 600 to match --t-heading's weight: this is the
+ * step below it, not a bolder one beside it. docs/design-system.md §2.
+ */
+export const SUBHEAD: React.CSSProperties = {
+  fontFamily: 'var(--mono)',
+  fontSize: 'var(--t-subhead)',
+  lineHeight: 'var(--t-subhead-line)',
+  fontWeight: 500,
+}

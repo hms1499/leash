@@ -1,6 +1,6 @@
 import Label from '../ui/Label'
 import Panel from '../ui/Panel'
-import { PROSE } from '../ui/prose'
+import { PROSE, SUBHEAD } from '../ui/prose'
 
 const CAPABILITIES = [
   {
@@ -42,8 +42,8 @@ export default function CoreCapabilities() {
         <Panel key={capability.title} className="p-5">
           <Label>{capability.label}</Label>
           <h3
-            className="mt-3 text-sm font-semibold"
-            style={{ color: 'var(--text)', fontFamily: 'var(--mono)' }}
+            className="mt-3"
+            style={{ ...SUBHEAD, color: 'var(--text)' }}
           >
             {capability.title}
           </h3>

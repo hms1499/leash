@@ -1,5 +1,5 @@
 import Panel from '../ui/Panel'
-import { PROSE } from '../ui/prose'
+import { PROSE, SUBHEAD } from '../ui/prose'
 
 const STEPS = [
   { n: '1', title: 'Create the account', body: 'You deploy and permanently own the protected account. It holds the agent’s budget.' },
@@ -14,7 +14,7 @@ export default function HowItWorks() {
       {STEPS.map((s) => (
         <Panel key={s.n} className="p-6">
           <span className="num text-sm" style={{ color: 'var(--celo)' }}>{s.n}</span>
-          <h3 className="mt-2 text-sm font-semibold" style={{ color: 'var(--text)' }}>{s.title}</h3>
+          <h3 className="mt-2" style={{ ...SUBHEAD, color: 'var(--text)' }}>{s.title}</h3>
           <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>{s.body}</p>
         </Panel>
       ))}

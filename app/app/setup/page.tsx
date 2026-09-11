@@ -10,7 +10,7 @@ import ActionLink from '../../components/ui/ActionLink'
 import BrandLink from '../../components/ui/BrandLink'
 import Panel from '../../components/ui/Panel'
 import Label from '../../components/ui/Label'
-import { PROSE } from '../../components/ui/prose'
+import { PROSE, SUBHEAD } from '../../components/ui/prose'
 import Button from '../../components/ui/Button'
 import {
   publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS, ERC20_TRANSFER_GAS,
@@ -714,7 +714,7 @@ export default function Onboard() {
               ['Agent wallet', 'Spends only within policy'],
             ].map(([title, copy]) => (
               <div key={title} className="p-3" style={STATUS_BOX}>
-                <p className="text-sm font-semibold">{title}</p>
+                <p style={SUBHEAD}>{title}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--dim)' }}>{copy}</p>
               </div>
             ))}
@@ -809,7 +809,7 @@ export default function Onboard() {
           <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <h3 className="text-sm font-semibold">Recipient protection</h3>
+                <h3 style={SUBHEAD}>Recipient protection</h3>
                 <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>Optional for direct payments.</p>
               </div>
               <Label>Optional</Label>
@@ -819,14 +819,14 @@ export default function Onboard() {
                 onClick={() => void chooseAnyRecipient()}
                 className="rounded p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-45"
                 style={{ ...STATUS_BOX, borderColor: recipientMode === 'any' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
-                <span className="text-sm font-semibold">Any recipient</span>
+                <span style={SUBHEAD}>Any recipient</span>
                 <span className="block text-xs mt-1" style={{ color: 'var(--dim)' }}>Best for agents with changing payees.</span>
               </button>
               <button type="button" aria-pressed={recipientMode === 'protected'} disabled={recipientBusy}
                 onClick={() => { setRecipientMode('protected'); setRecipientNote(null) }}
                 className="rounded p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-45"
                 style={{ ...STATUS_BOX, borderColor: recipientMode === 'protected' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
-                <span className="text-sm font-semibold">Approved recipients only</span>
+                <span style={SUBHEAD}>Approved recipients only</span>
                 <span className="block text-xs mt-1" style={{ color: 'var(--dim)' }}>Best when payees are known in advance.</span>
               </button>
             </div>
@@ -870,7 +870,7 @@ export default function Onboard() {
             Authorize a separate agent wallet, then fund the two balances it needs to operate.
           </p>
           <div className="mt-5">
-            <h3 className="text-sm font-semibold">1. Authorize agent wallet</h3>
+            <h3 style={SUBHEAD}>1. Authorize agent wallet</h3>
             {!agentAuthorized ? (
               <>
                 <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
@@ -916,7 +916,7 @@ export default function Onboard() {
             <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold">2. Fund both balances</h3>
+                  <h3 style={SUBHEAD}>2. Fund both balances</h3>
                   <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>Each transfer is confirmed separately in your owner wallet.</p>
                 </div>
                 <Button variant="ghost" disabled={checkingBalances} onClick={() => void refreshBalances()}>
@@ -926,7 +926,7 @@ export default function Onboard() {
               <div className="grid gap-4 sm:grid-cols-2 mt-4">
                 <div className="p-4" style={STATUS_BOX}>
                   <div className="flex items-center justify-between gap-2">
-                    <h4 className="text-sm font-semibold">Protected account</h4>
+                    <h4 style={SUBHEAD}>Protected account</h4>
                     <span className="text-xs" style={{ color: readiness.protectedFundsDetected ? 'var(--ok)' : 'var(--dim)' }}>
                       {readiness.protectedFundsDetected ? 'Ready' : 'Required'}
                     </span>
@@ -952,7 +952,7 @@ export default function Onboard() {
 
                 <div className="p-4" style={STATUS_BOX}>
                   <div className="flex items-center justify-between gap-2">
-                    <h4 className="text-sm font-semibold">Agent wallet</h4>
+                    <h4 style={SUBHEAD}>Agent wallet</h4>
                     <span className="text-xs" style={{ color: readiness.agentGasReady ? 'var(--ok)' : 'var(--dim)' }}>
                       {readiness.agentGasReady ? 'Ready' : 'Required'}
                     </span>
@@ -1017,7 +1017,7 @@ export default function Onboard() {
             The on-chain protections, agent permission and both operating balances have been verified.
           </p>
           <div className="p-4 mt-5" style={{ ...STATUS_BOX, borderColor: 'var(--ok)' }}>
-            <p className="text-sm font-semibold" style={{ color: 'var(--ok)' }}>Ready on Celo</p>
+            <p style={{ ...SUBHEAD, color: 'var(--ok)' }}>Ready on Celo</p>
             <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
               Hand the account address to your agent when you are ready to connect its runtime.
             </p>
@@ -1049,7 +1049,7 @@ export default function Onboard() {
           </div>
 
           <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--line)' }}>
-            <h3 className="text-sm font-semibold">What happens next</h3>
+            <h3 style={SUBHEAD}>What happens next</h3>
             {/* Was "a separate integration journey", which stopped being true
                 when the block above moved onto this step. Still not REQUIRED
                 -- readiness deliberately ignores it (lib/setup.ts) -- but it

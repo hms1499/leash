@@ -17,7 +17,7 @@ import { test, expect, type Page } from '@playwright/test'
 /** Distinct `${size} ${mono|sans} ${weight}` triples rendered on the route. */
 const CEILING: Record<string, number> = {
   // Measured in Chromium at 1280px on 2026-09-11, before any call site moved.
-  '/': 17,
+  '/': 16,
   '/setup': 9,
   '/accounts': 6,
   '/a/0xA73DB76f20c5ede3ABE883565D22905760F83982': 12,

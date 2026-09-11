@@ -8,6 +8,7 @@ import { planRefuel, transactionsLeft } from '../lib/gasFloat.js'
 import { pollUntil } from '../lib/confirm.js'
 import Address from './ui/Address'
 import Panel from './ui/Panel'
+import { SUBHEAD } from './ui/prose'
 import Label from './ui/Label'
 import Button from './ui/Button'
 
@@ -177,7 +178,7 @@ export default function AgentPanel({
       </h2>
       <div className="grid gap-4 mt-4 sm:grid-cols-2">
         <div className="rounded p-4" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
-          <p className="text-sm font-semibold">Protected account</p>
+          <p style={SUBHEAD}>Protected account</p>
           <p className="num mt-2" style={{ fontSize: 'var(--t-heading)' }}>{formatDisplayAmount(protectedBalance, decimals)} {symbol}</p>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             Held behind the contract&apos;s spending policy.
@@ -185,7 +186,7 @@ export default function AgentPanel({
         </div>
         <div className="rounded p-4" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <p className="text-sm font-semibold">Agent wallet</p>
+            <p style={SUBHEAD}>Agent wallet</p>
             <span className="num text-xs" style={{ color: low ? 'var(--bad)' : 'var(--ok)' }}>
               {left} gas tx left
             </span>

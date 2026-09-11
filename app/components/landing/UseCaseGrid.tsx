@@ -1,6 +1,6 @@
 import Label from '../ui/Label'
 import Panel from '../ui/Panel'
-import { PROSE } from '../ui/prose'
+import { PROSE, SUBHEAD } from '../ui/prose'
 
 const USE_CASES = [
   {
@@ -27,8 +27,8 @@ export default function UseCaseGrid() {
         <Panel key={useCase.title} className="flex h-full flex-col p-5">
           <Label>{useCase.label}</Label>
           <h3
-            className="mt-4 text-sm font-semibold"
-            style={{ color: 'var(--text)', fontFamily: 'var(--mono)' }}
+            className="mt-4"
+            style={{ ...SUBHEAD, color: 'var(--text)' }}
           >
             {useCase.title}
           </h3>

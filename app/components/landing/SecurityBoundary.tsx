@@ -1,7 +1,7 @@
 import Label from '../ui/Label'
 import Panel from '../ui/Panel'
 import { PROOFS } from '../../lib/proofs.js'
-import { PROSE } from '../ui/prose'
+import { PROSE, SUBHEAD } from '../ui/prose'
 
 const PROTECTED = [
   'Every operator draw is bounded by the per-payment and daily caps.',
@@ -71,7 +71,7 @@ export default function SecurityBoundary() {
               outlineColor: 'var(--text)',
             }}
           >
-            <span className="text-sm font-semibold">{proof.claim}</span>
+            <span style={SUBHEAD}>{proof.claim}</span>
             <span className="num text-xs" style={{ color: 'var(--dim)' }}>View transaction ↗</span>
           </a>
         ))}
