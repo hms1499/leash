@@ -4,7 +4,7 @@ import Label, { LABEL_STYLE } from './ui/Label'
 import Panel from './ui/Panel'
 import { formatDisplayAmount } from '../lib/policy.js'
 import { accountHealth } from '../lib/accountHealth.js'
-import { HEADING, PROSE } from './ui/prose'
+import { DATA, HEADING, PROSE } from './ui/prose'
 
 export function AccountOverview({
   account, owner, connected, paused, loading, updatedAt, daily, perTx, balance,
@@ -125,11 +125,13 @@ export function SecurityPolicy({
         {rows.map(([name, value, isMoney], index) => (
           <div
             key={name}
-            className="flex flex-wrap justify-between gap-2 py-2 text-sm"
-            style={{ borderTop: index === 0 ? 'none' : '1px solid var(--line)' }}
+            className="flex flex-wrap justify-between gap-2 py-2"
+            style={{ ...PROSE, borderTop: index === 0 ? 'none' : '1px solid var(--line)' }}
           >
             <span style={{ color: 'var(--dim)' }}>{name}</span>
-            <span className={isMoney ? 'num' : undefined}>{value}</span>
+            {/* Money is --t-data and mono (§2). This row is prose; the figure
+                in it is not, and it was inheriting the row's 14px sans. */}
+            <span className={isMoney ? 'num' : undefined} style={isMoney ? DATA : undefined}>{value}</span>
           </div>
         ))}
       </div>

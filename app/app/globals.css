@@ -223,3 +223,13 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Inline code is looked at, not read, so it is mono -- and at the data step
+ * rather than at whatever size the prose around it happens to be. Measured
+ * 2026-09-11, <code> in the wizard drew 14px mono 400, which is no step: the
+ * browser supplies the family and inherits the size, and the pair lands
+ * between --t-subhead and --t-data. design-system.md §1, §2. */
+code {
+  font-family: var(--mono);
+  font-size: var(--t-data);
+}

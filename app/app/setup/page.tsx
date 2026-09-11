@@ -10,7 +10,7 @@ import ActionLink from '../../components/ui/ActionLink'
 import AppHeader from '../../components/ui/AppHeader'
 import Panel from '../../components/ui/Panel'
 import Label, { LABEL_STYLE } from '../../components/ui/Label'
-import { PROSE, SUBHEAD } from '../../components/ui/prose'
+import { PROSE, SUBHEAD, TITLE } from '../../components/ui/prose'
 import Button from '../../components/ui/Button'
 import {
   publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS, ERC20_TRANSFER_GAS,
@@ -654,7 +654,7 @@ export default function Onboard() {
       />
       <main className={`${PAGE} py-12`}>
         <header>
-          <h1 style={{ ...HEADING, fontSize: 'var(--t-title)' }}>
+          <h1 style={TITLE}>
             Set up a protected agent account
           </h1>
           <p className="mt-2" style={{ ...PROSE, maxWidth: '62ch', color: 'var(--dim)' }}>
@@ -755,7 +755,7 @@ export default function Onboard() {
               <div>
                 <p className="text-sm" style={{ color: 'var(--ok)' }}>✓ Protected account created</p>
                 <div className="mt-2 max-w-full overflow-x-auto">
-                  <Address address={account} copy explorer full className="num text-sm" />
+                  <Address address={account} copy explorer full className="num" />
                 </div>
                 <Button variant="primary" className="mt-4" onClick={() => setActiveStage(2)}>
                   Continue to protection
@@ -907,7 +907,7 @@ export default function Onboard() {
               <div className="p-6 mt-3" style={STATUS_BOX}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm" style={{ color: 'var(--ok)' }}>✓ Agent wallet authorized</p>
-                  <Address address={agent} copy explorer className="num text-sm" />
+                  <Address address={agent} copy explorer className="num" />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 mt-4" style={{ ...PROSE, color: 'var(--dim)' }}>
                   <p>✓ Can request policy-checked payments</p>

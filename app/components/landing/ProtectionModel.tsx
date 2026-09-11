@@ -1,6 +1,6 @@
 import Label, { LABEL_STYLE } from '../ui/Label'
 import Panel from '../ui/Panel'
-import { PROSE } from '../ui/prose'
+import { DATA, PROSE } from '../ui/prose'
 
 function RoleRow({
   role, body,
@@ -52,8 +52,8 @@ export default function ProtectionModel() {
           style={{ color: 'var(--dim)' }}
         >
           <span className="num text-center" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)' }}>capped top-up</span>
-          <span className="ml-2 sm:hidden" aria-hidden="true">↓</span>
-          <span className="mt-2 hidden sm:inline" aria-hidden="true">→</span>
+          <span className="ml-2 sm:hidden" style={DATA} aria-hidden="true">↓</span>
+          <span className="mt-2 hidden sm:inline" style={DATA} aria-hidden="true">→</span>
         </div>
 
         <div className="p-6">

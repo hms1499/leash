@@ -1,7 +1,7 @@
 import ActionLink from '../ui/ActionLink'
 import Panel from '../ui/Panel'
 import { PAGE } from '../ui/page'
-import { PROSE } from '../ui/prose'
+import { HEADING, PROSE } from '../ui/prose'
 
 export default function FinalCta() {
   return (
@@ -9,13 +9,7 @@ export default function FinalCta() {
       <Panel className="p-6 sm:p-12">
         <h2
           id="final-cta-title"
-          style={{
-            fontFamily: 'var(--mono)',
-            fontSize: 'var(--t-heading)',
-            lineHeight: 'var(--t-heading-line)',
-            fontWeight: 600,
-            color: 'var(--text)',
-          }}
+          style={{ ...HEADING, color: 'var(--text)' }}
         >
           Ready to give your agent a hard spending limit?
         </h2>

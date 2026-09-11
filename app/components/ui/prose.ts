@@ -50,3 +50,30 @@ export const HEADING: React.CSSProperties = {
   lineHeight: 'var(--t-heading-line)',
   fontWeight: 500,
 }
+
+/**
+ * A page title, in one place.
+ *
+ * Three screens set --t-title's size and left the weight to whoever was
+ * reading: /accounts drew 36px mono 400, the wizard 36px mono 500 through a
+ * HEADING it overrode the size of, and the landing 36px mono 600. One rank,
+ * three faces, and nothing could see it because all three were the same size.
+ */
+export const TITLE: React.CSSProperties = {
+  fontFamily: 'var(--mono)',
+  fontSize: 'var(--t-title)',
+  lineHeight: 'var(--t-title-line)',
+  fontWeight: 600,
+}
+
+/**
+ * A number or an address, in one place: --t-data is mono, and the family is
+ * the half that kept being dropped. The header and footer navs were set to
+ * this step's size in Task 5 and left in the sans family, which is a rank the
+ * scale does not have.
+ */
+export const DATA: React.CSSProperties = {
+  fontFamily: 'var(--mono)',
+  fontSize: 'var(--t-data)',
+  lineHeight: 'var(--t-data-line)',
+}

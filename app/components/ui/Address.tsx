@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { truncateAddress } from '../../lib/address.js'
+import { DATA } from './prose'
 
 /**
  * An address, in the three shapes this app needs: read-only with an explorer
@@ -30,6 +31,16 @@ export default function Address({
   style?: React.CSSProperties
 }) {
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  /**
+   * An address is --t-data: §2's table says so, and nine call sites were each
+   * deciding for themselves. Three passed a raw 14px size class and the rest passed
+   * nothing, so the copy button inherited the browser's 16px -- a size on no
+   * scale, measured on the dashboard on 2026-09-11.
+   *
+   * Spread first, so a caller with a real reason can still override it.
+   */
+  const face: React.CSSProperties = { ...DATA, ...style }
+
   const shown = full ? address : truncateAddress(address)
 
   const text = copy
@@ -40,7 +51,7 @@ export default function Address({
           // wrap on a phone. `.tap-focus` supplies the ring this button never
           // had -- no component library ships here, so nothing else would.
           className={`tap-tall tap-focus ${className}`.trimEnd()}
-          style={{ ...style, cursor: 'pointer' }}
+          style={{ ...face, cursor: 'pointer' }}
           title={`Copy ${address}`}
           aria-label={`Copy address ${address}`}
           onClick={() => {
@@ -66,7 +77,7 @@ export default function Address({
           {shown}
         </button>
       )
-    : <span className={className} style={style}>{shown}</span>
+    : <span className={className} style={face}>{shown}</span>
 
   // One region for both outcomes rather than a live region per state: they are
   // mutually exclusive and would otherwise compete. `aria-atomic` so the whole
@@ -103,7 +114,7 @@ export default function Address({
         title="Open on Celoscan"
         aria-label={`Open address ${address} on Celoscan`}
         className="tap-focus inline-flex items-center justify-center min-w-[44px] min-h-[44px] -my-3"
-        style={style}
+        style={face}
       >
         ↗
       </a>

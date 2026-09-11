@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import BrandLink from '../ui/BrandLink'
 import { PAGE } from '../ui/page'
-import { PROSE } from '../ui/prose'
+import { DATA, PROSE } from '../ui/prose'
 
 const LINKS = [
   { label: 'Setup guide', href: 'https://github.com/hms1499/leash/blob/main/docs/mcp-setup.md' },
@@ -21,8 +21,7 @@ export default function SiteFooter() {
         </div>
         {/* Same refusal as the header nav: names for destinations, but not
             set in the uppercase tracked label step. §2. */}
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-3"
-          style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)' }}>
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-3" style={DATA}>
           <Link
             href="/accounts"
             className="focus-ring"

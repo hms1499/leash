@@ -1,50 +1,46 @@
 import { test, expect, type Page } from '@playwright/test'
+import { allowedFaces, DECLARED_EXCEPTIONS } from '../lib/type.js'
 
 /**
  * What the eye receives, rather than what the source says.
  *
- * test/scaleUsage.test.ts counts class names. It cannot see a face produced
- * by an inline style, a font-weight utility or a family switch, and measured
- * in Chromium on 2026-09-11 the landing page rendered 17 distinct faces
- * against a scale of six steps. That gap is the defect; the class count was
- * green throughout.
+ * test/scaleUsage.test.ts counts class names and test/type.test.ts checks the
+ * tokens agree with each other. Neither can see a face produced by an inline
+ * style, a font-weight utility or a family switch, and measured in Chromium on
+ * 2026-09-11 the landing page rendered 17 distinct faces against a scale of
+ * six steps. Every source test was green throughout.
  *
- * A ratchet, like the others in this repo: the numbers may fall and may not
- * rise. The failure message prints the full list, so lowering an entry is a
- * matter of reading the output rather than guessing.
+ * This began as a ceiling -- no more than N faces per route -- which stopped
+ * the drift growing without saying what any of it was. Once lib/type.ts
+ * carried weight and family as well as size, the stronger assertion became
+ * available: **every face on the page is one of the declared steps.** A count
+ * would have accepted 36px mono at 400, 500 and 600 as three faces for one
+ * rank; this does not accept any of them but the one the scale names.
+ *
+ * The exceptions are declared in lib/type.ts and each is a decision.
  */
 
-/** Distinct `${size} ${mono|sans} ${weight}` triples rendered on the route. */
-const CEILING: Record<string, number> = {
-  // Measured in Chromium at 1280px. The first figures, before any call site
-  // moved, were 17 / 9 / 6 / 12.
-  '/': 12,
-  // 8, not 7. The wizard traded a `large` 36px wordmark for the one every
-  // other screen wears: --t-label at the wordmark's declared 700 (§2). Its
-  // 36px mono 500 stays as the page heading, so the route gains a face. The
-  // brand is one size everywhere now, which is the point of AppHeader.
-  '/setup': 8,
-  '/accounts': 6,
-  // 11, not 10. This is the one entry that has ever risen, and it rose
-  // because --t-display appeared on a screen that was missing it: the figure
-  // used to render for `ceiling` alone, and this account is paused. A ratchet
-  // exists to stop drift, not to stop a scale step from being used where the
-  // design system says it belongs. See §7.
-  '/a/0xA73DB76f20c5ede3ABE883565D22905760F83982': 11,
-}
+const ROUTES = [
+  '/',
+  '/setup',
+  '/accounts',
+  '/a/0xA73DB76f20c5ede3ABE883565D22905760F83982',
+]
 
-async function faces(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
-    const seen = new Set<string>()
-    for (const el of document.querySelectorAll('h1,h2,h3,h4,p,span,div,a,button,li,summary,label')) {
+async function faces(page: Page): Promise<Map<string, string>> {
+  return new Map(await page.evaluate(() => {
+    const seen = new Map<string, string>()
+    for (const el of document.querySelectorAll('*')) {
+      // <style> and <script> hold text nodes and paint nothing. Counting them
+      // reported 16px sans 400 as the app's most-used face.
+      // <title> lives in <head> and paints nothing either.
+      if (['STYLE', 'SCRIPT', 'NOSCRIPT', 'TEMPLATE', 'TITLE'].includes(el.tagName)) continue
       // Only elements that draw text themselves. A wrapper inherits a face it
       // never paints, and counting it would report ranks nobody can see.
       //
-      // Any direct text-node child, not just the first one. Testing
+      // Any direct text-node child, not just the first: testing
       // `firstChild.nodeType === 3` skipped every element that opens with a
-      // <span> or <strong> and then sets its own text -- and it hid a
-      // mutation test: wrapping the hero's first word in a 17px span removed
-      // the h1 from the count as it added the span, so the total never moved.
+      // <span> or <strong> and then sets its own text.
       let draws = false
       for (const node of el.childNodes) {
         if (node.nodeType === 3 && node.textContent?.trim()) { draws = true; break }
@@ -52,22 +48,30 @@ async function faces(page: Page): Promise<string[]> {
       if (!draws) continue
       const cs = getComputedStyle(el)
       const mono = cs.fontFamily.toLowerCase().includes('mono')
-      seen.add(`${cs.fontSize} ${mono ? 'mono' : 'sans'} ${cs.fontWeight}`)
+      const face = `${cs.fontSize} ${mono ? 'mono' : 'sans'} ${cs.fontWeight}`
+      if (!seen.has(face)) seen.set(face, `<${el.tagName}> ${(el.textContent || '').trim().slice(0, 40)}`)
     }
-    return [...seen].sort()
-  })
+    return [...seen.entries()]
+  }))
 }
 
-for (const [route, ceiling] of Object.entries(CEILING)) {
-  test(`${route} renders no more type faces than its recorded ceiling`, async ({ page }) => {
+for (const route of ROUTES) {
+  test(`${route} renders only faces the scale declares`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto(route)
     await page.waitForLoadState('networkidle')
+
+    const allowed = allowedFaces()
     const found = await faces(page)
-    expect(found.length, `${route} renders ${found.length} faces:\n${found.join('\n')}\n\n`
-      + 'docs/design-system.md §2 defines seven steps. Lower the ceiling in '
-      + 'this file when a route is cleaned up, so the list stays honest.')
-      .toBeLessThanOrEqual(ceiling)
+    const strays = [...found.entries()]
+      .filter(([face]) => !allowed.has(face))
+      .map(([face, where]) => `${face}   ${where}`)
+
+    expect(strays, `${route} draws faces the scale does not define:\n${strays.join('\n')}\n\n`
+      + `declared: ${[...allowed].sort().join(', ')}\n`
+      + `exceptions: ${Object.entries(DECLARED_EXCEPTIONS).map(([f, why]) => `${f} (${why})`).join(', ')}\n\n`
+      + 'Add the face to a step in lib/type.ts, or put the call site on one. '
+      + 'docs/design-system.md §2.').toEqual([])
   })
 }
 

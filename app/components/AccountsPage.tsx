@@ -25,7 +25,7 @@ import {
 } from '../lib/accountRegistry.js'
 import { publicClient } from '../lib/chain.js'
 import { describeDiscovery, type DiscoveredAccountCandidate } from '../lib/accountDiscovery.js'
-import { HEADING } from './ui/prose'
+import { HEADING, TITLE } from './ui/prose'
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const VERIFY_ABI = [
@@ -197,7 +197,7 @@ export default function AccountsPage() {
       />
       <main className={`${PAGE} py-12 space-y-6`}>
         <header>
-          <h1 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-title)', color: 'var(--text)' }}>
+          <h1 style={{ ...TITLE, color: 'var(--text)' }}>
             My protected accounts
           </h1>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>

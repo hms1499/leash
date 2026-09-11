@@ -82,15 +82,14 @@ const HAND_ROLLED_RING = /(focus-visible:outline-2)/g
 /** The debt on 2026-09-10. These numbers may fall. They may not rise. */
 const RAW_TYPE_DEBT: Record<string, number> = {
   'app/a/[address]/page.tsx': 2,
-  'app/setup/page.tsx': 30,
+  'app/setup/page.tsx': 28,
   'components/AccountsPage.tsx': 5,
   'components/AgentAccessPanel.tsx': 6,
-  'components/AgentPanel.tsx': 7,
-  'components/DashboardOverview.tsx': 3,
+  'components/AgentPanel.tsx': 6,
+  'components/DashboardOverview.tsx': 2,
   'components/Feed.tsx': 4,
   'components/LimitsDrawer.tsx': 7,
   'components/McpHandoff.tsx': 7,
-  'components/landing/HowItWorks.tsx': 1,
   'components/landing/LiveProof.tsx': 5,
 }
 

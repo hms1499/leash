@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import ActionLink from '../ui/ActionLink'
 import AppHeader from '../ui/AppHeader'
+import { DATA } from '../ui/prose'
 
 const NAV_ITEMS = [
   { href: '#how-it-works', label: 'How it works', external: false },
@@ -15,8 +16,7 @@ const NAV_ITEMS = [
  * than by oversight. design-system.md §2.
  */
 const NAV_LINK: React.CSSProperties = {
-  fontSize: 'var(--t-data)',
-  lineHeight: 'var(--t-data-line)',
+  ...DATA,
   borderRadius: 'var(--r-mark)',
   color: 'var(--dim)',
   outlineColor: 'var(--text)',

@@ -191,7 +191,7 @@ export default function AgentPanel({
               {left} gas tx left
             </span>
           </div>
-          <p className="mt-2"><Address address={operator} copy explorer className="num text-sm" /></p>
+          <p className="mt-2"><Address address={operator} copy explorer className="num" /></p>
           <p className="text-sm mt-2" style={{ color: low ? 'var(--bad)' : 'var(--dim)' }}>
             <span className="num">{formatDisplayAmount(float, decimals)} {symbol}</span> available for gas
             {left === 0 && '. The agent has stalled and cannot refuel itself.'}

@@ -98,6 +98,52 @@ this pair and no other.
 `--t-heading` is the rank that was missing. Moving `Section` and the wizard's
 steps onto it rebuilds the whole hierarchy without touching a single colour.
 
+### A face is a size, a family and a weight
+
+The table above always named all three. Only the size was ever enforced, and
+measured in Chromium on 2026-09-11 the app drew **eight faces the scale does
+not define** — with every source test green, because they read sizes:
+
+```
+36px mono 400   /accounts' page title
+36px mono 500   the wizard's page title
+36px mono 600   the landing's                 ← one rank, three faces
+18px mono 600   FinalCta, beside six 18px mono 500 headings
+14px mono 400   a step number, and <code> in the wizard's prose
+13px sans 400   the header and footer navs -- --t-data's size, sans family
+16px mono 400   Address, inheriting the browser's default
+16px sans 400   two flow arrows that set no size at all
+```
+
+Three of one rank is the case worth keeping in mind: nothing could see it,
+because all three were 36 pixels.
+
+`lib/type.ts` carries `face` and `weight` for every step now, and
+`e2e/faces.spec.ts` asserts the stronger thing a count could never say —
+**every face a route renders is one of the declared steps.** A ceiling stops
+drift growing; this stops it existing.
+
+The style constants in `components/ui/prose.ts` are how a call site gets a
+whole face rather than a size: `TITLE`, `HEADING`, `SUBHEAD`, `PROSE`, `DATA`.
+A component that writes `fontSize: 'var(--t-title)'` and stops has chosen a
+size and left the weight to whoever reads it next.
+
+### Three faces that are not steps
+
+Each is a decision, listed in `DECLARED_EXCEPTIONS` in `lib/type.ts`, and that
+list is the only way to have one:
+
+| Face | Why |
+|---|---|
+| `11px mono 700` | the wordmark — six letters at 11px need the weight to hold `.26em` open |
+| `13px mono 700` | the `primary` and `stop` controls — the one action you are meant to press, and the one you are meant to find in a hurry |
+| `14px sans 700` | `<strong>` inside prose — semantic emphasis, in the family and size the prose already has |
+
+`<code>` is deliberately **not** on that list. It was drawing 14px mono 400,
+which is no step: the browser supplies the family and inherits the size, and
+the pair lands between `--t-subhead` and `--t-data`. `globals.css` puts it on
+`--t-data`, because inline code is looked at rather than read (§1).
+
 ### What the scale actually replaced, measured again on 2026-09-10
 
 Less than this section claimed. The six steps were introduced and then applied
