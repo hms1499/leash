@@ -78,7 +78,7 @@ export default function McpHandoff({
 
         <pre
           className="num text-xs mt-4 p-3 overflow-x-auto"
-          style={{ background: 'var(--well)', borderRadius: 4 }}
+          style={{ background: 'var(--well)', borderRadius: 'var(--r-box)' }}
         >
           {block}
         </pre>

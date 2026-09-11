@@ -498,16 +498,17 @@ how to change this file.
 
 ## 10. Radius: the corner says what kind of thing it is
 
-Three values, and the choice between them is about what a thing **is**, not
+Four values, and the choice between them is about what a thing **is**, not
 about how modern it looks.
 
 | Token | Value | For |
 |---|---|---|
-| `--r-box` | 4px | anything with an inside: `Panel`, `Button`, `.field`, a status box |
+| `--r-surface` | 8px | a panel, a card, a band — something the layout sits *on* |
+| `--r-box` | 4px | a control or a well: `Button`, `ActionLink`, `.field`, a code block |
 | `--r-mark` | 2px | a mark laid over text: the ring on an inline link, the wordmark, a small badge |
 | `--r-dot` | 9999px | a state dot, and only ever that |
 
-### Why three and not one
+### Why four and not one
 
 One radius on everything is the tell of a kit rather than a system. It makes a
 status dot and a submit button claim to be the same kind of object, and in an
@@ -521,8 +522,22 @@ money is the worst possible outcome of a shape.
 
 ### Rules
 
-- **There is no fourth radius.** `test/surface.test.ts` asserts the set, so a
-  `--r-card: 12px` fails the suite rather than passing review.
+- **There is no fifth radius, and the fourth was found by re-measuring.** This
+  section first claimed three, having grepped `rounded*` classes and
+  `border-radius` in CSS but **not** inline `borderRadius` — where four more
+  values were sitting: `Panel` at 8, the dashboard's meter card at 8,
+  `STATUS_BOX` at 6, `McpHandoff`'s code well at 4. The most-used container in
+  the product was at a value this rule said did not exist, on the same day the
+  rule was written.
+
+  A surface is not a control, and that is the distinction the missing fourth
+  was carrying. `STATUS_BOX`'s 6px was the one genuine stray and is `--r-box`
+  now: a `--well` box holding a choice is a control.
+
+  `test/surface.test.ts` asserts the set *and* holds a ratchet at zero over
+  inline numeric radii, so the next literal fails the suite rather than
+  waiting a month to be counted. That second assertion is the one this section
+  needed and did not have.
 - **`rounded` and `--r-box` are both 4px today. Prefer the token.** The
   coincidence is not the rule; the token is. `Button`, `ActionLink` and
   `BrandLink` set `borderRadius` from it.

@@ -7,13 +7,29 @@ import { RADIUS, FOCUS, MOTION } from '../lib/surface.js'
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const css = readFileSync(join(ROOT, 'app/globals.css'), 'utf8')
 
+function sources(dir: string, found: string[] = []): string[] {
+  for (const entry of readdirSync(join(ROOT, dir))) {
+    const rel = `${dir}/${entry}`
+    if (statSync(join(ROOT, rel)).isDirectory()) {
+      if (entry.startsWith('.')) continue
+      sources(rel, found)
+    } else if (entry.endsWith('.tsx')) {
+      found.push(rel)
+    }
+  }
+  return found
+}
+
+/** Every component and route in the app. Shared by the usage ratchets below. */
+const FILES = [...sources('app'), ...sources('components')].sort()
+
 /**
  * The same arrangement tokens.test.ts and type.test.ts keep: lib/surface.ts is
  * the assertion, globals.css is the runtime, and this fails when they
  * disagree. docs/design-system.md §10–§13.
  */
 
-describe('the three corners', () => {
+describe('the four corners', () => {
   for (const [name, value] of Object.entries(RADIUS)) {
     it(`--r-${name} is ${value} in globals.css`, () => {
       expect(css).toContain(`--r-${name}: ${value};`)
@@ -23,9 +39,28 @@ describe('the three corners', () => {
   // §10's whole content is that there is no fourth. A design with one radius
   // on everything cannot say that a status dot and a submit button are
   // different kinds of object; a design with five has stopped saying anything.
-  it('declares exactly three, and they are the three named here', () => {
+  it('declares exactly four, and they are the four named here', () => {
     const declared = [...css.matchAll(/--r-([a-z]+):/g)].map((m) => m[1]).sort()
     expect(declared).toEqual(Object.keys(RADIUS).sort())
+  })
+
+  /**
+   * The first version of §10 grepped `rounded*` classes and `border-radius`
+   * in CSS and concluded there were three radii. It never counted inline
+   * numeric `borderRadius`, and there were four more: Panel at 8, the meter
+   * card at 8, STATUS_BOX at 6, McpHandoff's well at 4. The most-used
+   * container in the product was at a value the rule said did not exist.
+   *
+   * A ratchet at zero, so the next inline literal fails here rather than
+   * being found by a re-measurement a month later.
+   */
+  it('has no inline numeric borderRadius left anywhere', () => {
+    const offenders = FILES
+      .map((f) => ({ f, hits: [...readFileSync(join(ROOT, f), 'utf8')
+        .matchAll(/borderRadius:\s*\d/g)].length }))
+      .filter(({ hits }) => hits > 0)
+      .map(({ f, hits }) => `${f}: ${hits}`)
+    expect(offenders).toEqual([])
   })
 })
 
@@ -109,21 +144,6 @@ describe('motion', () => {
  * document first and this test second.
  */
 describe('no elevation', () => {
-  function sources(dir: string, found: string[] = []): string[] {
-    for (const entry of readdirSync(join(ROOT, dir))) {
-      const rel = `${dir}/${entry}`
-      if (statSync(join(ROOT, rel)).isDirectory()) {
-        if (entry.startsWith('.')) continue
-        sources(rel, found)
-      } else if (entry.endsWith('.tsx')) {
-        found.push(rel)
-      }
-    }
-    return found
-  }
-
-  const FILES = [...sources('app'), ...sources('components')].sort()
-
   it.each([
     ['shadows', /(?<![\w-])(?:drop-)?shadow-[a-z0-9[]|boxShadow|box-shadow/],
     ['stacking order', /(?<![\w-])z-(?:\d|\[)|zIndex|z-index/],

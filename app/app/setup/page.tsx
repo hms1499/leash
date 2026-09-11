@@ -80,8 +80,12 @@ const HEADING: React.CSSProperties = {
   fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)', lineHeight: 'var(--t-heading-line)',
   fontWeight: 500, color: 'var(--text)',
 }
+/** A --well box holding a choice is a control, not a surface: --r-box, not
+ *  --r-surface. The 6px here was the only radius in the app on no scale at
+ *  all. design-system.md §10. */
 const STATUS_BOX: React.CSSProperties = {
-  background: 'var(--well)', border: '1px solid var(--line)', borderRadius: 6,
+  background: 'var(--well)', border: '1px solid var(--line)',
+  borderRadius: 'var(--r-box)',
 }
 
 type RecipientMode = 'any' | 'protected'

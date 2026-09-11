@@ -11,7 +11,7 @@ export default function Panel({
   return (
     <Tag
       className={className}
-      style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 8 }}
+      style={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 'var(--r-surface)' }}
     >
       {children}
     </Tag>

@@ -22,14 +22,21 @@
  */
 
 /**
- * Three corners, and the choice between them is about what a thing *is*.
+ * Four corners, and the choice between them is about what a thing *is*.
  *
  * A single radius on everything is the tell of a kit rather than a system: it
  * makes a status dot and a submit button claim to be the same kind of object.
  * Here the corner is the claim. design-system.md §10.
+ *
+ * §10 first said three and no fourth. It had grepped classes and CSS and not
+ * inline `borderRadius`, where four more values were sitting -- including
+ * Panel, the most-used container in the product, at 8px. A surface is not a
+ * control, and that is the distinction the missing fourth was carrying.
  */
 export const RADIUS = {
-  /** Anything with an inside: Panel, Button, .field, a status box. */
+  /** A panel, a card, a band: something the layout sits on. */
+  surface: '8px',
+  /** A control or a well: Button, ActionLink, .field, a code block. */
   box: '4px',
   /** A mark laid over text: the ring on an inline link, a small badge. */
   mark: '2px',

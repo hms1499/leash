@@ -42,10 +42,11 @@
   --t-label: 11px;    --t-label-line: 1.3;
 
   /* The corner says what kind of thing this is, not how modern it looks.
-     Three values, measured in place on 2026-09-11 (4px ×10, 2px ×8, 9999px
-     ×4) and named here so there can be no fourth. A box has an inside, a mark
-     is laid over text, a dot is a state. Asserted against lib/surface.ts.
-     docs/design-system.md §10. */
+     Four values, one per kind of object: a surface the layout sits on, a
+     control or well, a mark laid over text, a state dot. The first count
+     missed the inline numeric radii and reported three. Asserted against
+     lib/surface.ts. docs/design-system.md §10. */
+  --r-surface: 8px;
   --r-box: 4px;
   --r-mark: 2px;
   --r-dot: 9999px;

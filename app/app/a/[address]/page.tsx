@@ -314,7 +314,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
             <div
               data-testid="spending-meter-card"
               className="overflow-hidden"
-              style={{ border: '1px solid var(--line)', borderRadius: 8 }}
+              style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-surface)' }}
             >
               <Meter
                 daily={state.daily}
