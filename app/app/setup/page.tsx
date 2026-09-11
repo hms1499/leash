@@ -727,7 +727,7 @@ export default function Onboard() {
             ))}
           </div>
           <details className="mt-5 text-sm" style={{ color: 'var(--dim)' }}>
-            <summary className="motion-press control-text cursor-pointer focus-ring"
+            <summary className="motion-press control-text tap-tall cursor-pointer focus-ring"
               style={{ borderRadius: 'var(--r-mark)', color: 'var(--text)', outlineColor: 'var(--text)' }}>
               What you need before creating
             </summary>

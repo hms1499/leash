@@ -29,7 +29,7 @@ export default function SiteHeader() {
       href={item.href}
       target={item.external ? '_blank' : undefined}
       rel={item.external ? 'noreferrer' : undefined}
-      className="focus-ring"
+      className="motion-press control-text tap-tall focus-ring"
       style={NAV_LINK}
     >
       {item.label}{item.external ? ' ↗' : ''}
@@ -38,7 +38,7 @@ export default function SiteHeader() {
 
   const actions = (
     <>
-      <Link href="/accounts" className="focus-ring" style={NAV_LINK}>
+      <Link href="/accounts" className="motion-press control-text tap-tall focus-ring" style={NAV_LINK}>
         My accounts
       </Link>
       <ActionLink href="/setup" variant="primary" className="px-3 py-1.5">

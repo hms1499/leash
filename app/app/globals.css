@@ -303,11 +303,36 @@ body {
 .control-stop { border: 1px solid var(--bad); color: var(--bad); font-weight: 700; outline-color: var(--bad); }
 .control-stop:hover:not(:disabled) { background: var(--bad); color: var(--bg); }
 
-/* The paused header's ground is --bad, and §4 lets only --bg sit on it. */
+/* The paused header's ground is --bad, and §4 lets only --bg sit on it.
+ *
+ * `.on-bright` is declared once by whatever paints the bright ground, and
+ * every control inside it inherits the rule. The per-control `on-danger`
+ * below is the same treatment for a control that is told directly.
+ *
+ * The band used to tell them one at a time, through an `onDangerBand` prop,
+ * and measured on 2026-09-11 it had been missed twice: `AccountSwitcher`'s
+ * "My accounts" and `ConnectButton` both drew `--text` on `--bad` at **2.44**,
+ * against §4's 4.5 bar, on the one screen a reader opens *because* something
+ * is wrong. A prop that has to be remembered at every call site is the shape
+ * §11 already fixed once for the focus ring. This does not have to be
+ * remembered: a control inside the band cannot avoid it. */
+.on-bright .control-ghost,
+.on-bright .control-stop,
 .control-ghost.on-danger,
 .control-stop.on-danger { border-color: var(--bg); color: var(--bg); outline-color: var(--bg); background: transparent; }
+.on-bright .control-ghost:hover:not(:disabled),
 .control-ghost.on-danger:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+.on-bright .control-stop:hover:not(:disabled),
 .control-stop.on-danger:hover:not(:disabled) { background: var(--bg); color: var(--bad); }
+
+/* A solid control on a bright band. --celo on --bad is 2.36 as a boundary,
+   under the 3:1 a non-text edge needs, so the primary button inverts: --bg is
+   the only ground §4 allows here and the label keeps the brand colour. */
+.on-bright .control-primary { background: var(--bg); color: var(--celo); outline-color: var(--bg); }
+.on-bright .control-primary:hover:not(:disabled) { background: var(--well); }
+
+/* A text control on the band: the copy button on an address, a bare link. */
+.on-bright .control-text { color: var(--bg); }
 
 /* A control with neither a line nor a ground of its own: the copy button on an
  * address, the explorer glyph, a <summary>. There is nothing to move, so the

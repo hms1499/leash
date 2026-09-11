@@ -66,16 +66,19 @@ export default function AccountSwitcher({ current }: { current: `0x${string}` })
           ))}
         </select>
       )}
+      {/* `control control-ghost` rather than a border and a colour written out
+          here. Written out, this link could not know it was sitting on the
+          paused band -- and it was not: --text on --bad, 2.44 against §4's
+          4.5, on every paused dashboard since the switcher was added. The
+          classes carry the tone, the hover and `.on-bright` together. */}
       <Link
         href="/accounts"
         aria-current={pathname === '/accounts' ? 'page' : undefined}
-        className="px-3 py-2 focus-ring"
+        className="control control-ghost motion-press tap-tall px-3 py-2 focus-ring"
         style={{
           borderRadius: 'var(--r-box)',
-          border: '1px solid var(--line-control)',
           fontFamily: 'var(--mono)',
           fontSize: 'var(--t-data)',
-          outlineColor: 'var(--text)',
         }}
       >
         My accounts{accounts.length ? ` (${accounts.length})` : ''}

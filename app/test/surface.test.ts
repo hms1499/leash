@@ -236,6 +236,58 @@ describe('motion', () => {
 })
 
 /**
+ * §4's bright-ground rule, and how it is delivered.
+ *
+ * The rule itself is asserted in tokens.test.ts against the palette. This is
+ * the other half: a control on a bright band has to *receive* it. It used to
+ * arrive as an `onDangerBand` prop, one component at a time, and measured on
+ * 2026-09-11 two of the four controls on that band had never been handed it --
+ * `AccountSwitcher`'s "My accounts" and `ConnectButton` -- so both drew
+ * `--text` on `--bad` at 2.44 against a 4.5 bar, on the screen a reader opens
+ * because something is wrong. Found by reading the rendered page, which is
+ * where it could be found: the palette was never the thing that was broken.
+ */
+describe('the bright band', () => {
+  it('is declared by whatever paints it', () => {
+    const header = readFileSync(join(ROOT, 'components/ui/AppHeader.tsx'), 'utf8')
+    expect(header).toContain("className={danger ? 'on-bright' : undefined}")
+  })
+
+  it('gives every control inside it the only foreground §4 allows', () => {
+    for (const rule of ['.on-bright .control-ghost,', '.on-bright .control-primary {', '.on-bright .control-text {']) {
+      expect(css, `${rule} is missing from globals.css`).toContain(rule)
+    }
+    const ghost = css.slice(css.indexOf('.on-bright .control-ghost,'))
+    expect(ghost.slice(0, ghost.indexOf('}'))).toContain('color: var(--bg)')
+  })
+
+  /**
+   * A control that writes its own border cannot be reached by that rule --
+   * which is exactly how the switcher came to be wrong. The three that remain
+   * are the wizard's stepper and its two recipient choices: their border is
+   * conditional on which one is selected, and none of them sits on a bright
+   * band. The number may fall. It may not rise.
+   */
+  it('has no new control drawing its own border', () => {
+    const debt: Record<string, number> = {
+      'app/setup/page.tsx': 3,
+      // A status pill, not a control -- §10: a pill in this UI means status.
+      // It borrows the control border only for its visibility, and it sits on
+      // a panel, never on a bright band.
+      'components/landing/ProtectionModel.tsx': 1,
+    }
+    const counted = FILES
+      .map((f) => ({ f, hits: [...readFileSync(join(ROOT, f), 'utf8')
+        .matchAll(/(?<!--)\bborder(?:Color)?:[^,\n]*--line-control/g)].length }))
+      .filter(({ hits }) => hits > 0)
+    expect(counted.filter(({ f, hits }) => hits > (debt[f] ?? 0))
+      .map(({ f, hits }) => `${f}: ${debt[f] ?? 0} → ${hits}`)).toEqual([])
+    expect(counted.filter(({ f, hits }) => hits < (debt[f] ?? 0))
+      .map(({ f, hits }) => `${f}: ${debt[f] ?? 0} → ${hits}`)).toEqual([])
+  })
+})
+
+/**
  * §13: this app has no layer above the page, and that is a decision rather
  * than an omission. Depth is a change of ground (--well < --bg < --panel), so
  * a soft grey shadow would be both invisible on #0B0D10 and the one ornament

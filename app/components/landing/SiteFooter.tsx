@@ -21,10 +21,10 @@ export default function SiteFooter() {
         </div>
         {/* Same refusal as the header nav: names for destinations, but not
             set in the uppercase tracked label step. §2. */}
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-3" style={DATA}>
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-6" style={DATA}>
           <Link
             href="/accounts"
-            className="focus-ring"
+            className="motion-press control-text tap-tall focus-ring"
             style={{ borderRadius: 'var(--r-mark)', color: 'var(--dim)', outlineColor: 'var(--text)' }}
           >
             My accounts
@@ -35,7 +35,7 @@ export default function SiteFooter() {
               href={link.href}
               target="_blank"
               rel="noreferrer"
-              className="focus-ring"
+              className="motion-press control-text tap-tall focus-ring"
               style={{ borderRadius: 'var(--r-mark)', color: 'var(--dim)', outlineColor: 'var(--text)' }}
             >
               {link.label} ↗

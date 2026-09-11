@@ -138,3 +138,48 @@ test('every section heading aligns with the content it titles', async ({ page })
   expect(feed).not.toBeNull()
   expect(Math.round(heading!.x)).toBe(Math.round(feed!.x))
 })
+
+/**
+ * The landing's own targets. §2.1 asks for 44px on a phone and `reach` had
+ * only ever checked the wizard and the dashboard, so the header nav, the
+ * "My accounts" link and the footer were never measured: all of them drew a
+ * 20px-tall box, found on 2026-09-11 by measuring the rendered page.
+ *
+ * `.tap-tall` extends the hit area with a pseudo-element rather than by
+ * growing the box, so nothing reflows -- which is why this reads
+ * `elementFromPoint` at the edge of the intended target instead of a
+ * bounding box. A box says what the layout does; only a hit test says what a
+ * thumb lands on.
+ */
+test('every standalone link on the landing takes a 44px thumb', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+  const missed = await page.evaluate(() => {
+    const out: string[] = []
+    const links = [
+      ...document.querySelectorAll('header a'),
+      ...document.querySelectorAll('footer a, nav[aria-label="Footer"] a'),
+    ] as HTMLElement[]
+    for (const el of links) {
+      const box = el.getBoundingClientRect()
+      if (box.width === 0) continue
+      const x = box.left + box.width / 2
+      // 22px above and below the centre is the edge of a 44px target.
+      for (const dy of [-21, 21]) {
+        const y = box.top + box.height / 2 + dy
+        if (y < 0 || y > window.innerHeight) continue
+        const hit = document.elementFromPoint(x, y)
+        if (hit !== el && !el.contains(hit)) {
+          out.push(`${(el.textContent || '').trim().slice(0, 24)} misses at ${dy > 0 ? 'bottom' : 'top'}`)
+        }
+      }
+    }
+    return out
+  })
+
+  expect(missed, 'a link on the landing answers a thumb only where its text is.\n'
+    + 'design-system.md §15 and spec §2.1: 44px on a phone. `.tap-tall` in '
+    + 'globals.css lifts a small target without changing the layout.').toEqual([])
+})

@@ -25,6 +25,12 @@ import { PAGE } from './page'
  * state read as red edge to edge. It propagates `onBright` to the brand, so
  * nothing downstream re-derives which ground it is sitting on: that is the
  * arithmetic §4 exists to make impossible.
+ *
+ * It also carries the `.on-bright` class, which is how that promise is
+ * actually kept. Propagation by prop only reaches what was written to accept
+ * one, and this band holds four controls from four components -- two of them
+ * had never been told, and had been drawing --text on --bad at 2.44 since the
+ * switcher was added.
  */
 export default function AppHeader({
   band = 'none', nav, actions,
@@ -41,8 +47,12 @@ export default function AppHeader({
     : band === 'panel'
       ? { background: 'var(--panel)', borderBottom: '1px solid var(--line)' }
       : { borderBottom: '1px solid var(--line)' }
+  // The band declares its own ground. Every control inside a bright one takes
+  // §4's rule from CSS rather than from a prop each of them has to be handed:
+  // measured 2026-09-11, two of them had never been handed it and drew --text
+  // on --bad at 2.44 against a 4.5 bar.
   return (
-    <header style={ground}>
+    <header className={danger ? 'on-bright' : undefined} style={ground}>
       <nav
         aria-label="Primary"
         className={`${PAGE} flex min-h-16 items-center justify-between gap-3`}
