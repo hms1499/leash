@@ -279,7 +279,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           <div className={`${PAGE} py-6 space-y-3`}>
             {state.error && state.updatedAt !== null && (
               <div role="alert">
-                <Panel className="p-4">
+                <Panel className="p-6">
                   <p className="text-sm" style={{ color: 'var(--bad)' }}>
                     Could not refresh the account. Showing the last confirmed values.
                   </p>

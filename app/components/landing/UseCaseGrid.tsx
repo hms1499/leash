@@ -24,7 +24,7 @@ export default function UseCaseGrid() {
   return (
     <div className="grid gap-4 sm:grid-cols-3">
       {USE_CASES.map((useCase) => (
-        <Panel key={useCase.title} className="flex h-full flex-col p-5">
+        <Panel key={useCase.title} className="flex h-full flex-col p-6">
           <Label>{useCase.label}</Label>
           <h3
             className="mt-4"

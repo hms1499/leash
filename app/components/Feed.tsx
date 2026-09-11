@@ -104,7 +104,8 @@ export default function Feed({
             href={`https://celoscan.io/address/${account}#events`}
             target="_blank"
             rel="noreferrer"
-            style={{ color: 'var(--celo)' }}
+            className="focus-ring"
+            style={{ borderRadius: 'var(--r-mark)', color: 'var(--celo)' }}
           >
             See the full history on Celoscan
           </a>
@@ -148,8 +149,8 @@ export default function Feed({
             target="_blank"
             rel="noreferrer"
             aria-label="View transaction on Celoscan"
-            className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{ outlineColor: 'var(--text)' }}
+            className="focus-ring"
+            style={{ borderRadius: 'var(--r-mark)', outlineColor: 'var(--text)' }}
           >
             <Label>tx ↗</Label>
           </a>

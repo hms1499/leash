@@ -195,7 +195,7 @@ export default function AccountsPage() {
           </>
         }
       />
-      <main className={`${PAGE} py-10 space-y-6`}>
+      <main className={`${PAGE} py-12 space-y-6`}>
         <header>
           <h1 style={{ fontFamily: 'var(--mono)', fontSize: 'var(--t-title)', color: 'var(--text)' }}>
             My protected accounts
@@ -278,7 +278,7 @@ function AccountRow({ account, number }: {
   number: number
 }) {
   return (
-    <Panel className="p-5">
+    <Panel className="p-6">
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
           <h2 className="mt-1 break-words" style={HEADING}>

@@ -73,7 +73,7 @@ export function AccountOverview({
       )}
 
       <div
-        className="mt-6 flex flex-col gap-3 pt-4 sm:flex-row sm:items-end sm:justify-between"
+        className="mt-6 flex flex-col gap-3 pt-6 sm:flex-row sm:items-end sm:justify-between"
         style={{ borderTop: '1px solid var(--line)' }}
       >
         <div>
@@ -134,7 +134,7 @@ export function SecurityPolicy({
         ))}
       </div>
       <div
-        className="mt-4 border-l-2 py-1 pl-3 text-sm [border-color:var(--bad)]"
+        className="mt-4 border-l-2 py-2 pl-3 text-sm [border-color:var(--bad)]"
         style={{ color: 'var(--dim)' }}
       >
         x402 moves funds to the agent wallet first. Recipient restrictions do

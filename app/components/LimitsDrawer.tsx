@@ -271,14 +271,14 @@ export default function LimitsDrawer({
                   {busy ? 'Saving…' : 'Save limits'}
                 </Button>
 
-                <details className="mt-6 pt-5" style={{ borderTop: '1px solid var(--line)' }}>
-                  <summary className="cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style={{ outlineColor: 'var(--text)' }}>
+                <details className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
+                  <summary className="cursor-pointer focus-ring" style={{ borderRadius: 'var(--r-mark)', outlineColor: 'var(--text)' }}>
                     <span className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold">Recipient protection</span>
                       <Label>{allowlistEnabled ? 'On' : 'Optional · Off'}</Label>
                     </span>
                   </summary>
-                  <div className="pt-4">
+                  <div className="pt-6">
                     <p className="text-sm" style={{ color: 'var(--dim)' }}>
                       {allowlistEnabled
                         ? 'Direct payments are limited to addresses approved on chain.'
@@ -339,7 +339,7 @@ export default function LimitsDrawer({
                       )}
                     </div>
 
-                    <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
+                    <div className="mt-5 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
                       <p className="text-sm" style={{ color: 'var(--dim)' }}>
                         {!allowlistEnabled && payeeAllowed !== true
                           ? 'Check an approved address before turning protection on. An empty allowlist blocks every direct payment.'

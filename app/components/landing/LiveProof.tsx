@@ -82,7 +82,8 @@ export default function LiveProof() {
               href={`https://celoscan.io/address/${ACCOUNT}#events`}
               target="_blank"
               rel="noreferrer"
-              style={{ color: 'var(--celo)' }}
+              className="focus-ring"
+              style={{ borderRadius: 'var(--r-mark)', color: 'var(--celo)' }}
             >
               See the full history on Celoscan
             </a>

@@ -12,7 +12,7 @@ const LINKS = [
 export default function SiteFooter() {
   return (
     <footer style={{ borderTop: '1px solid var(--line)' }}>
-      <div className={`${PAGE} flex flex-col gap-6 py-8 sm:flex-row sm:items-end sm:justify-between`}>
+      <div className={`${PAGE} flex flex-col gap-6 py-12 sm:flex-row sm:items-end sm:justify-between`}>
         <div>
           <BrandLink />
           <p className="mt-3" style={{ ...PROSE, maxWidth: '44ch', color: 'var(--dim)' }}>
@@ -25,8 +25,8 @@ export default function SiteFooter() {
           style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)' }}>
           <Link
             href="/accounts"
-            className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{ color: 'var(--dim)', outlineColor: 'var(--text)' }}
+            className="focus-ring"
+            style={{ borderRadius: 'var(--r-mark)', color: 'var(--dim)', outlineColor: 'var(--text)' }}
           >
             My accounts
           </Link>
@@ -36,8 +36,8 @@ export default function SiteFooter() {
               href={link.href}
               target="_blank"
               rel="noreferrer"
-              className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-              style={{ color: 'var(--dim)', outlineColor: 'var(--text)' }}
+              className="focus-ring"
+              style={{ borderRadius: 'var(--r-mark)', color: 'var(--dim)', outlineColor: 'var(--text)' }}
             >
               {link.label} ↗
             </a>

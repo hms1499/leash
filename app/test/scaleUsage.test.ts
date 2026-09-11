@@ -117,34 +117,23 @@ const OFF_SCALE_GAP_DEBT: Record<string, number> = {
 
 /** §14. 38 off-scale paddings on 2026-09-11, `p-4` the largest share at 11. */
 const OFF_SCALE_PAD_DEBT: Record<string, number> = {
-  'app/a/[address]/page.tsx': 1,
-  'app/setup/page.tsx': 13,
-  'components/AccountsPage.tsx': 2,
-  'components/AgentAccessPanel.tsx': 1,
-  'components/AgentPanel.tsx': 2,
-  'components/DashboardOverview.tsx': 2,
-  'components/LimitsDrawer.tsx': 3,
-  'components/McpHandoff.tsx': 1,
-  'components/landing/CoreCapabilities.tsx': 1,
-  'components/landing/FinalCta.tsx': 3,
-  'components/landing/Hero.tsx': 3,
-  'components/landing/SecurityBoundary.tsx': 2,
-  'components/landing/SiteFooter.tsx': 1,
-  'components/landing/UseCaseGrid.tsx': 1,
-  'components/ui/Section.tsx': 2,
+  // 38 on 2026-09-11, cleared to 2. The two that remain are the `pr-16` on
+  // the per-transaction and daily inputs, which reserve room for the "USDC"
+  // suffix positioned over them. That padding is measured against the width
+  // of another element, not against §3's rhythm, so no step is the right
+  // answer and the honest move is to leave it recorded rather than to punch
+  // a hole in the rule.
+  'app/setup/page.tsx': 2,
 }
+
 
 /** §11. What is left after the three ui/ primitives moved to `.focus-ring`. */
 const HAND_ROLLED_RING_DEBT: Record<string, number> = {
-  // 14 on 2026-09-11. Button, ActionLink and BrandLink account for the three
-  // that are gone; these are the call sites no primitive owns yet.
-  'app/setup/page.tsx': 3,
-  'components/AccountSwitcher.tsx': 1,
-  'components/Feed.tsx': 1,
-  'components/LimitsDrawer.tsx': 1,
-  'components/landing/SecurityBoundary.tsx': 1,
-  'components/landing/SiteFooter.tsx': 2,
+  // 14 on 2026-09-11, then 11 once Button, ActionLink and BrandLink moved.
+  // Zero now: every ring in the app is drawn by .focus-ring or
+  // .focus-ring-inset, and this empty list is what keeps it that way.
 }
+
 
 function sources(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(join(ROOT, dir))) {

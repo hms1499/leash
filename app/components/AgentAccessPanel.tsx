@@ -149,7 +149,7 @@ export default function AgentAccessPanel({
             {operators.map((op) => (
               <div
                 key={op}
-                className="flex flex-col gap-3 rounded p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded p-6 sm:flex-row sm:items-center sm:justify-between"
                 style={{ background: 'var(--well)', border: '1px solid var(--line)' }}
               >
                 <div>

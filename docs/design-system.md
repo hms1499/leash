@@ -708,10 +708,17 @@ and every call site that differs says so with `outlineColor`.
 
 ### What is left
 
-`Button`, `ActionLink` and `BrandLink` moved onto `.focus-ring`; **11
-hand-written rings remain**, in the seven files `test/scaleUsage.test.ts`
-records. They are correct and they are debt. The ratchet means the count can
-fall and cannot rise.
+**Zero hand-written rings remain.** Every one of the 14 is now `.focus-ring`
+or, for `SecurityBoundary`'s full-bleed rows, `.focus-ring-inset`, and
+`test/scaleUsage.test.ts` holds the count at zero.
+
+Tabbing the built app afterwards found four controls that had never had the
+hand-written classes either, so no ratchet had ever counted them: the
+"See the full history on Celoscan" link in both `Feed` and `LiveProof`, and
+the `<summary>` in the wizard and in `McpHandoff`. All four were drawing
+Chrome's own `auto 1px` — the same browser blue §4 found on the inputs, still
+present two rounds of ring work later. **A class list cannot show you a
+control that has no class**; only tabbing the page can.
 
 The rule for anything new: **a control does not build its own focus ring.**
 Use a primitive, or `.focus-ring`.
@@ -828,12 +835,15 @@ holds its parts at `gap-2` — the floor, where the two meet.
 
 ### The debt
 
-**38 off-scale paddings on 2026-09-11**, `p-4` the largest share at 11, and 13
-of the 38 in `app/setup/page.tsx` — the same file that holds 53 of the raw
-type sizes and 43 of the off-scale margins. The wizard is where this design
-system's debt lives, and that is now three ratchets pointing at one file.
+**38 off-scale paddings on 2026-09-11, cleared to 2 the same day.** `p-4` on a
+panel becomes `p-6`; `p-5`/`pt-5` become the 6 step; the landing's
+`py-8/10/14/20` bands become `py-12`.
 
-Unlike §2's 120 and §3's 90, this one is small enough to pay off in a sitting.
+The two that remain are the `pr-16` on the per-transaction and daily inputs.
+They reserve room for the "USDC" suffix positioned over the field, so that
+padding is measured against the width of another element and not against §3's
+rhythm. No step is the right answer, and the honest move is to leave it
+recorded in the ratchet rather than punch a hole in the rule.
 
 ---
 

@@ -52,7 +52,7 @@ export default function SecurityBoundary() {
       </Panel>
 
       <Panel>
-        <div className="p-5" style={{ borderBottom: '1px solid var(--line)' }}>
+        <div className="p-6" style={{ borderBottom: '1px solid var(--line)' }}>
           <Label>On-chain evidence</Label>
           <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
             The important claims below link to transactions you can inspect yourself.
@@ -64,7 +64,7 @@ export default function SecurityBoundary() {
             href={proof.url}
             target="_blank"
             rel="noreferrer"
-            className="grid gap-2 p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] sm:grid-cols-[1fr_auto] sm:items-center"
+            className="grid gap-2 p-6 focus-ring-inset sm:grid-cols-[1fr_auto] sm:items-center"
             style={{
               borderTop: index === 0 ? 'none' : '1px solid var(--line)',
               color: 'var(--text)',

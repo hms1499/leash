@@ -5,7 +5,7 @@ import { PROSE } from '../ui/prose'
 
 export default function Hero() {
   return (
-    <section className={`${PAGE} pb-12 pt-14 sm:pb-16 sm:pt-20`} aria-labelledby="hero-title">
+    <section className={`${PAGE} pb-12 pt-12 sm:pb-12 sm:pt-12`} aria-labelledby="hero-title">
       <Label>On-chain spending controls for AI agents</Label>
       <h1
         id="hero-title"

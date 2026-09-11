@@ -5,8 +5,8 @@ import { PROSE } from '../ui/prose'
 
 export default function FinalCta() {
   return (
-    <section className={`${PAGE} py-10 sm:py-14`} aria-labelledby="final-cta-title">
-      <Panel className="p-6 sm:p-8">
+    <section className={`${PAGE} py-12 sm:py-12`} aria-labelledby="final-cta-title">
+      <Panel className="p-6 sm:p-12">
         <h2
           id="final-cta-title"
           style={{

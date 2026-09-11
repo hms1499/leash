@@ -177,14 +177,14 @@ export default function AgentPanel({
         Funds and agent gas
       </h2>
       <div className="grid gap-4 mt-4 sm:grid-cols-2">
-        <div className="rounded p-4" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
+        <div className="rounded p-6" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
           <p style={SUBHEAD}>Protected account</p>
           <p className="num mt-2" style={{ fontSize: 'var(--t-heading)' }}>{formatDisplayAmount(protectedBalance, decimals)} {symbol}</p>
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             Held behind the contract&apos;s spending policy.
           </p>
         </div>
-        <div className="rounded p-4" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
+        <div className="rounded p-6" style={{ background: 'var(--well)', border: '1px solid var(--line)' }}>
           <div className="flex flex-wrap items-start justify-between gap-2">
             <p style={SUBHEAD}>Agent wallet</p>
             <span className="num" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: low ? 'var(--bad)' : 'var(--ok)' }}>

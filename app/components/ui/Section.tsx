@@ -11,7 +11,7 @@ export default function Section({
   children: React.ReactNode
 }) {
   return (
-    <section id={id} className={`${PAGE} scroll-mt-20 py-10 sm:py-14`}>
+    <section id={id} className={`${PAGE} scroll-mt-20 py-12 sm:py-12`}>
       {eyebrow && (
         <p
           className="mb-2"

@@ -39,7 +39,7 @@ export default function CoreCapabilities() {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {CAPABILITIES.map((capability) => (
-        <Panel key={capability.title} className="p-5">
+        <Panel key={capability.title} className="p-6">
           <Label>{capability.label}</Label>
           <h3
             className="mt-3"

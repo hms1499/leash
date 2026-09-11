@@ -68,7 +68,8 @@ export default function McpHandoff({
   return (
     <Panel as="section" className="p-6">
       <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
-        <summary className="cursor-pointer">
+        <summary className="cursor-pointer focus-ring"
+          style={{ borderRadius: 'var(--r-mark)', outlineColor: 'var(--text)' }}>
           <Label>Connect your agent runtime</Label>
           <span className="block text-sm mt-1" style={{ color: 'var(--dim)' }}>
             The <code>.mcp.json</code> for this account. Optional — the account is
@@ -112,7 +113,7 @@ export default function McpHandoff({
           </p>
         )}
 
-        <div className="mt-5 pt-5" style={{ borderTop: '1px solid var(--line)' }}>
+        <div className="mt-5 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
           {/* Label renders a styled span, not a <label>, so the input carries
               its own aria-label -- the pattern the rest of the wizard uses. */}
           <Label className="block">Attribution tag (optional)</Label>

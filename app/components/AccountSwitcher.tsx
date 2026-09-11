@@ -69,8 +69,9 @@ export default function AccountSwitcher({ current }: { current: `0x${string}` })
       <Link
         href="/accounts"
         aria-current={pathname === '/accounts' ? 'page' : undefined}
-        className="rounded px-3 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="px-3 py-2 focus-ring"
         style={{
+          borderRadius: 'var(--r-box)',
           border: '1px solid var(--line-control)',
           fontFamily: 'var(--mono)',
           fontSize: 'var(--t-data)',
