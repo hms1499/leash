@@ -204,6 +204,22 @@ describe('the favicon is painted in this palette', () => {
   const icon = readFileSync(new URL('../app/icon.svg', import.meta.url), 'utf8')
   const known = new Set(Object.values(PALETTE).map((hex) => hex.toUpperCase()))
 
+  /**
+   * The defect this file shipped with, from the day it was added until
+   * 2026-09-11: an XML comment may not contain a double hyphen, and every
+   * comment in this repo writes one as a dash. Three of them sat in here
+   * naming custom properties, so the file was never well formed and a browser
+   * asking for the tab icon got a parser error. Nothing noticed, because the
+   * only thing looking at it was a regex for hexes.
+   */
+  it('is well formed, which a comment written in this house style is not', () => {
+    for (const comment of icon.match(/<!--[\s\S]*?-->/g) ?? []) {
+      expect(comment.slice(4, -3), 'an XML comment cannot contain "--". Use the dash character.')
+        .not.toMatch(/--/)
+    }
+    expect(icon.trimEnd().endsWith('</svg>')).toBe(true)
+  })
+
   it('uses no colour the palette does not have', () => {
     // Comments stripped first: the file's own note names the two hexes it
     // used to carry, and a rule that cannot be written down beside the code

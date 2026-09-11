@@ -226,3 +226,34 @@ test('the brand mark is drawn in the colour of the brand', async ({ page }) => {
   expect(mark.height).toBeGreaterThanOrEqual(20)
   expect(mark.width).toBeGreaterThanOrEqual(9)
 })
+
+/**
+ * The tab icon, asked for the way a browser asks for it.
+ *
+ * `app/icon.svg` was malformed XML from the day it was added until
+ * 2026-09-11 -- an XML comment cannot contain a double hyphen, and this
+ * repo's comments write dashes that way -- so every tab this app has ever
+ * been opened in showed a blank page icon. A unit test can read the file;
+ * only a browser says whether it parsed, and `document.documentElement` is
+ * `parsererror` rather than `svg` when it did not.
+ */
+test('the tab icon is served, and parses', async ({ page }) => {
+  const links = await page.goto('/').then(() => page.evaluate(() =>
+    [...document.querySelectorAll('link[rel="icon"]')].map((el) => ({
+      href: (el as HTMLLinkElement).href, type: el.getAttribute('type'),
+    }))))
+
+  // The drawing and the path anything can ask for without reading the page.
+  expect(links.some((l) => l.type === 'image/svg+xml')).toBe(true)
+  expect(links.some((l) => l.href.endsWith('/favicon.ico'))).toBe(true)
+
+  for (const link of links) {
+    const response = await page.request.get(link.href)
+    expect(response.status(), `${link.href} is not served`).toBe(200)
+  }
+
+  const svg = links.find((l) => l.type === 'image/svg+xml')
+  await page.goto(svg!.href)
+  expect(await page.evaluate(() => document.documentElement.tagName.toLowerCase()))
+    .toBe('svg')
+})
