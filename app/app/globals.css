@@ -72,6 +72,21 @@
   --m-fast: 90ms;
   --m-slow: 400ms;
 
+  /* The grid. Twelve columns because it divides by 2, 3, 4 and 6; the gutter
+     is §3's step 6 rather than a new number. Asserted against lib/layout.ts.
+     docs/design-system.md §3. */
+  --columns: 12;
+  --gutter: 24px;
+  --container: 1024px;
+  --page-gutter: 16px;
+
+  /* What Meter was drawn for. §3 used to enforce this by holding the whole
+     page at 768px, because the meter is an SVG with a viewBox and magnifies
+     rather than reflows -- at 1888px the 2px gap between its fill and its cap
+     line magnified with it. That is a fact about one component and it is
+     enforced on that component now. */
+  --meter-max: 736px;
+
   /* Mono is what a reader looks at; sans is what they read. The landing page
      has to persuade someone skimming, and that is where mono costs most. */
   --mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;

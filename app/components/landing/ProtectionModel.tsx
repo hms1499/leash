@@ -21,7 +21,12 @@ function RoleRow({
 export default function ProtectionModel() {
   return (
     <Panel className="overflow-hidden">
-      <div className="grid sm:grid-cols-[1fr_auto_1fr]">
+      {/* Side by side only from `lg`. The two halves split at `sm` until
+          2026-09-11, which at 768 left each one 272px of text -- 29 characters
+          a line, under §16's floor. At 1024 the same half is 43ch. Below it
+          the diagram stacks and the arrow turns down, which is the layout the
+          phone already had. */}
+      <div className="grid lg:grid-cols-[1fr_auto_1fr]">
         <div className="p-6">
           <Label>Protected account</Label>
           <p
@@ -48,12 +53,12 @@ export default function ProtectionModel() {
         </div>
 
         <div
-          className="flex items-center justify-center border-y px-4 py-3 sm:flex-col sm:border-x sm:border-y-0 sm:px-3 [border-color:var(--line)]"
+          className="flex items-center justify-center border-y px-4 py-3 lg:flex-col lg:border-x lg:border-y-0 lg:px-3 [border-color:var(--line)]"
           style={{ color: 'var(--dim)' }}
         >
           <span className="num text-center" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)' }}>capped top-up</span>
-          <span className="ml-2 sm:hidden" style={DATA} aria-hidden="true">↓</span>
-          <span className="mt-2 hidden sm:inline" style={DATA} aria-hidden="true">→</span>
+          <span className="ml-2 lg:hidden" style={DATA} aria-hidden="true">↓</span>
+          <span className="mt-2 hidden lg:inline" style={DATA} aria-hidden="true">→</span>
         </div>
 
         <div className="p-6">

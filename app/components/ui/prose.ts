@@ -9,13 +9,33 @@
  *
  * Same arrangement as LABEL_STYLE in Label.tsx, and exported for the same
  * reason: a caller that must render its own element still gets one copy of
- * the rule. `maxWidth` is applied by the caller, since a list item inside a
- * narrow panel is already measured by its column.
+ * the rule.
+ *
+ * `maxWidth` used to be the caller's job, on the argument that a list item in
+ * a narrow panel is already measured by its column. That held while the page
+ * was 768px wide and every column was narrow. Widening the container to 1024
+ * (§3) stretched two dashboard paragraphs to **109 characters** the moment it
+ * landed -- they had never needed a cap and so had never been given one.
+ *
+ * A max-width does not widen anything, so carrying it here costs the narrow
+ * cases nothing and makes the rule true by default instead of by memory.
+ * Callers that want less still say so: the footer at 44ch, FinalCta at 60ch.
  */
 export const PROSE: React.CSSProperties = {
   fontFamily: 'var(--sans)',
   fontSize: 'var(--t-body)',
   lineHeight: 'var(--t-body-line)',
+  maxWidth: '68ch',
+  /**
+   * Prose here can carry an address or a transaction hash -- the dashboard's
+   * unfunded sentence names the account to send USDC to -- and a 42-character
+   * token has nowhere to break. Measured at 375px on 2026-09-11 it pushed the
+   * document to 386px and e2e/dashboard.spec.ts caught the sideways scroll.
+   *
+   * `break-word` rather than `anywhere`: it only breaks a word that cannot
+   * fit on a line of its own, so ordinary sentences wrap exactly as before.
+   */
+  overflowWrap: 'break-word',
 }
 
 /**

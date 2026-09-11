@@ -26,7 +26,7 @@ import {
 import { pollUntil } from '../../lib/confirm.js'
 import { readLocal, writeLocal } from '../../lib/browserStorage.js'
 import { describeDeployReceipt } from '../../lib/deploy.js'
-import { PAGE } from '../../components/ui/page'
+import { PAGE, PANEL_GRID } from '../../components/ui/page'
 import {
   announceAccountRegistryChange, migrateLegacyAccount, savePolicyAccount, selectPolicyAccount,
 } from '../../lib/accountRegistry.js'
@@ -663,13 +663,13 @@ export default function Onboard() {
         </header>
 
       <nav aria-label="Setup progress" className="mt-8">
-        <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <ol className="grid grid-cols-12 gap-2">
           {STEPS.map((step) => {
             const done = stageDone(step.id)
             const unlocked = stageUnlocked(step.id)
             const current = activeStage === step.id
             return (
-              <li key={step.id}>
+              <li key={step.id} className="col-span-6 md:col-span-3">
                 <button
                   type="button" disabled={!unlocked} aria-current={current ? 'step' : undefined}
                   onClick={() => setActiveStage(step.id)}
@@ -711,16 +711,16 @@ export default function Onboard() {
         <Panel as="section" className="p-6 mt-6">
           <Label className="block">Step 1 of 4</Label>
           <h2 id={STAGE_HEADING_ID} tabIndex={-1} className="mt-2" style={HEADING}>Create your protected account</h2>
-          <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+          <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
             This account holds the agent&apos;s budget. You remain its owner and control every protection setting.
           </p>
-          <div className="grid gap-3 sm:grid-cols-3 mt-5">
+          <div className={`${PANEL_GRID} mt-5`}>
             {[
               ['Owner wallet', 'Controls policy and recovery'],
               ['Protected account', 'Holds the spending budget'],
               ['Agent wallet', 'Spends only within policy'],
             ].map(([title, copy]) => (
-              <div key={title} className="p-3" style={STATUS_BOX}>
+              <div key={title} className="col-span-12 md:col-span-4 p-3" style={STATUS_BOX}>
                 <p style={SUBHEAD}>{title}</p>
                 <p className="mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>{copy}</p>
               </div>
@@ -731,7 +731,7 @@ export default function Onboard() {
               style={{ borderRadius: 'var(--r-mark)', color: 'var(--text)', outlineColor: 'var(--text)' }}>
               What you need before creating
             </summary>
-            <ul className="mt-3 ml-5 list-disc space-y-2">
+            <ul className="mt-3 ml-5 list-disc space-y-2" style={PROSE}>
               <li>
                 An owner wallet on Celo with a little CELO for transaction fees.
                 Roughly 0.25 CELO covers this whole setup; the owner is permanent,
@@ -786,8 +786,8 @@ export default function Onboard() {
           <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
             These limits are enforced by the account on Celo, even if the agent&apos;s prompt or code fails.
           </p>
-          <div className="grid gap-4 sm:grid-cols-2 mt-5">
-            <label>
+          <div className={`${PANEL_GRID} mt-5`}>
+            <label className="col-span-12 md:col-span-6">
               <Label className="block">Maximum per payment</Label>
               <div className="relative mt-2">
                 <input className="num field w-full p-3 pr-16" aria-label="Maximum payment in USDC"
@@ -796,7 +796,7 @@ export default function Onboard() {
                 <span className="absolute right-3 top-3 text-sm" style={{ color: 'var(--dim)' }}>USDC</span>
               </div>
             </label>
-            <label>
+            <label className="col-span-12 md:col-span-6">
               <Label className="block">Maximum per day</Label>
               <div className="relative mt-2">
                 <input className="num field w-full p-3 pr-16" aria-label="Daily spending limit in USDC"
@@ -824,17 +824,17 @@ export default function Onboard() {
               </div>
               <Label>Optional</Label>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 mt-4">
+            <div className={`${PANEL_GRID} mt-4`}>
               <button type="button" aria-pressed={recipientMode === 'any'} disabled={recipientBusy}
                 onClick={() => void chooseAnyRecipient()}
-                className="p-6 text-left focus-ring disabled:opacity-45"
+                className="col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45"
                 style={{ ...STATUS_BOX, borderColor: recipientMode === 'any' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
                 <span style={SUBHEAD}>Any recipient</span>
                 <span className="block mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>Best for agents with changing payees.</span>
               </button>
               <button type="button" aria-pressed={recipientMode === 'protected'} disabled={recipientBusy}
                 onClick={() => { setRecipientMode('protected'); setRecipientNote(null) }}
-                className="p-6 text-left focus-ring disabled:opacity-45"
+                className="col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45"
                 style={{ ...STATUS_BOX, borderColor: recipientMode === 'protected' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
                 <span style={SUBHEAD}>Approved recipients only</span>
                 <span className="block mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>Best when payees are known in advance.</span>
@@ -909,11 +909,11 @@ export default function Onboard() {
                   <p className="text-sm" style={{ color: 'var(--ok)' }}>✓ Agent wallet authorized</p>
                   <Address address={agent} copy explorer className="num" />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2 mt-4" style={{ ...PROSE, color: 'var(--dim)' }}>
-                  <p>✓ Can request policy-checked payments</p>
-                  <p>— Cannot change protection settings</p>
-                  <p>— Cannot pause or resume the account</p>
-                  <p>— Cannot sweep the protected balance</p>
+                <div className={`${PANEL_GRID} mt-4`} style={{ ...PROSE, color: 'var(--dim)' }}>
+                  <p className="col-span-12 md:col-span-6">✓ Can request policy-checked payments</p>
+                  <p className="col-span-12 md:col-span-6">— Cannot change protection settings</p>
+                  <p className="col-span-12 md:col-span-6">— Cannot pause or resume the account</p>
+                  <p className="col-span-12 md:col-span-6">— Cannot sweep the protected balance</p>
                 </div>
               </div>
             )}
@@ -933,8 +933,8 @@ export default function Onboard() {
                   {checkingBalances ? 'Checking…' : 'Refresh balances'}
                 </Button>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 mt-4">
-                <div className="p-6" style={STATUS_BOX}>
+              <div className={`${PANEL_GRID} mt-4`}>
+                <div className="col-span-12 md:col-span-6 p-6" style={STATUS_BOX}>
                   <div className="flex items-center justify-between gap-2">
                     <h4 style={SUBHEAD}>Protected account</h4>
                     <span style={{ ...LABEL_STYLE, color: readiness.protectedFundsDetected ? 'var(--ok)' : 'var(--dim)' }}>
@@ -960,7 +960,7 @@ export default function Onboard() {
                     style={{ ...PROSE, color: noteColor(protectedFundNote, 'Protected funds added.') }}>{protectedFundNote}</p>}
                 </div>
 
-                <div className="p-6" style={STATUS_BOX}>
+                <div className="col-span-12 md:col-span-6 p-6" style={STATUS_BOX}>
                   <div className="flex items-center justify-between gap-2">
                     <h4 style={SUBHEAD}>Agent wallet</h4>
                     <span style={{ ...LABEL_STYLE, color: readiness.agentGasReady ? 'var(--ok)' : 'var(--dim)' }}>
@@ -1032,20 +1032,20 @@ export default function Onboard() {
               Hand the account address to your agent when you are ready to connect its runtime.
             </p>
           </div>
-          <dl className="grid gap-x-5 gap-y-4 sm:grid-cols-2 mt-6 text-sm">
-            <div><dt style={{ color: 'var(--dim)' }}>Protected account</dt>
+          <dl className={`${PANEL_GRID} mt-6 text-sm`}>
+            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Protected account</dt>
               <dd className="mt-1"><Address address={account} copy explorer className="num" /></dd></div>
-            <div><dt style={{ color: 'var(--dim)' }}>Agent wallet</dt>
+            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Agent wallet</dt>
               <dd className="mt-1"><Address address={agent} copy explorer className="num" /></dd></div>
-            <div><dt style={{ color: 'var(--dim)' }}>Maximum per payment</dt>
+            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Maximum per payment</dt>
               <dd className="num mt-1">{formatDisplayAmount(confirmedLimits.perTx, DECIMALS, 2)} USDC</dd></div>
-            <div><dt style={{ color: 'var(--dim)' }}>Maximum per day</dt>
+            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Maximum per day</dt>
               <dd className="num mt-1">{formatDisplayAmount(confirmedLimits.daily, DECIMALS, 2)} USDC</dd></div>
-            <div><dt style={{ color: 'var(--dim)' }}>Protected balance</dt>
+            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Protected balance</dt>
               <dd className="num mt-1">{protectedBalanceRead.text}</dd></div>
-            <div><dt style={{ color: 'var(--dim)' }}>Agent gas</dt>
+            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Agent gas</dt>
               <dd className="num mt-1">{agentTransactionsLeft} {agentTransactionsLeft === 1 ? 'transaction' : 'transactions'} available</dd></div>
-            <div className="sm:col-span-2"><dt style={{ color: 'var(--dim)' }}>Direct-payment recipients</dt>
+            <div className="col-span-12"><dt style={{ color: 'var(--dim)' }}>Direct-payment recipients</dt>
               <dd className="mt-1">{recipientProtectionEnabled ? 'Approved addresses only' : 'Any address — recipient protection is not enabled'}</dd></div>
           </dl>
           <div className="mt-6">

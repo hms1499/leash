@@ -11,6 +11,7 @@ import { isValidAddress } from '../lib/address.js'
 import { pollUntil } from '../lib/confirm.js'
 import { useArming } from '../lib/arming.js'
 import Panel from './ui/Panel'
+import { PANEL_GRID } from './ui/page'
 import Label from './ui/Label'
 import Button from './ui/Button'
 import { HEADING } from './ui/prose'
@@ -242,8 +243,8 @@ export default function LimitsDrawer({
                   Both limits apply to direct payments and agent top-ups.
                 </p>
 
-                <div className="grid gap-4 mt-5 sm:grid-cols-2">
-                  <label>
+                <div className={`${PANEL_GRID} mt-5`}>
+                  <label className="col-span-12 md:col-span-6">
                     <Label className="block">Per payment ({symbol})</Label>
                     <input
                       className="num field w-full mt-2 p-2"
@@ -254,7 +255,7 @@ export default function LimitsDrawer({
                       inputMode="decimal"
                     />
                   </label>
-                  <label>
+                  <label className="col-span-12 md:col-span-6">
                     <Label className="block">Per UTC day ({symbol})</Label>
                     <input
                       className="num field w-full mt-2 p-2"

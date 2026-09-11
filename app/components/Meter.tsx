@@ -5,7 +5,7 @@ import { formatDisplayAmount } from '../lib/policy.js'
 import { bandFigure, bandSentence, meterState, spendBand } from '../lib/meter.js'
 import Stat from './ui/Stat'
 import { PROSE } from './ui/prose'
-import { PAGE } from './ui/page'
+import { PAGE, PANEL_GRID } from './ui/page'
 
 type Props = {
   daily: bigint
@@ -81,9 +81,17 @@ export default function Meter({
     <div style={{ background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
       {/* The meter fills the surface its parent gives it while its contents
           retain the shared page gutter. Landing and dashboard both contain
-          that surface inside a panel; the PAGE cap still prevents accidental
-          stretching if the component is mounted elsewhere. */}
-      <div className={`${PAGE} py-3`}>
+          that surface inside a panel.
+          
+          --meter-max is what holds the geometry, and it is here rather than on
+          PAGE because it is a fact about this component. The track is an SVG
+          with viewBox="0 0 600 14", so it magnifies rather than reflows: at the
+          1888px this measured on an unconstrained dashboard, the 2px gap §3.1
+          spends a rule on magnified with it and the lock indicator stopped
+          reading. §3 used to enforce that by holding every screen at 768px,
+          which let one component's geometry decide the width of every card
+          grid in the app. */}
+      <div className={`${PAGE} py-3`} style={{ maxWidth: 'var(--meter-max)' }}>
       {/* One --t-display per screen, and on the dashboard this is it.
           The allowance alone says what is permitted and the balance alone
           says what is there; 50778cd was opened because the meter showed the
@@ -172,12 +180,12 @@ export default function Meter({
           Before the first read there is nothing to state: 0.00 here is
           indistinguishable from a spent allowance, and that is the first thing
           a visitor sees. */}
-      {/* One column below 640px. grid-cols-2 left the third stat alone on
-          its own row with its 11px .16em label wrapped onto two lines --
-          measured at 375px on 2026-09-11. gap-5 and mt-4 were both off §3's
-          scale. */}
-      <div className="grid gap-3 mt-6 sm:grid-cols-3">
-        <div data-testid="meter-stat">
+      {/* One column below `md`, four of the twelve each above it. grid-cols-2
+          left the third stat alone on its own row with its 11px .16em label
+          wrapped onto two lines -- measured at 375px on 2026-09-11. gap-5 and
+          mt-4 were both off §3's scale. */}
+      <div className={`${PANEL_GRID} mt-6`}>
+        <div data-testid="meter-stat" className="col-span-12 md:col-span-4">
         <Stat
           label="Remaining today"
           value={loading
@@ -188,14 +196,14 @@ export default function Meter({
         </div>
         {/* The allowance is what policy permits; this is whether the money is
             there. They are different numbers and only the first was shown. */}
-        <div data-testid="meter-stat">
+        <div data-testid="meter-stat" className="col-span-12 md:col-span-4">
         <Stat
           label="Account holds"
           value={loading ? `— ${symbol}` : `${formatDisplayAmount(balance, decimals)} ${symbol}`}
           tone={band.kind === 'unfunded' ? 'bad' : 'normal'}
         />
         </div>
-        <div data-testid="meter-stat">
+        <div data-testid="meter-stat" className="col-span-12 md:col-span-4">
         <Stat
           label="Per-transaction cap"
           value={loading ? `— ${symbol}` : `${formatDisplayAmount(perTx, decimals)} ${symbol}`}

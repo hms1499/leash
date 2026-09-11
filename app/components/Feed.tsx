@@ -6,6 +6,7 @@ import { relativeAge, rowKey, WINDOW_LABEL, type FeedRow } from '../lib/feed.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
 import { HEADING } from './ui/prose'
+import { PROSE } from './ui/prose'
 
 export default function Feed({
   account, rows, decimals, symbol, isLoading, hasPolicy, error, head,
@@ -64,7 +65,7 @@ export default function Feed({
     return (
       <Frame>
         <Label className="block">No limits set</Label>
-        <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
+        <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
           Until the owner sets a per-transaction and a daily cap, this account
           refuses every spend. Open <strong>Limits</strong> to set them.
         </p>
@@ -83,7 +84,7 @@ export default function Feed({
     return (
       <Frame>
         <Label className="block" style={{ color: 'var(--bad)' }}>Could not load activity</Label>
-        <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
+        <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
           The chain did not answer. The allowance above is still correct — it is
           read separately and does not depend on this. Reload to try again.
         </p>
@@ -95,7 +96,7 @@ export default function Feed({
     return (
       <Frame>
         <Label className="block">No activity yet</Label>
-        <p className="mt-2 text-sm" style={{ color: 'var(--dim)' }}>
+        <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
           {/* The span this states is the span that was scanned — the label
               is exported beside the block count it is derived from. */}
           Nothing has been spent in the last {WINDOW_LABEL}.{' '}

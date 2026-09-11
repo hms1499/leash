@@ -1,6 +1,7 @@
 import Label from '../ui/Label'
 import Panel from '../ui/Panel'
 import { PROSE, SUBHEAD } from '../ui/prose'
+import { GRID } from '../ui/page'
 
 const USE_CASES = [
   {
@@ -20,11 +21,17 @@ const USE_CASES = [
   },
 ] as const
 
+/**
+ * Three-up only from `lg`. Measured 2026-09-11: a third of the page holds a
+ * 229px card at 768 and its body runs at **21 characters a line** -- the exact
+ * figure §16 exists to fix. Half the page at 768 is 356px and 35ch; a third at
+ * 1024 is 315px and 31ch. The span changes where the measure says it must.
+ */
 export default function UseCaseGrid() {
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className={GRID}>
       {USE_CASES.map((useCase) => (
-        <Panel key={useCase.title} className="flex h-full flex-col p-6">
+        <Panel key={useCase.title} className="col-span-12 flex h-full flex-col p-6 md:col-span-6 lg:col-span-4">
           <Label>{useCase.label}</Label>
           <h3
             className="mt-4"

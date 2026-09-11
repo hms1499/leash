@@ -82,12 +82,12 @@ const HAND_ROLLED_RING = /(focus-visible:outline-2)/g
 /** The debt on 2026-09-10. These numbers may fall. They may not rise. */
 const RAW_TYPE_DEBT: Record<string, number> = {
   'app/a/[address]/page.tsx': 2,
-  'app/setup/page.tsx': 28,
-  'components/AccountsPage.tsx': 5,
-  'components/AgentAccessPanel.tsx': 6,
+  'app/setup/page.tsx': 27,
+  'components/AccountsPage.tsx': 3,
+  'components/AgentAccessPanel.tsx': 3,
   'components/AgentPanel.tsx': 6,
   'components/DashboardOverview.tsx': 2,
-  'components/Feed.tsx': 4,
+  'components/Feed.tsx': 1,
   'components/LimitsDrawer.tsx': 7,
   'components/McpHandoff.tsx': 7,
   'components/landing/LiveProof.tsx': 5,
@@ -95,22 +95,25 @@ const RAW_TYPE_DEBT: Record<string, number> = {
 
 const OFF_SCALE_GAP_DEBT: Record<string, number> = {
   // 44 on 2026-09-10. One `mt-5` left when the two competing alert regions
-  // below the stepper became one `mt-6`.
-  'app/setup/page.tsx': 41,
+  // below the stepper became one `mt-6`. 37 on 2026-09-11: the seven ad-hoc
+  // grids in here now state a span against PANEL_GRID, and their `gap-4` and
+  // `gap-x-5 gap-y-4` went with them.
+  'app/setup/page.tsx': 37,
   'components/AccountsPage.tsx': 3,
   'components/AgentAccessPanel.tsx': 3,
-  'components/AgentPanel.tsx': 3,
+  // 3 until the two balance boxes moved onto PANEL_GRID and lost their gap-4.
+  'components/AgentPanel.tsx': 2,
   'components/DashboardOverview.tsx': 5,
   'components/Feed.tsx': 1,
-  'components/LimitsDrawer.tsx': 5,
+  // 5 until the two limit fields moved onto PANEL_GRID and lost their gap-4.
+  'components/LimitsDrawer.tsx': 4,
   'components/McpHandoff.tsx': 4,
   'components/Meter.tsx': 2,
-  'components/landing/CoreCapabilities.tsx': 1,
   'components/landing/Hero.tsx': 2,
   'components/landing/LiveProof.tsx': 1,
   'components/landing/ProtectionModel.tsx': 4,
   'components/landing/SecurityBoundary.tsx': 2,
-  'components/landing/UseCaseGrid.tsx': 2,
+  'components/landing/UseCaseGrid.tsx': 1,
   'components/ui/Section.tsx': 1,
 }
 

@@ -42,7 +42,7 @@ export default function Section({
         </h2>
       )}
       {description && (
-        <p className="mt-2 mb-6" style={{ ...PROSE, maxWidth: '68ch', color: 'var(--dim)' }}>
+        <p className="mt-2 mb-6" style={{ ...PROSE, color: 'var(--dim)' }}>
           {description}
         </p>
       )}

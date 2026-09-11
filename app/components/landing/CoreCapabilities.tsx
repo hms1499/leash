@@ -1,6 +1,7 @@
 import Label from '../ui/Label'
 import Panel from '../ui/Panel'
 import { PROSE, SUBHEAD } from '../ui/prose'
+import { GRID } from '../ui/page'
 
 const CAPABILITIES = [
   {
@@ -37,9 +38,9 @@ const CAPABILITIES = [
 
 export default function CoreCapabilities() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className={GRID}>
       {CAPABILITIES.map((capability) => (
-        <Panel key={capability.title} className="p-6">
+        <Panel key={capability.title} className="col-span-12 p-6 md:col-span-6 lg:col-span-4">
           <Label>{capability.label}</Label>
           <h3
             className="mt-3"

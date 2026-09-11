@@ -1,5 +1,6 @@
 import Panel from '../ui/Panel'
 import { DATA, PROSE, SUBHEAD } from '../ui/prose'
+import { GRID } from '../ui/page'
 
 const STEPS = [
   { n: '1', title: 'Create the account', body: 'You deploy and permanently own the protected account. It holds the agent’s budget.' },
@@ -10,9 +11,9 @@ const STEPS = [
 
 export default function HowItWorks() {
   return (
-    <div className="grid gap-6 sm:grid-cols-2">
+    <div className={GRID}>
       {STEPS.map((s) => (
-        <Panel key={s.n} className="p-6">
+        <Panel key={s.n} className="col-span-12 p-6 md:col-span-6">
           <span className="num" style={{ ...DATA, color: 'var(--celo)' }}>{s.n}</span>
           <h3 className="mt-2" style={{ ...SUBHEAD, color: 'var(--text)' }}>{s.title}</h3>
           <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>{s.body}</p>

@@ -44,9 +44,13 @@ function BoundaryList({
 export default function SecurityBoundary() {
   return (
     <div className="flex flex-col gap-4">
-      <Panel className="grid overflow-hidden sm:grid-cols-2">
-        <BoundaryList title="Protected by Leash" items={PROTECTED} tone="ok" />
-        <div className="border-t sm:border-l sm:border-t-0 [border-color:var(--line)]">
+      {/* Two halves of one statement, so both take six columns and neither
+          gets to be the wider one. */}
+      <Panel className="grid grid-cols-12 overflow-hidden">
+        <div className="col-span-12 md:col-span-6">
+          <BoundaryList title="Protected by Leash" items={PROTECTED} tone="ok" />
+        </div>
+        <div className="col-span-12 border-t md:col-span-6 md:border-l md:border-t-0 [border-color:var(--line)]">
           <BoundaryList title="Outside the boundary" items={NOT_PROTECTED} tone="bad" />
         </div>
       </Panel>

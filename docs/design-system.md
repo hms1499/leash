@@ -294,7 +294,7 @@ the problem, not a rule about it.
 
 ### The page is one width
 
-`PAGE` in `components/ui/page.ts` — `w-full max-w-3xl mx-auto px-4`, so 768px
+`PAGE` in `components/ui/page.ts` — `w-full max-w-5xl mx-auto px-4`, so 1024px
 with a 16px gutter. Every screen uses it: landing, wizard, dashboard, and the
 three message screens.
 
@@ -309,10 +309,18 @@ against the right, nearly two thousand pixels apart — and the relationship
 between those two marks is the entire information content of the component.
 §3.1 of the spec spends a rule on the 2px gap between them.
 
-768px because that is the width `Meter` was drawn for and already ran at
-inside `LiveProof`. The gutter stays 16px: it is the edge of the viewport
-rather than a relationship between two elements, and 24px gutters waste width
-on the phone MiniPay runs on.
+**That width was 768px until 2026-09-11, and the reason was in the wrong
+place.** `Meter` is an SVG with `viewBox="0 0 600 14"`: it magnifies rather
+than reflows, so the constraint was never "the page is 768px" but "the meter
+is about 700px". Enforced at the page, one component's geometry also decided
+the width of every card grid in the app — and the landing's three-up cards ran
+their body text at **21 characters a line**. `Meter` carries `--meter-max`
+itself now and the page is 1024. §16 has the measurements and the grid that
+replaced the guesswork.
+
+The gutter stays 16px: it is the edge of the viewport rather than a
+relationship between two elements, and 24px gutters waste width on the phone
+MiniPay runs on.
 
 **A full-bleed band puts its background on an outer element and `PAGE` on the
 content inside it.** The dashboard header and the meter's ground both do this,
@@ -897,12 +905,100 @@ recorded in the ratchet rather than punch a hole in the rule.
 
 - **Light mode.** Unchanged from §8: the palette is dark-only and the contrast
   work assumes it.
-- **Mobile beyond reach.** §8's last bullet stands. Reach is fixed and
-  measured; layout at width, landscape, and the wizard on a small screen are
-  not.
+- **Mobile beyond reach.** §8's last bullet stands, less one clause: layout at
+  width is measured now, in §16, at 768, 900 and 1024. Landscape and the
+  wizard on a small screen are still not.
 - **Density.** One size of everything, on every screen. A dashboard watched on
   a phone and one watched on a desk may not want the same `Panel` padding, and
   nobody has measured whether that matters here.
 - **Iconography.** There is none, deliberately — `↗` and `✓` are text. If a
   real icon ever arrives it needs a rule about size, stroke and alignment to
   the type scale, and none exists.
+
+---
+
+## 16. The grid: twelve columns, and where a span may widen
+
+§3 gave the page one width and nothing below it. Every block that divided
+chose its own division: measured 2026-09-11, `sm:grid-cols-2` in four places,
+`sm:grid-cols-3` in three, `grid-cols-2 gap-2 sm:grid-cols-4` in the stepper.
+Two blocks on different screens lined up only when both had happened to pick
+thirds.
+
+### What it cost
+
+The page was 768px because `Meter` was, and `Meter` is an SVG with
+`viewBox="0 0 600 14"` — it magnifies rather than reflows, so at the 1888px it
+reached on an unconstrained dashboard the 2px gap §3.1 spends a rule on
+magnified with it. That is a fact about one component, and enforcing it at the
+page made it a fact about every card grid in the app.
+
+Measured at 1440px with the page still capped at 768, the landing's three-up
+cards were **235px wide and ran their body text at 21 characters a line**.
+Below about 30ch an eye spends more time returning to the left margin than
+reading.
+
+### The rule
+
+> **Twelve columns, a 24px gutter, a 1024px container, and a 16px page
+> gutter. A span starts at `col-span-12` and widens only where a measurement
+> says it may.**
+
+`COLUMNS`, `GUTTER`, `CONTAINER`, `PAGE_GUTTER` and `METER_MAX` are data in
+`app/lib/layout.ts`, custom properties in `globals.css`, and
+`test/layout.test.ts` fails when the two disagree — the arrangement the
+palette and the type scale already keep (§9).
+
+- `GRID` in `components/ui/page.ts` — `grid grid-cols-12 gap-6` — is the page
+  grid: twelve because it divides by 2, 3, 4 and 6, and the gutter is §3's
+  step 6 rather than a number of its own.
+- `PANEL_GRID` — `grid grid-cols-12 gap-3` — is the same twelve inside a
+  panel. The gutter differs on purpose: §14 asks a container's padding to sit
+  one step above the gap between its children, and a `Panel` at `p-6` holds
+  rows at `gap-3`. A panel's padding already breaks alignment with the page's
+  columns, so what carries across is the division, not the gutter.
+- `Meter` carries `max-width: var(--meter-max)` — 736px, the width its viewBox
+  was proportioned against — so the page no longer enforces one component's
+  geometry on everything else.
+
+### Where a span may widen, measured
+
+| Width | half the page | a third of it |
+|---|---|---|
+| 768 (`md`) | 356px · 35ch | 229px · **21ch** |
+| 900 | 422px · 43ch | 273px · 26ch |
+| 1024 (`lg`) | 484px · 50ch | 315px · 31ch |
+
+So a prose card goes two-up at `md` and three-up only at `lg`. A block that
+takes a third of the page at 768 reproduces the exact defect this section
+exists to fix, and `e2e/measure.spec.ts` probes the rendered page at 768 to
+say so — the counterpart to the 68ch ceiling §2 sets, at the other end.
+
+31ch at 1024 is one character above the floor, and it is recorded rather than
+rounded up: 1152 would give 36ch and 1280 would give 41ch, but the dashboard
+is a stack of panels and a meter capped at 736, and the wider the page the
+more of it is margin. One width for every screen is §3's rule and it is kept.
+
+### What is not on this grid
+
+A grid whose columns are sized by their contents is not a page grid and does
+not divide by twelve: the feed row's `grid-cols-[auto_1fr_auto]`, the
+`[9rem_1fr]` and `[1fr_auto_1fr]` of `ProtectionModel`. Those describe a
+relationship between an icon, a label and a figure; twelve columns would say
+nothing about it.
+
+**The floor still applies to them.** `ProtectionModel` split its two halves at
+`sm`, and the 768px probe found each one running at 29ch — so that split moved
+to `lg` too. Being off the grid exempts a block from the division, not from
+the measure.
+
+### What widening the page broke
+
+A max-width on prose was the caller's job, on the argument that a list item in
+a narrow panel is already measured by its column. That held while every column
+was narrow. Widening the container stretched two dashboard paragraphs to
+**109 characters** the moment it landed — they had never needed a cap and so
+had never been given one. `PROSE` carries `maxWidth: '68ch'` itself now, and
+`overflowWrap: 'break-word'` with it, because prose here can name a 42-
+character address that has nowhere to break and did push the document sideways
+at 375px.

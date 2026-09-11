@@ -12,6 +12,7 @@ import Button from './ui/Button'
 import Label from './ui/Label'
 import Panel from './ui/Panel'
 import { HEADING } from './ui/prose'
+import { PROSE } from './ui/prose'
 
 const OPERATOR_ABI = [
   { type: 'function', name: 'setOperator', stateMutability: 'nonpayable',
@@ -172,7 +173,7 @@ export default function AgentAccessPanel({
               </div>
             ))}
           </div>
-          <p className="text-sm mt-3" style={{ color: 'var(--dim)' }}>
+          <p className="mt-3" style={{ ...PROSE, color: 'var(--dim)' }}>
             {operators.length === 1
               ? 'This wallet can request policy-bounded payments. To use another agent, revoke this wallet first; its existing wallet balance will not move.'
               : `All ${operators.length} of these wallets can request policy-bounded payments, and each spends against the same daily cap. Revoking one does not affect the others.`}
@@ -189,7 +190,7 @@ export default function AgentAccessPanel({
         </>
       ) : isOwner ? (
         <>
-          <p className="text-sm mt-3" style={{ color: 'var(--dim)' }}>
+          <p className="mt-3" style={{ ...PROSE, color: 'var(--dim)' }}>
             No operator was found in this account&apos;s recent activity — the
             contract cannot be asked to list its operators, so one authorised
             earlier may not appear here. Grant a separate hot wallet permission
@@ -210,7 +211,7 @@ export default function AgentAccessPanel({
           </Button>
         </>
       ) : (
-        <p className="text-sm mt-3" style={{ color: 'var(--dim)' }}>
+        <p className="mt-3" style={{ ...PROSE, color: 'var(--dim)' }}>
           No operator was found in this account&apos;s recent activity. The
           contract cannot be asked to list its operators, so one authorised
           earlier may not appear here. Connect the owner wallet to grant access.

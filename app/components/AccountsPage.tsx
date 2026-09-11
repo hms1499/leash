@@ -26,6 +26,7 @@ import {
 import { publicClient } from '../lib/chain.js'
 import { describeDiscovery, type DiscoveredAccountCandidate } from '../lib/accountDiscovery.js'
 import { HEADING, TITLE } from './ui/prose'
+import { PROSE } from './ui/prose'
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const VERIFY_ABI = [
@@ -200,7 +201,7 @@ export default function AccountsPage() {
           <h1 style={{ ...TITLE, color: 'var(--text)' }}>
             My protected accounts
           </h1>
-          <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+          <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
             Reopen accounts owned by this wallet or create another protected budget for an agent.
           </p>
         </header>
@@ -208,7 +209,7 @@ export default function AccountsPage() {
       {!isConnected ? (
         <Panel className="p-6">
           <h2 style={HEADING}>Connect the owner wallet</h2>
-          <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+          <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
             Each list is private to its owner wallet. Connect the wallet that created the account.
           </p>
           <div className="mt-4"><ConnectButton /></div>
