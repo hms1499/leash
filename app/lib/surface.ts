@@ -75,6 +75,13 @@ export const FOCUS = {
  * globals.css has carried the sentence "the ground drifts; the data snaps"
  * since the meter was built. This gives it numbers. §12.
  */
+/**
+ * The one curve. Both durations spend it, so a press, a disclosure and the
+ * meter all settle the same way -- the overshoot is 6%, which reads as weight
+ * rather than as a bounce, and `ease-out` read as a stop.
+ */
+export const EASE = 'cubic-bezier(0.34, 1.06, 0.64, 1)'
+
 export const MOTION = {
   /** A state the reader just caused: a disclosure opening, a copy landing. */
   fast: '90ms',

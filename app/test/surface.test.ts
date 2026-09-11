@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { RADIUS, FOCUS, MOTION } from '../lib/surface.js'
+import { RADIUS, FOCUS, MOTION, EASE } from '../lib/surface.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const css = readFileSync(join(ROOT, 'app/globals.css'), 'utf8')
@@ -171,6 +171,23 @@ describe('motion', () => {
       })
     expect(offenders, 'a <button> or <summary> here answers a press with nothing. '
       + 'Use ui/Button, or add `motion-press`. docs/design-system.md §12.').toEqual([])
+  })
+
+  /**
+   * One curve, for the same reason there are two durations and not five: a
+   * second easing is a second opinion about how this interface moves, and
+   * whoever writes it is deciding for the whole app from inside one file.
+   */
+  it('has one easing curve, and every user of it takes the token', () => {
+    expect(css).toContain(`--ease-settle: ${EASE};`)
+    const declared = [...css.matchAll(/--ease-([a-z]+):/g)].map((m) => m[1])
+    expect(declared).toEqual(['settle'])
+    // Nothing left on a hand-written curve or on the browser's own keywords.
+    for (const rule of ['.motion-reveal {', '.motion-press {', '.meter-fill {']) {
+      const at = css.indexOf(rule)
+      expect(css.slice(at, css.indexOf('}', at))).toContain('var(--ease-settle)')
+    }
+    expect(css).not.toMatch(/transition:[^;]*\bease-(?:in|out)\b/)
   })
 
   /**

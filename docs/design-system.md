@@ -34,6 +34,42 @@ sans. Mono is for everything a reader *looks at* — headings, labels, numbers,
 controls — and sans for what they *read*. The landing page has to persuade
 someone skimming, and that is exactly where monospace costs most.
 
+### What changed on 2026-09-11, and what did not
+
+The direction was challenged directly: the interfaces people actually enjoy
+using — a swap screen, say — feel *smooth*, and this one did not. Taking that
+seriously meant separating the two things "terminal" had been carrying.
+
+One is the register: mono, dense, precise, no ornament. That is load-bearing —
+it is the product's own thesis, an instrument for watching a machine spend
+money — and none of it moved.
+
+The other was a set of numbers that had drifted into meaning "austere":
+grounds a point or two off black, 8px and 4px corners, and no movement at all
+because §12 had been written as a ceiling. Those were never the thesis. §4
+lifted the grounds so a card reads as a card (8.2 points of L*, from 4.1),
+§10 doubled the radii, and §12 spent both of its durations on the three states
+a reader causes — a press, a disclosure, a control coming back to life — on
+one easing curve that settles rather than stops.
+
+What was refused, and why, is as much the direction as what was taken:
+
+- **Animated digits.** Money changes in one frame. A counted-up figure shows a
+  sequence of values that were never true, on a screen someone is watching
+  while an agent spends real money (§12).
+- **Ambient motion.** Nothing moves that the reader did not cause, so the one
+  movement that matters — the meter — stays a signal (§12).
+- **Shadows.** Re-measured after the lift: a black shadow at 45% buys 3.5
+  points of L* where the ground step already buys 8.2, and nothing in this app
+  sits above the page anyway (§13).
+- **A hover that fills.** The lift made it possible and it is still refused: a
+  ground says *what kind of surface this is*, and a control borrowing
+  `--panel` claims for a moment to be a card (§4).
+
+The test suite is what keeps that distinction honest. Every number above is
+asserted, so the next person who wants a softer interface gets the parts that
+are free and is stopped at the parts that are not.
+
 ---
 
 ## 2. Typography
@@ -864,6 +900,7 @@ since the meter was built. This gives it numbers.
 
 | Token | Value | For | Spent by |
 |---|---|---|---|
+| `--ease-settle` | `cubic-bezier(0.34, 1.06, 0.64, 1)` | the one curve — a 6% overshoot, which reads as weight where `ease-out` read as a stop | every rule below, and `test/surface.test.ts` fails on a second curve |
 | `--m-fast` | 90ms | a state the reader just caused | `.motion-press` — every control, on `:active`; `.motion-reveal` — `LimitsDrawer` opening in flow, `Address`'s copy outcome landing; `.motion-control` — `Button` crossing between enabled and disabled |
 | `--m-slow` | 400ms | the meter's geometry moving to a new value | `.meter-fill`, and nothing else, ever |
 

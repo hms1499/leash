@@ -75,6 +75,11 @@
      the meter's geometry, and nothing else moves. §12. */
   --m-fast: 90ms;
   --m-slow: 400ms;
+  /* The curve. A press and a disclosure both end by settling rather than by
+     stopping dead, which is the whole of what "smooth" turns out to mean in
+     the interfaces this was compared against -- the overshoot is 6%, small
+     enough that it reads as weight and not as a bounce. §12. */
+  --ease-settle: cubic-bezier(0.34, 1.06, 0.64, 1);
 
   /* The grid. Twelve columns because it divides by 2, 3, 4 and 6; the gutter
      is §3's step 6 rather than a new number. Asserted against lib/layout.ts.
@@ -246,7 +251,7 @@ body {
   to { opacity: 1; transform: none; }
 }
 /* A disclosure the reader opened, or the outcome of a copy they asked for. */
-.motion-reveal { animation: motion-reveal var(--m-fast) ease-out; }
+.motion-reveal { animation: motion-reveal var(--m-fast) var(--ease-settle); }
 /* A control crossing between enabled and disabled. Opacity only -- the
  * disabled treatment is `disabled:opacity-45` and nothing else moves. */
 .motion-control { transition: opacity var(--m-fast) linear; }
@@ -325,14 +330,14 @@ body {
  * `:not(:disabled)` because a disabled control must stay inert: it already
  * reads at 45% opacity with `cursor: not-allowed`, and a button that shrinks
  * under the finger and then does nothing is the worst of both. */
-.motion-press { transition: transform var(--m-fast) ease-out; }
+.motion-press { transition: transform var(--m-fast) var(--ease-settle); }
 .motion-press:active:not(:disabled) { transform: scale(0.98); }
 
 /* --m-slow's one user, and §12 says it may only ever have one: a second thing
  * at 400ms competes with the meter for the eye, and the meter is the
  * instrument. `width` is a geometry presentation attribute on an SVG rect and
  * transitions like any other property. */
-.meter-fill { transition: width var(--m-slow) ease-out; }
+.meter-fill { transition: width var(--m-slow) var(--ease-settle); }
 
 /* The ground drifts; the data snaps -- and for a reader who has asked the OS
  * to stop animating, nothing drifts either.
