@@ -46,7 +46,9 @@ export default function Feed({
         <h2 style={HEADING}>
           Recent activity
         </h2>
-        <Label>{WINDOW_LABEL}</Label>
+        {/* "Last" here, the window from the shared constant: the page used to
+            hardcode the whole string, which is two places for one fact. */}
+        <Label>Last {WINDOW_LABEL}</Label>
       </div>
       <div data-testid="feed-body">{children}</div>
     </Panel>
