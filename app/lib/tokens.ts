@@ -26,6 +26,17 @@ export const PALETTE = {
    * (3.27 panel, 3.55 bg, 3.64 well) with a little headroom.
    */
   lineControl: '#626A73',
+  /**
+   * The primary button while the pointer is on it. §4's grounds are all within
+   * 1.11 of each other -- `--panel` on `--bg` is 1.08, `--well` on `--bg` is
+   * 1.03 -- so a hover that fills a control with the next ground along fills
+   * it with nothing a reader can see. A bordered control can move its line
+   * instead; a solid one has only its own ground, so this is that ground one
+   * step down. Measured 2026-09-11: 14.90 against `--bg`, which is what the
+   * primary button's label is, so §4's bright-ground rule still holds with
+   * room to spare (`--celo` itself is 18.13).
+   */
+  celoHover: '#E6E93C',
 } as const
 
 export type TokenName = keyof typeof PALETTE

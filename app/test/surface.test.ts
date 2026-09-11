@@ -174,6 +174,24 @@ describe('motion', () => {
   })
 
   /**
+   * §4 puts the hover in globals.css because it has to: an inline style beats
+   * any rule a stylesheet can write, which is what kept Button and ActionLink
+   * from having one at all. A `hover:` utility at a call site would be a
+   * second answer to the same question, decided by whoever wrote that line --
+   * the shape the focus ring had before §11.
+   */
+  it('has no component deciding its own hover', () => {
+    const offenders = FILES
+      .map((f) => ({ f, hits: [...readFileSync(join(ROOT, f), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+        .matchAll(/(?<![\w-])hover[:-]|:hover/g)].length }))
+      .filter(({ hits }) => hits > 0)
+      .map(({ f, hits }) => `${f}: ${hits}`)
+    expect(offenders, 'the hover is one rule in globals.css. docs/design-system.md §4.')
+      .toEqual([])
+  })
+
+  /**
    * Two classes and the meter are the whole vocabulary. A duration written
    * inline at a call site is how the focus ring reached fourteen copies, and
    * it also escapes `lib/surface.ts` -- the file these tests read to know what

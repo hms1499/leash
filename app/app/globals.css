@@ -18,6 +18,10 @@
   /* Divider vs control border: --line is deliberately faint, and a button
      needs to be seen. Asserted in test/tokens.test.ts. */
   --line-control: #626A73;
+  /* The primary button under the pointer. §4's grounds are 1.03-1.11 apart, so
+     a hover cannot be a fill here; a solid control moves its own ground
+     instead. Asserted against lib/tokens.ts. */
+  --celo-hover: #E6E93C;
   --text: #E8EAED;
   --dim: #8A9199;
   /* Celo brand yellow, verified 2026-09-03 by fetching celo.org/brand-kit and
@@ -246,6 +250,65 @@ body {
 /* A control crossing between enabled and disabled. Opacity only -- the
  * disabled treatment is `disabled:opacity-45` and nothing else moves. */
 .motion-control { transition: opacity var(--m-fast) linear; }
+
+/* A control's tone, and what the pointer does to it.
+ *
+ * Button and ActionLink each carried their three tones in a TypeScript object
+ * and set them inline -- which had already let the two drift, since only one
+ * of them had a `stop`. It also made a hover impossible: an inline style wins
+ * over any rule a stylesheet can write, short of `!important` at every tone.
+ *
+ * ## Why a hover is a line here and not a fill
+ *
+ * The obvious hover is the one every consumer app uses: fill the control with
+ * the next ground along. Measured 2026-09-11, §4's grounds are 1.03 to 1.11
+ * apart -- `--panel` on `--bg` is 1.08, `--well` on `--bg` is 1.03 -- so that
+ * fill is invisible in this palette. They are grounds for whole regions, and
+ * the eye reads them at the size of a panel, not the size of a button.
+ *
+ * What is left is the line, and it has room: `--line-control` is 3.55 on
+ * `--bg` and `--dim` is 6.11. So the rule is one sentence.
+ *
+ * > **On hover a control moves toward the colour it already wears.**
+ *
+ * A ghost's line goes up a step. A stop's line is already `--bad` and cannot
+ * brighten inside the palette, so it takes the ground instead and the label
+ * flips to `--bg` -- which is also the only foreground §4 allows on a bright
+ * ground, and on the one control that stops an agent mid-spend a hover that
+ * says so is not a decoration. The primary is solid, so it moves its own
+ * ground down a step: `--celo-hover`.
+ *
+ * On the paused header both bordered variants are drawn in `--bg`, the only
+ * legal foreground on `--bad`, so the same sentence gives the same answer the
+ * other way round: the ground becomes `--bg` and the label leaves it.
+ */
+.control {
+  transition:
+    background-color var(--m-fast) linear,
+    border-color var(--m-fast) linear,
+    color var(--m-fast) linear;
+}
+
+.control-ghost { border: 1px solid var(--line-control); color: var(--text); outline-color: var(--text); }
+.control-ghost:hover:not(:disabled) { border-color: var(--dim); }
+
+.control-primary { background: var(--celo); color: var(--bg); font-weight: 700; outline-color: var(--celo); }
+.control-primary:hover:not(:disabled) { background: var(--celo-hover); }
+
+.control-stop { border: 1px solid var(--bad); color: var(--bad); font-weight: 700; outline-color: var(--bad); }
+.control-stop:hover:not(:disabled) { background: var(--bad); color: var(--bg); }
+
+/* The paused header's ground is --bad, and §4 lets only --bg sit on it. */
+.control-ghost.on-danger,
+.control-stop.on-danger { border-color: var(--bg); color: var(--bg); outline-color: var(--bg); background: transparent; }
+.control-ghost.on-danger:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+.control-stop.on-danger:hover:not(:disabled) { background: var(--bg); color: var(--bad); }
+
+/* A control with neither a line nor a ground of its own: the copy button on an
+ * address, the explorer glyph, a <summary>. There is nothing to move, so the
+ * pointer gets the one affordance left. The offset keeps the rule off the
+ * descenders of a mono address. */
+.control-text:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* A press. §12's table already names this case -- "a state the reader just
  * caused" -- and a finger going down on a control is the most literal one

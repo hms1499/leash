@@ -118,6 +118,32 @@ describe('non-text boundaries clear AA UI contrast', () => {
  * `none` means nothing. Recorded because the wrong version is the more
  * alarming one and would otherwise be repeated.
  */
+/**
+ * §4: bright grounds take only --bg. The primary button hovers by moving its
+ * own ground, so the hover yellow is a second bright ground and has to clear
+ * the same bar -- the rule is about what a reader can read, and a pointer
+ * resting on a button does not suspend it.
+ *
+ * A fill was not an option anywhere else: the three dark grounds are 1.03 to
+ * 1.11 apart, which is why every other control hovers on its line instead.
+ */
+describe('the hover ground', () => {
+  it('still takes the primary button label', () => {
+    expect(contrastRatio(PALETTE.celoHover, PALETTE.bg)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('is a step the eye can see, unlike a ground', () => {
+    // --celo to --celo-hover, against the ground the button sits on.
+    const before = contrastRatio(PALETTE.celo, PALETTE.bg)
+    const after = contrastRatio(PALETTE.celoHover, PALETTE.bg)
+    expect(before - after).toBeGreaterThan(1)
+    // And the fill that was rejected: no pair of grounds clears even 1.2.
+    for (const [a, b] of [[PALETTE.bg, PALETTE.panel], [PALETTE.bg, PALETTE.well], [PALETTE.panel, PALETTE.well]]) {
+      expect(contrastRatio(a, b)).toBeLessThan(1.2)
+    }
+  })
+})
+
 describe('the field treatment', () => {
   const field = /\.field\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
 
@@ -149,6 +175,7 @@ describe('globals.css does not drift from tokens.ts', () => {
     bg: '--bg', panel: '--panel', well: '--well', text: '--text',
     dim: '--dim', celo: '--celo', ok: '--ok', bad: '--bad',
     meterFill: '--meter-fill', lineControl: '--line-control',
+    celoHover: '--celo-hover',
   }
 
   for (const [name, value] of Object.entries(PALETTE)) {

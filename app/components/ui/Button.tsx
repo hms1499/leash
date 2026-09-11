@@ -55,29 +55,27 @@ export default function Button({
   }
 
   /**
+   * The tone is three classes in globals.css rather than three objects here.
+   * It was inline until 2026-09-11, which had already let this component and
+   * `ActionLink` drift -- only one of them had a `stop` -- and, more to the
+   * point, an inline style wins over any rule a stylesheet can write, so the
+   * hover §4 now defines could not have reached it.
+   *
    * `onDangerBand` says this button sits on the paused header, whose ground is
    * --bad. The ghost and stop variants are drawn in --text and --bad, which are
    * 3.16 and 1.00 against that ground -- the second being invisible. --bg is
    * 5.10 there, the same dark-on-bright treatment `primary` already uses on
    * Celo yellow. docs/design-system.md §4.
    */
-  const tone: Record<Variant, React.CSSProperties> = {
-    primary: { background: 'var(--celo)', color: 'var(--bg)', fontWeight: 700, outlineColor: 'var(--celo)' },
-    ghost: onDangerBand
-      ? { border: '1px solid var(--bg)', color: 'var(--bg)', outlineColor: 'var(--bg)' }
-      : { border: '1px solid var(--line-control)', color: 'var(--text)', outlineColor: 'var(--text)' },
-    stop: onDangerBand
-      ? { border: '1px solid var(--bg)', color: 'var(--bg)', fontWeight: 700, outlineColor: 'var(--bg)' }
-      : { border: '1px solid var(--bad)', color: 'var(--bad)', fontWeight: 700, outlineColor: 'var(--bad)' },
-  }
+  const tone = `control control-${variant}${onDangerBand ? ' on-danger' : ''}`
   // Appended, not spread through `rest`. A caller passing className="mt-3"
   // would otherwise replace BASE outright and silently lose the cursor, the
   // focus ring and the disabled treatment -- the three things this component
   // exists to guarantee.
   return (
     <button
-      className={`${BASE} ${className}`.trimEnd()}
-      style={{ ...face, ...tone[variant], ...style }}
+      className={`${BASE} ${tone} ${className}`.trimEnd()}
+      style={{ ...face, ...style }}
       {...rest}
     />
   )

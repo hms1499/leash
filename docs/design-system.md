@@ -372,6 +372,43 @@ Two lines fall out of it, and they replace every argument about colour:
 `--well` had never been tested as a ground and turns out to be safe: it is
 darker than `--bg`, so everything on it clears by more.
 
+### What the pointer may change
+
+Added 2026-09-11. The obvious hover is the one every consumer app uses: fill
+the control with the next ground along. Measured against the table above, the
+three dark grounds are **1.03 to 1.11 apart** — `--panel` on `--bg` is 1.08 —
+so that fill is invisible here. They are grounds for whole regions; the eye
+reads them at the size of a panel, not the size of a button.
+
+The line has room that a ground does not: `--line-control` is 3.55 on `--bg`
+and `--dim` is 6.11. So:
+
+> **On hover a control moves toward the colour it already wears**, at
+> `--m-fast`, in `globals.css` and nowhere else.
+
+| Variant | Rest | Hover |
+|---|---|---|
+| ghost | `--line-control` line, `--text` label | line → `--dim` |
+| primary | `--celo` ground, `--bg` label | ground → `--celo-hover` (#E6E93C, 14.90 on `--bg`) |
+| stop | `--bad` line and label | ground → `--bad`, label → `--bg` |
+| ghost/stop on the paused header | `--bg` line and label on `--bad` | ground → `--bg`, label leaves it |
+| text-only: a copy button, `↗`, a `<summary>` | — | underline |
+
+`stop` takes the ground rather than the line because its line is already
+`--bad` and cannot brighten inside this palette — and on the one control that
+halts an agent mid-spend, a hover that fills red is not decoration. `--bg` is
+also the only foreground §4 allows on a bright ground, so the flip is the rule
+rather than an exception to it.
+
+This is why `Button` and `ActionLink` keep their tone in CSS classes and not in
+a style object: an inline style beats any rule a stylesheet can write, so the
+hover could not have reached them. The two had already drifted while the tone
+lived in TypeScript — only one of them had a `stop`.
+
+**Not on it yet:** the wizard's stepper and its two recipient choices set
+border and ground inline, conditional on which one is selected, so a rule
+cannot reach them either. They answer a press and a focus, not a pointer.
+
 ### What the rule cost to learn
 
 On 2026-09-05 a wrong-network test reported that the "Wrong network" badge
@@ -823,10 +860,13 @@ since the meter was built. This gives it numbers.
   thing that answered the finger. `test/surface.test.ts` fails on a file with
   a raw `<button>` or `<summary>` that does not take one.
 - **No ambient motion.** Nothing moves that the reader did not cause. No
-  entrance on scroll, no transition on hover, no pulse on a live value. This
-  is a screen someone watches while an agent spends real money; a page that
-  moves on its own makes the one movement that matters — the meter — stop
-  being a signal.
+  entrance on scroll, no pulse on a live value, and no transition on hover
+  **except a control's own colour**, at `--m-fast`. This is a screen someone
+  watches while an agent spends real money; a page that moves on its own makes
+  the one movement that matters — the meter — stop being a signal. A control
+  answering the pointer that is on it is not that: it moves only where the
+  reader is already looking, only while they are there, and only in colour —
+  nothing reflows, and §4 defines what may change.
 - **`--m-slow` has exactly one user.** A second thing at 400ms competes with
   the meter for the eye, and the meter is the instrument.
 - **`prefers-reduced-motion` is handled once, globally.** A blanket rule at

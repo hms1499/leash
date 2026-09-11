@@ -172,3 +172,31 @@ test('a control answers a press', async ({ page }) => {
   await expect.poll(() => step.evaluate((el) => getComputedStyle(el).transform))
     .toBe('none')
 })
+
+/**
+ * §4: on hover a control moves toward the colour it already wears. The unit
+ * tests prove the palette clears its contrast bars and that no component
+ * decided a hover of its own; this proves the rule reached a real control and
+ * that the tone survived moving out of the style object it used to live in.
+ *
+ * The ghost variant is the one to check: it is what nearly every control in
+ * the app is, and its rest state is the `--line-control` that §4 added a token
+ * for in the first place.
+ */
+test('a control answers the pointer resting on it', async ({ page }) => {
+  await page.goto('/setup')
+  const ghost = page.getByRole('link', { name: /My accounts/i }).first()
+  await expect(ghost).toBeVisible()
+
+  const border = () => ghost.evaluate((el) => getComputedStyle(el).borderTopColor)
+  // --line-control #626A73 at rest, --dim #8A9199 under the pointer.
+  expect(await border()).toBe('rgb(98, 106, 115)')
+
+  await ghost.hover()
+  await expect.poll(border).toBe('rgb(138, 145, 153)')
+
+  // And it lets go, so a control the pointer has merely passed over does not
+  // stay lit as if it were still under it.
+  await page.mouse.move(0, 0)
+  await expect.poll(border).toBe('rgb(98, 106, 115)')
+})

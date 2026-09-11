@@ -50,7 +50,7 @@ export default function Address({
           // layout, so the `full break-all` case in AccountsPage stays free to
           // wrap on a phone. `.tap-focus` supplies the ring this button never
           // had -- no component library ships here, so nothing else would.
-          className={`motion-press tap-tall tap-focus ${className}`.trimEnd()}
+          className={`motion-press control-text tap-tall tap-focus ${className}`.trimEnd()}
           style={{ ...face, cursor: 'pointer' }}
           title={`Copy ${address}`}
           aria-label={`Copy address ${address}`}
@@ -116,7 +116,7 @@ export default function Address({
         rel="noreferrer"
         title="Open on Celoscan"
         aria-label={`Open address ${address} on Celoscan`}
-        className="motion-press tap-focus inline-flex items-center justify-center min-w-[44px] min-h-[44px] -my-3"
+        className="motion-press control-text tap-focus inline-flex items-center justify-center min-w-[44px] min-h-[44px] -my-3"
         style={face}
       >
         ↗
