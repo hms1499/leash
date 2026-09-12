@@ -105,11 +105,17 @@ export const REQUIRED_CHAIN_ID = celo.id
  * request the wallet had nothing to fall back on when its own estimator came
  * back empty, so a working deployment was unreachable.
  *
- * 1,200,000 is the measured 797,607 with half again as much room. Unused gas
+ * 1,200,000 was that measured 797,607 with half again as much room. v2 is a
+ * bigger contract — 3,766 bytes of runtime against v1's 3,406 — and its real
+ * deployment on 2026-09-12 used 892,864, read from the receipt rather than
+ * estimated. That left 1,200,000 at 1.34x rather than the 1.5x this paragraph
+ * claims, so the number moved and the claim stayed true.
+ *
+ * 1,400,000 is the observed 892,864 with half again as much room. Unused gas
  * is refunded, so an over-estimate costs nothing; `sdk/src/policyClient.ts`
  * carries the same reasoning and the price of getting it wrong.
  */
-export const DEPLOY_GAS = 1_200_000n
+export const DEPLOY_GAS = 1_400_000n
 
 export const WRONG_NETWORK =
   'Your wallet is on another network. Switch it to Celo — the badge in the header does it — and try again.'
@@ -130,20 +136,38 @@ export const WRONG_NETWORK =
  * that was specific to contract creation, and `setPaused` is the kill switch.
  *
  * Measured with `cast estimate` on Celo mainnet, 2026-09-09, from the owner EOA
- * against account 0x7aDa926B:
+ * against account 0x7aDa926B (v1):
  *
  *   setPolicy             28,762      setAllowlistEnabled   26,233
  *   setOperator           26,845      setAllowlist          46,086
  *   setPaused(true)       45,150      sweep                 51,181
  *   ERC-20 transfer       45,427
  *
+ * Re-measured 2026-09-12 against 0xBE380aa7 (v2), where `owner` is a storage
+ * slot rather than an immutable, so every `onlyOwner` write pays an extra
+ * SLOAD:
+ *
+ *   setPolicy             30,843      setAllowlistEnabled   47,330
+ *   setOperator           29,024      setAllowlist          48,257
+ *   setPaused(true)       47,294      sweep                 53,626
+ *   setTopUpEnabled       47,308      transferOwnership     48,166
+ *   ERC-20 transfer       45,415
+ *
+ * The four boolean writes jumped ~21,000 rather than the ~2,100 an added SLOAD
+ * costs, and that is the cold-slot effect below rather than a surprise: on
+ * 0x7aDa926B those flags had been written before, and on 0xBE380aa7 they are
+ * still zero. So these particular figures are already the expensive case.
+ * setPolicy and setOperator are the opposite — both slots were written by the
+ * wizard minutes earlier, so their numbers are warm and understate a fresh
+ * account badly.
+ *
  * Every figure below is roughly double its measurement, and deliberately so:
- * that account is already in use, and an estimate taken against warm storage
- * UNDERSTATES a fresh one. A slot going 0 -> non-zero costs 20,000 where
- * non-zero -> non-zero costs 2,900, so on a brand-new account `setPolicy`
- * writes two cold slots (~63,000, not 28,762), `setOperator` one (~44,000), and
- * a transfer to an address holding nothing is ~17,000 dearer than the figure
- * above. A first-run wizard is exactly the case these have to cover.
+ * an estimate taken against warm storage UNDERSTATES a fresh one. A slot going
+ * 0 -> non-zero costs 20,000 where non-zero -> non-zero costs 2,900, so on a
+ * brand-new account `setPolicy` writes two cold slots (~65,000, not 30,843),
+ * `setOperator` one (~46,000), and a transfer to an address holding nothing is
+ * ~17,000 dearer than the figure above. A first-run wizard is exactly the case
+ * these have to cover.
  *
  * Unused gas is refunded, so an over-estimate costs nothing and an
  * under-estimate turns a working button into a failed transaction.
@@ -151,13 +175,25 @@ export const WRONG_NETWORK =
 export const SET_POLICY_GAS = 120_000n
 export const SET_OPERATOR_GAS = 100_000n
 export const SET_ALLOWLIST_GAS = 100_000n
-export const SET_ALLOWLIST_ENABLED_GAS = 80_000n
-// Same shape of write as SET_ALLOWLIST_ENABLED_GAS: one bool, one event.
-// Re-measured against the v2 deployment in Task 11.
-export const SET_TOP_UP_ENABLED_GAS = 80_000n
-// Both write one address-sized slot and emit one event, which is the shape
-// SET_OPERATOR_GAS measures. Re-measured against the v2 deployment in Task 11.
+// 80,000 until 2026-09-12. That was 1.69x its v1 measurement, not double, and
+// v1's 26,233 was a warm slot: the real cold write is 47,330.
+export const SET_ALLOWLIST_ENABLED_GAS = 100_000n
+// Same shape of write as SET_ALLOWLIST_ENABLED_GAS: one bool, one event, and
+// measured within 22 gas of it (47,308 against 47,330).
+export const SET_TOP_UP_ENABLED_GAS = 100_000n
 export const TRANSFER_OWNERSHIP_GAS = 100_000n
+/**
+ * Sized from `transferOwnership`, not measured.
+ *
+ * `acceptOwnership` cannot be estimated from the owner EOA at all — the owner
+ * is not the pending owner, so the call reverts with NotPendingOwner before it
+ * reaches anything worth measuring, and there was no second wallet holding a
+ * nomination at the time these were taken.
+ *
+ * The two writes are the same shape: one address-sized slot plus one event.
+ * Acceptance is if anything cheaper, since clearing `pendingOwner` to zero
+ * earns a refund where nominating pays 20,000 to fill it.
+ */
 export const ACCEPT_OWNERSHIP_GAS = 100_000n
 export const SET_PAUSED_GAS = 100_000n
 export const SWEEP_GAS = 150_000n

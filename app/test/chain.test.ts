@@ -4,11 +4,19 @@ import { fileURLToPath } from 'node:url'
 import { DEPLOY_GAS, publicClient } from '../lib/chain.js'
 
 /**
- * Measured against Celo mainnet on 2026-09-04, twice and independently:
- * `cast estimate --create` and viem's `estimateGas` both returned exactly
- * this for SpendPolicyAccount with a one-address constructor.
+ * What deploying SpendPolicyAccount actually costs.
+ *
+ * 797,607 until 2026-09-12, measured against mainnet on 2026-09-04 twice and
+ * independently — `cast estimate --create` and viem's `estimateGas` agreed
+ * exactly. That was v1.
+ *
+ * This is v2's figure and it is stronger evidence than either: it is the
+ * `gasUsed` on the receipt of the real deployment of
+ * 0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d, so it is what the chain charged
+ * rather than what a node predicted. v2 is 3,766 bytes of runtime against
+ * v1's 3,406.
  */
-const MEASURED = 797_607n
+const MEASURED = 892_864n
 
 describe('DEPLOY_GAS', () => {
   it('covers what deploying SpendPolicyAccount actually costs', () => {
