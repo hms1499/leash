@@ -18,6 +18,7 @@ import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
 import AgentAccessPanel from '../../../components/AgentAccessPanel'
 import OwnershipDrawer from '../../../components/OwnershipDrawer'
+import TopUpDrawer from '../../../components/TopUpDrawer'
 import AccountSwitcher from '../../../components/AccountSwitcher'
 import { AccountOverview, SecurityPolicy } from '../../../components/DashboardOverview'
 import { useAccountState } from '../../../lib/useAccountState.js'
@@ -335,6 +336,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                   daily={state.daily}
                   perTx={state.perTx}
                   allowlistEnabled={state.allowlistEnabled}
+                  topUpEnabled={state.topUpEnabled}
                   decimals={DECIMALS}
                   symbol={SYMBOL}
                 />
@@ -396,6 +398,17 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                   that can use it. OwnershipDrawer's own ownershipRole decides,
                   from owner() and pendingOwner() read off the chain, and
                   renders nothing at all for a stranger. */}
+              {/* Not gated on isOwner here: the component shows a
+                  non-owner the state and no control, because whether an agent
+                  can drain to its own wallet is the most useful single thing
+                  this page can tell someone deciding whether to trust it. */}
+              <TopUpDrawer
+                account={address}
+                enabled={state.topUpEnabled}
+                isOwner={isOwner}
+                loading={state.isLoading}
+                onChanged={state.refetch}
+              />
               <OwnershipDrawer
                 account={address}
                 owner={state.owner}

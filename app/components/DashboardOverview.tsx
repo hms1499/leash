@@ -94,11 +94,12 @@ export function AccountOverview({
 }
 
 export function SecurityPolicy({
-  daily, perTx, allowlistEnabled, decimals, symbol,
+  daily, perTx, allowlistEnabled, topUpEnabled, decimals, symbol,
 }: {
   daily: bigint
   perTx: bigint
   allowlistEnabled: boolean
+  topUpEnabled: boolean
   decimals: number
   symbol: string
 }) {
@@ -110,6 +111,7 @@ export function SecurityPolicy({
     ['Daily limit', daily === 0n ? 'Not set' : `${formatDisplayAmount(daily, decimals)} ${symbol}`, daily !== 0n],
     ['Maximum direct payment', perTx === 0n ? 'Not set' : `${formatDisplayAmount(perTx, decimals)} ${symbol}`, perTx !== 0n],
     ['Approved recipients', allowlistEnabled ? 'On' : 'Off — any address', false],
+    ['Agent-funded payments', topUpEnabled ? 'On' : 'Off', false],
   ] as const
 
   return (
@@ -139,8 +141,14 @@ export function SecurityPolicy({
         className="mt-4 border-l-2 py-2 pl-3 text-sm [border-color:var(--bad)]"
         style={{ color: 'var(--dim)' }}
       >
-        x402 moves funds to the agent wallet first. Recipient restrictions do
-        not apply after those funds leave this account.
+        {/* Conditional because the flat version was false half the time. v2
+            puts that path behind a switch that is off at construction, and
+            telling an owner who has never opened it that their restrictions
+            leak is the same class of wrong answer as telling a paused agent to
+            wait for midnight. */}
+        {topUpEnabled
+          ? 'x402 moves funds to the agent wallet first. Recipient restrictions do not apply after those funds leave this account.'
+          : 'Agent-funded payments are off, so nothing can leave this account except a direct payment — which the rules above bind completely.'}
       </div>
     </Panel>
   )
