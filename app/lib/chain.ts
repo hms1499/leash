@@ -152,6 +152,9 @@ export const SET_POLICY_GAS = 120_000n
 export const SET_OPERATOR_GAS = 100_000n
 export const SET_ALLOWLIST_GAS = 100_000n
 export const SET_ALLOWLIST_ENABLED_GAS = 80_000n
+// Same shape of write as SET_ALLOWLIST_ENABLED_GAS: one bool, one event.
+// Re-measured against the v2 deployment in Task 11.
+export const SET_TOP_UP_ENABLED_GAS = 80_000n
 export const SET_PAUSED_GAS = 100_000n
 export const SWEEP_GAS = 150_000n
 export const ERC20_TRANSFER_GAS = 120_000n

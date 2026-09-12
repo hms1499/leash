@@ -14,13 +14,13 @@ import { PROSE, SUBHEAD, TITLE } from '../../components/ui/prose'
 import Button from '../../components/ui/Button'
 import {
   publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS, ERC20_TRANSFER_GAS,
-  SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS, SET_OPERATOR_GAS, SET_POLICY_GAS,
+  SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS, SET_OPERATOR_GAS, SET_POLICY_GAS, SET_TOP_UP_ENABLED_GAS,
 } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
 import { formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import {
-  afterFailedRead, balanceValue, describeBalance, firstSetupStage, setupReadiness,
+  afterFailedRead, balanceValue, describeBalance, describeTopUpMode, firstSetupStage, setupReadiness,
   type BalanceRead, type SetupStage,
 } from '../../lib/setup.js'
 import { pollUntil } from '../../lib/confirm.js'
@@ -60,6 +60,9 @@ const SETUP_ABI = [
   { type: 'function', name: 'setAllowlistEnabled', stateMutability: 'nonpayable',
     inputs: [{ name: 'enabled', type: 'bool' }], outputs: [] },
   { type: 'function', name: 'allowlistEnabled', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
+  { type: 'function', name: 'setTopUpEnabled', stateMutability: 'nonpayable',
+    inputs: [{ name: 'enabled', type: 'bool' }], outputs: [] },
+  { type: 'function', name: 'topUpEnabled', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
 ] as const
 
 /**
@@ -154,6 +157,10 @@ export default function Onboard() {
   const [recipient, setRecipient] = useState('')
   const [recipientBusy, setRecipientBusy] = useState(false)
   const [recipientNote, setRecipientNote] = useState<string | null>(null)
+
+  const [topUpEnabled, setTopUpEnabled] = useState(false)
+  const [topUpBusy, setTopUpBusy] = useState(false)
+  const [topUpNote, setTopUpNote] = useState<string | null>(null)
 
   const [agent, setAgent] = useState('')
   const [agentAuthorized, setAgentAuthorized] = useState(false)
@@ -260,16 +267,25 @@ export default function Onboard() {
     setRecipient('')
     setRecipientMode('any')
     setRecipientProtectionEnabled(false)
+    setTopUpEnabled(false)
 
     void (async () => {
       try {
-        const [limits, policyBalance, listEnabled] = await Promise.all([
+        // One Promise.all so viem can multicall these. An awaited read added
+        // after the array breaks the batch into separate round trips.
+        const [limits, policyBalance, listEnabled, topUp] = await Promise.all([
           publicClient.readContract({
             address: account, abi: SETUP_ABI, functionName: 'limits', args: [TOKEN],
           }) as Promise<readonly [bigint, bigint, bigint, bigint]>,
           readBalance(account),
           publicClient.readContract({
             address: account, abi: SETUP_ABI, functionName: 'allowlistEnabled',
+          }) as Promise<boolean>,
+          // Read rather than defaulted: a resumed setup that showed "Off" for
+          // an account whose switch is on would put a false sentence on the
+          // review screen, about the one setting that lets money leave.
+          publicClient.readContract({
+            address: account, abi: SETUP_ABI, functionName: 'topUpEnabled',
           }) as Promise<boolean>,
         ])
         if (cancelled) return
@@ -290,6 +306,7 @@ export default function Onboard() {
         setProtectedBalance({ status: 'ok', value: policyBalance })
         setRecipientProtectionEnabled(listEnabled)
         setRecipientMode(listEnabled ? 'protected' : 'any')
+        setTopUpEnabled(topUp)
         const savedRecipient = readLocal(`leash.recipient.${account.toLowerCase()}`)
         if (savedRecipient && isValidAddress(savedRecipient)) setRecipient(savedRecipient)
 
@@ -487,6 +504,50 @@ export default function Onboard() {
     } catch {
       setRecipientNote('The requested policy change was not completed.')
     } finally { setRecipientBusy(false) }
+  }
+
+  async function chooseTopUp(next: boolean) {
+    setTopUpNote(null)
+    // Before the wallet, never after: a guard that opens a wallet prompt and
+    // then refuses leaves a person cancelling a dialogue they did not ask for.
+    if (chainId !== REQUIRED_CHAIN_ID) { setTopUpNote(WRONG_NETWORK); return }
+    // A poll satisfied on its first iteration confirms nothing -- the same
+    // defect protectRecipient guards against above, where "enabled" was
+    // reported for a transaction that never existed.
+    if (next === topUpEnabled) {
+      setTopUpNote(next
+        ? 'Agent-funded payments are already on — nothing to change.'
+        : 'Agent-funded payments are already off — nothing to change.')
+      return
+    }
+    setTopUpBusy(true)
+    try {
+      try {
+        await writeContractAsync({
+          address: account!, abi: SETUP_ABI, functionName: 'setTopUpEnabled',
+          args: [next], chainId: REQUIRED_CHAIN_ID, gas: SET_TOP_UP_ENABLED_GAS,
+        })
+      } catch {
+        setTopUpNote('The change was not sent.')
+        return
+      }
+      // The condition, not the receipt. forno is load-balanced and serves stale
+      // reads after a confirmed transaction.
+      const confirmed = await pollUntil(async () => {
+        const value = await publicClient.readContract({
+          address: account!, abi: SETUP_ABI, functionName: 'topUpEnabled',
+        }) as boolean
+        return value === next
+      })
+      if (confirmed) {
+        setTopUpEnabled(next)
+        setTopUpNote(next
+          ? 'Agent-funded payments enabled.'
+          : 'Agent-funded payments disabled.')
+      } else {
+        setTopUpNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
+      }
+    } finally { setTopUpBusy(false) }
   }
 
   async function addAgent() {
@@ -734,8 +795,8 @@ export default function Onboard() {
             <ul className="mt-3 ml-5 list-disc space-y-2" style={PROSE}>
               <li>
                 An owner wallet on Celo with a little CELO for transaction fees.
-                Roughly 0.25 CELO covers this whole setup; the owner is permanent,
-                so use a wallet you will keep.
+                Roughly 0.25 CELO covers this whole setup. Use a wallet you will
+                keep; ownership can be handed over later, but only by this one.
               </li>
               <li>
                 USDC on Celo for the protected budget and agent gas. The agent
@@ -768,7 +829,8 @@ export default function Onboard() {
                   <span className="text-sm" style={{ color: 'var(--dim)' }}>Owner wallet connected</span>
                 </div>
                 <p className="text-sm mt-4" style={{ color: 'var(--bad)' }}>
-                  The owner is permanent. Use a wallet you will keep secure; it must not be the agent wallet.
+                  Use a wallet you will keep secure; it must not be the agent wallet. Ownership can be handed
+                  to another wallet later from the dashboard, in two steps.
                 </p>
                 <Button variant="primary" className="mt-3" disabled={deploying || restoring} onClick={() => void deploy()}>
                   {deploying ? 'Creating…' : 'Create protected account'}
@@ -827,15 +889,13 @@ export default function Onboard() {
             <div className={`${PANEL_GRID} mt-4`}>
               <button type="button" aria-pressed={recipientMode === 'any'} disabled={recipientBusy}
                 onClick={() => void chooseAnyRecipient()}
-                className="motion-press col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45"
-                style={{ ...STATUS_BOX, borderColor: recipientMode === 'any' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
+                className="choice-card motion-press col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45">
                 <span style={SUBHEAD}>Any recipient</span>
                 <span className="block mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>Best for agents with changing payees.</span>
               </button>
               <button type="button" aria-pressed={recipientMode === 'protected'} disabled={recipientBusy}
                 onClick={() => { setRecipientMode('protected'); setRecipientNote(null) }}
-                className="motion-press col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45"
-                style={{ ...STATUS_BOX, borderColor: recipientMode === 'protected' ? 'var(--line-control)' : 'var(--line)', outlineColor: 'var(--text)' }}>
+                className="choice-card motion-press col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45">
                 <span style={SUBHEAD}>Approved recipients only</span>
                 <span className="block mt-1" style={{ ...PROSE, color: 'var(--dim)' }}>Best when payees are known in advance.</span>
               </button>
@@ -861,8 +921,45 @@ export default function Onboard() {
                 'That recipient is already approved and protection is already on — nothing to change.'),
             }}>{recipientNote}</p>}
             <p className="text-sm mt-4" style={{ color: 'var(--bad)' }}>
-              Recipient protection covers direct account payments only. Funds moved to the agent wallet for gas or x402 are outside this restriction.
+              {topUpEnabled
+                ? 'Recipient protection covers direct account payments only. Agent-funded payments are on, so the agent can also move funds into its own wallet, where the allowlist cannot reach them — bounded by the limits above, not by this list.'
+                : 'Recipient protection covers direct account payments only. Agent-funded payments are off, so the agent has no way to move funds into its own wallet.'}
             </p>
+          </div>
+
+          <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 style={SUBHEAD}>Agent-funded payments</h3>
+                <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>Required only for x402 APIs.</p>
+              </div>
+              <Label>Optional</Label>
+            </div>
+            <div className={`${PANEL_GRID} mt-3`}>
+              <button type="button" aria-pressed={!topUpEnabled} disabled={topUpBusy}
+                onClick={() => void chooseTopUp(false)}
+                className="choice-card motion-press col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45">
+                <span style={SUBHEAD}>Payments only</span>
+                <span className="block mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>The agent can pay recipients and nothing else.</span>
+              </button>
+              <button type="button" aria-pressed={topUpEnabled} disabled={topUpBusy}
+                onClick={() => void chooseTopUp(true)}
+                className="choice-card motion-press col-span-12 md:col-span-6 p-6 text-left focus-ring disabled:opacity-45">
+                <span style={SUBHEAD}>Allow agent-funded</span>
+                <span className="block mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>Needed for x402 APIs the agent pays for itself.</span>
+              </button>
+            </div>
+            {/* Every string below is load-bearing: a reworded note that is not
+                in this list renders in --bad, which is how a success once
+                turned red. */}
+            {topUpNote && <p role="status" className="mt-3" style={{
+              ...PROSE,
+              color: noteColor(topUpNote,
+                'Agent-funded payments enabled.',
+                'Agent-funded payments disabled.',
+                'Agent-funded payments are already on — nothing to change.',
+                'Agent-funded payments are already off — nothing to change.'),
+            }}>{topUpNote}</p>}
           </div>
           <div className="flex flex-wrap gap-3 mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
             <Button variant="ghost" onClick={() => setActiveStage(1)}>Back</Button>
@@ -1034,19 +1131,21 @@ export default function Onboard() {
           </div>
           <dl className={`${PANEL_GRID} mt-6 text-sm`}>
             <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Protected account</dt>
-              <dd className="mt-1"><Address address={account} copy explorer className="num" /></dd></div>
+              <dd className="mt-2"><Address address={account} copy explorer className="num" /></dd></div>
             <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Agent wallet</dt>
-              <dd className="mt-1"><Address address={agent} copy explorer className="num" /></dd></div>
+              <dd className="mt-2"><Address address={agent} copy explorer className="num" /></dd></div>
             <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Maximum per payment</dt>
-              <dd className="num mt-1">{formatDisplayAmount(confirmedLimits.perTx, DECIMALS, 2)} USDC</dd></div>
+              <dd className="num mt-2">{formatDisplayAmount(confirmedLimits.perTx, DECIMALS, 2)} USDC</dd></div>
             <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Maximum per day</dt>
-              <dd className="num mt-1">{formatDisplayAmount(confirmedLimits.daily, DECIMALS, 2)} USDC</dd></div>
+              <dd className="num mt-2">{formatDisplayAmount(confirmedLimits.daily, DECIMALS, 2)} USDC</dd></div>
             <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Protected balance</dt>
-              <dd className="num mt-1">{protectedBalanceRead.text}</dd></div>
+              <dd className="num mt-2">{protectedBalanceRead.text}</dd></div>
             <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Agent gas</dt>
-              <dd className="num mt-1">{agentTransactionsLeft} {agentTransactionsLeft === 1 ? 'transaction' : 'transactions'} available</dd></div>
+              <dd className="num mt-2">{agentTransactionsLeft} {agentTransactionsLeft === 1 ? 'transaction' : 'transactions'} available</dd></div>
             <div className="col-span-12"><dt style={{ color: 'var(--dim)' }}>Direct-payment recipients</dt>
-              <dd className="mt-1">{recipientProtectionEnabled ? 'Approved addresses only' : 'Any address — recipient protection is not enabled'}</dd></div>
+              <dd className="mt-2">{recipientProtectionEnabled ? 'Approved addresses only' : 'Any address — recipient protection is not enabled'}</dd></div>
+            <div className="col-span-12"><dt style={{ color: 'var(--dim)' }}>Agent-funded payments</dt>
+              <dd className="mt-2">{describeTopUpMode(topUpEnabled)}</dd></div>
           </dl>
           <div className="mt-6">
             {/* agent is a verified operator by this point: readiness.ready

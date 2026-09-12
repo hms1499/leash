@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  afterFailedRead, balanceValue, describeBalance, firstSetupStage, setupReadiness,
+  afterFailedRead, balanceValue, describeBalance, describeTopUpMode, firstSetupStage, setupReadiness,
 } from '../lib/setup.js'
 
 describe('setupReadiness', () => {
@@ -94,5 +94,16 @@ describe('balance reads', () => {
     expect(afterFailedRead({ status: 'ok', value: 5_000_000n })).toEqual({ status: 'ok', value: 5_000_000n })
     expect(afterFailedRead({ status: 'reading' })).toEqual({ status: 'failed' })
     expect(afterFailedRead({ status: 'failed' })).toEqual({ status: 'failed' })
+  })
+})
+
+describe('describeTopUpMode', () => {
+  // The review screen is the last place an owner sees what they chose before
+  // they hand the account to an agent. "Off" has to say what is off, not just
+  // that something is — the switch closes the one path that moves money into
+  // a wallet the policy cannot reach afterwards.
+  it('summarises the top-up switch for the review screen', () => {
+    expect(describeTopUpMode(true)).toBe('On — the agent may draw funds into its own wallet')
+    expect(describeTopUpMode(false)).toBe('Off — the agent cannot draw funds into its own wallet')
   })
 })

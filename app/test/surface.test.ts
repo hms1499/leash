@@ -263,14 +263,16 @@ describe('the bright band', () => {
 
   /**
    * A control that writes its own border cannot be reached by that rule --
-   * which is exactly how the switcher came to be wrong. The three that remain
-   * are the wizard's stepper and its two recipient choices: their border is
-   * conditional on which one is selected, and none of them sits on a bright
-   * band. The number may fall. It may not rise.
+   * which is exactly how the switcher came to be wrong. Three remained on
+   * 2026-09-11: the wizard's stepper and its two recipient choices. The two
+   * recipient choices moved onto `.choice-card` in globals.css when v2's
+   * agent-funded pair would otherwise have made it five, so one is left --
+   * the stepper, whose border is conditional on which step is current and
+   * which does not sit on a bright band. The number may fall. It may not rise.
    */
   it('has no new control drawing its own border', () => {
     const debt: Record<string, number> = {
-      'app/setup/page.tsx': 3,
+      'app/setup/page.tsx': 1,
       // A status pill, not a control -- §10: a pill in this UI means status.
       // It borrows the control border only for its visibility, and it sits on
       // a panel, never on a bright band.

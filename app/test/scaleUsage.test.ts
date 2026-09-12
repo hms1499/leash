@@ -97,8 +97,10 @@ const OFF_SCALE_GAP_DEBT: Record<string, number> = {
   // 44 on 2026-09-10. One `mt-5` left when the two competing alert regions
   // below the stepper became one `mt-6`. 37 on 2026-09-11: the seven ad-hoc
   // grids in here now state a span against PANEL_GRID, and their `gap-4` and
-  // `gap-x-5 gap-y-4` went with them.
-  'app/setup/page.tsx': 37,
+  // `gap-x-5 gap-y-4` went with them. 30 when the stage 4 review list's eight
+  // `mt-1` rows went to `mt-2` -- v2's row would have been a ninth, and a step
+  // that exists was the cheaper answer than another exception.
+  'app/setup/page.tsx': 30,
   'components/AccountsPage.tsx': 3,
   'components/AgentAccessPanel.tsx': 3,
   // 3 until the two balance boxes moved onto PANEL_GRID and lost their gap-4.

@@ -229,6 +229,23 @@ body {
   outline-offset: var(--ring-inset);
 }
 
+/* A selectable card: the wizard's two recipient choices and its two
+ * agent-funded choices. Its border was written inline at each call site, which
+ * is the shape §11 removed for the focus ring -- four correct copies, and none
+ * of them the reason the fifth would be right. `aria-pressed` is the state the
+ * button already carries for assistive technology, so the selected border
+ * follows the semantics rather than a second boolean kept beside it.
+ *
+ * The radius is the box step rather than the surface one: a --well box holding
+ * a choice is a control, not a surface. See design-system.md §10. */
+.choice-card {
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  outline-color: var(--text);
+}
+.choice-card[aria-pressed='true'] { border-color: var(--line-control); }
+
 /* §12 named --m-fast for three things -- a disclosure opening, a copy landing,
  * a control enabling -- and then nothing spent it: measured 2026-09-11 the app
  * had zero CSS transitions, so all three arrived in one frame with no sign

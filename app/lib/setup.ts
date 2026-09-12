@@ -104,3 +104,16 @@ export function describeBalance(
 export function afterFailedRead(previous: BalanceRead): BalanceRead {
   return previous.status === 'ok' ? previous : { status: 'failed' }
 }
+
+/**
+ * What the review screen says about the top-up switch.
+ *
+ * Here rather than inline in the wizard for the reason the rest of this file
+ * exists: app/vitest.config.ts runs the node environment, so a decision inside
+ * a component cannot be tested.
+ */
+export function describeTopUpMode(enabled: boolean): string {
+  return enabled
+    ? 'On — the agent may draw funds into its own wallet'
+    : 'Off — the agent cannot draw funds into its own wallet'
+}
