@@ -18,6 +18,8 @@ contract TopUpTest is Test {
         vm.startPrank(owner);
         account.setOperator(operator, true);
         account.setPolicy(address(token), 10e6, 20e6);
+        // topUpEnabled is off by default; this suite covers the path once opened.
+        account.setTopUpEnabled(true);
         vm.stopPrank();
     }
 

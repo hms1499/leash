@@ -146,6 +146,21 @@ contract SpendPolicyAccount {
     bool public allowlistEnabled;
     mapping(address => bool) public payeeAllowlist;
 
+    // Off at construction, and deliberately not a constructor argument: a bool
+    // is already false, so safe-by-default costs nothing here, the deploy path
+    // and DEPLOY_GAS stay untouched, and the question is asked in wizard stage
+    // 2 beside the other optional protection rather than before the owner has
+    // set any limits.
+    bool public topUpEnabled;
+
+    error TopUpDisabled();
+    event TopUpEnabledSet(bool enabled);
+
+    function setTopUpEnabled(bool enabled) external onlyOwner {
+        topUpEnabled = enabled;
+        emit TopUpEnabledSet(enabled);
+    }
+
     function setAllowlist(address payee, bool allowed) external onlyOwner {
         payeeAllowlist[payee] = allowed;
         emit AllowlistChanged(payee, allowed);
@@ -170,11 +185,17 @@ contract SpendPolicyAccount {
     /// @notice Moves funds to the operator EOA for flows where the agent must
     ///         sign for itself (x402/EIP-3009). Bounded by the daily cap only —
     ///         the payee allowlist cannot apply once funds leave this contract.
+    ///         The owner must enable this path; it is off by default.
     function topUpOperator(address token, uint256 amount)
         external
         onlyOperator
         notPaused
     {
+        // Before _consume, never after: a refused draw must cost the agent
+        // nothing. Behind _consume, a disabled top-up would silently eat the
+        // day's allowance and then tell the agent to wait for a reset it had
+        // already spent.
+        if (!topUpEnabled) revert TopUpDisabled();
         _consume(token, amount);
         if (!IERC20(token).transfer(msg.sender, amount)) revert TransferFailed();
         emit ToppedUp(token, msg.sender, amount);
