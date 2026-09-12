@@ -1,7 +1,7 @@
 import { truncateAddress } from './address.js'
 
 export type FeedRow = {
-  kind: 'spent' | 'toppedUp' | 'policy' | 'paused' | 'unpaused'
+  kind: 'spent' | 'toppedUp' | 'policy' | 'paused' | 'unpaused' | 'ownership' | 'topUpSwitch'
   text: string
   amount: bigint | null
   txHash: `0x${string}`
@@ -110,7 +110,14 @@ export function belongsToToken(
   args: Record<string, unknown>,
   token: string,
 ): boolean {
-  if (eventName === 'PausedSet' || eventName === 'OperatorChanged') return true
+  // These five are account-wide and carry no `token` field. The token check
+  // below would drop them silently, which is how a busy account once read as
+  // quiet.
+  if (
+    eventName === 'PausedSet' || eventName === 'OperatorChanged' ||
+    eventName === 'OwnershipTransferStarted' || eventName === 'OwnershipTransferred' ||
+    eventName === 'TopUpEnabledSet'
+  ) return true
   return typeof args.token === 'string' && args.token.toLowerCase() === token.toLowerCase()
 }
 
@@ -155,6 +162,23 @@ export function describeLog(log: DecodedLog): FeedRow {
       return log.args.paused === true
         ? { ...base, kind: 'paused', text: 'Paused by the owner', amount: null }
         : { ...base, kind: 'unpaused', text: 'Resumed by the owner', amount: null }
+    // A nomination is not a handover. The two-step exists so a wrong address
+    // can be caught while it still holds nothing, and a row that read the
+    // same either way would report the mistake as already landed.
+    case 'OwnershipTransferStarted':
+      return {
+        ...base, kind: 'ownership', amount: null,
+        text: `Ownership proposed to ${truncateAddress(String(log.args.to))} — pending their acceptance`,
+      }
+    case 'OwnershipTransferred':
+      return {
+        ...base, kind: 'ownership', amount: null,
+        text: `Ownership transferred to ${truncateAddress(String(log.args.to))}`,
+      }
+    case 'TopUpEnabledSet':
+      return log.args.enabled === true
+        ? { ...base, kind: 'topUpSwitch', amount: null, text: 'Agent-funded payments switched on by the owner' }
+        : { ...base, kind: 'topUpSwitch', amount: null, text: 'Agent-funded payments switched off by the owner' }
     default:
       return { ...base, kind: 'policy', text: log.eventName, amount: null }
   }

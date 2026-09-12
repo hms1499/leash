@@ -30,6 +30,18 @@ const EVENT_ABI = [
   { type: 'event', name: 'OperatorChanged', inputs: [
     { name: 'operator', type: 'address', indexed: true },
     { name: 'enabled', type: 'bool', indexed: false }] },
+  // v2's three. Carried in the same getLogs calls as everything above, so
+  // three more names cost no extra round trips -- the window is already
+  // (WINDOW_BLOCKS / MAX_LOG_RANGE_BLOCKS) sequential requests and that is
+  // what the range costs, not the number of events asked for.
+  { type: 'event', name: 'OwnershipTransferStarted', inputs: [
+    { name: 'from', type: 'address', indexed: true },
+    { name: 'to', type: 'address', indexed: true }] },
+  { type: 'event', name: 'OwnershipTransferred', inputs: [
+    { name: 'from', type: 'address', indexed: true },
+    { name: 'to', type: 'address', indexed: true }] },
+  { type: 'event', name: 'TopUpEnabledSet', inputs: [
+    { name: 'enabled', type: 'bool', indexed: false }] },
 ] as const
 
 const CHUNK = MAX_LOG_RANGE_BLOCKS

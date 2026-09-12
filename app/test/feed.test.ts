@@ -19,6 +19,15 @@ describe('belongsToToken', () => {
     expect(belongsToToken('PausedSet', { paused: true }, usdc)).toBe(true)
     expect(belongsToToken('OperatorChanged', { operator: PAYEE }, usdc)).toBe(true)
   })
+
+  // None of the three v2 events carries a `token` field, so the token check
+  // would drop them silently — the same shape of bug as a busy account whose
+  // feed read as quiet.
+  it('keeps the ownership and switch events, which carry no token', () => {
+    expect(belongsToToken('OwnershipTransferStarted', {}, usdc)).toBe(true)
+    expect(belongsToToken('OwnershipTransferred', {}, usdc)).toBe(true)
+    expect(belongsToToken('TopUpEnabledSet', { enabled: true }, usdc)).toBe(true)
+  })
 })
 
 describe('describeLog', () => {
@@ -77,6 +86,51 @@ describe('describeLog', () => {
       eventName: 'PausedSet', args: { paused: false },
       transactionHash: TX, blockNumber: 104n, logIndex: 0,
     }).kind).toBe('unpaused')
+  })
+
+  const OWNER_A = '0x1111111111111111111111111111111111111111'
+  const OWNER_B = '0x2222222222222222222222222222222222222222'
+
+  // A nomination is not a handover. The two-step exists precisely so a wrong
+  // address can be caught before it holds anything, and a feed that read them
+  // the same way would tell the owner the mistake had already landed.
+  it('describes a nomination as pending, not as a handover', () => {
+    const row = describeLog({
+      eventName: 'OwnershipTransferStarted',
+      args: { from: OWNER_A, to: OWNER_B },
+      transactionHash: TX, blockNumber: 1n, logIndex: 0,
+    })
+    expect(row.kind).toBe('ownership')
+    expect(row.text).toMatch(/pending|proposed|nominated/i)
+    expect(row.amount).toBeNull()
+  })
+
+  it('describes a completed handover with the address that now owns it', () => {
+    const row = describeLog({
+      eventName: 'OwnershipTransferred',
+      args: { from: OWNER_A, to: OWNER_B },
+      transactionHash: TX, blockNumber: 1n, logIndex: 0,
+    })
+    expect(row.kind).toBe('ownership')
+    expect(row.text).toContain('0x2222')
+    expect(row.text).not.toMatch(/pending|proposed|nominated/i)
+    expect(row.amount).toBeNull()
+  })
+
+  it('says which way the top-up switch moved', () => {
+    const on = describeLog({
+      eventName: 'TopUpEnabledSet', args: { enabled: true },
+      transactionHash: TX, blockNumber: 1n, logIndex: 0,
+    })
+    const off = describeLog({
+      eventName: 'TopUpEnabledSet', args: { enabled: false },
+      transactionHash: TX, blockNumber: 1n, logIndex: 1,
+    })
+    expect(on.kind).toBe('topUpSwitch')
+    expect(off.kind).toBe('topUpSwitch')
+    expect(on.text).not.toBe(off.text)
+    expect(on.amount).toBeNull()
+    expect(off.amount).toBeNull()
   })
 })
 
