@@ -329,12 +329,12 @@ with:
 ```bash
 cd contracts && forge test --match-path test/Ownership2Step.t.sol
 ```
-Expected: 15 passed.
+Expected: 16 passed.
 
 ```bash
 cd contracts && forge test
 ```
-Expected: 47 passed (32 existing + 15). **Every one of the 32 must still pass** — `Ownership.t.sol` asserts `owner()` at construction and must be unaffected.
+Expected: 48 passed (32 existing + 16). **Every one of the 32 must still pass** — `Ownership.t.sol` asserts `owner()` at construction and must be unaffected.
 
 - [ ] **Step 7: Commit**
 
@@ -555,12 +555,12 @@ Leave the rest of the body as it is. Update the existing doc comment above the f
 ```bash
 cd contracts && forge test --match-path test/TopUpSwitch.t.sol
 ```
-Expected: 13 passed.
+Expected: 12 passed.
 
 ```bash
 cd contracts && forge test
 ```
-Expected: **`TopUp.t.sol` now fails.** It was written against a contract where `topUpOperator` always worked. Read each failure, then add `account.setTopUpEnabled(true)` to that file's `setUp` with a comment saying the default is off and this suite is about the path once opened. Re-run until all pass. Expected after the fix: 60 passed.
+Expected: **`TopUp.t.sol` now fails.** It was written against a contract where `topUpOperator` always worked. Read each failure, then add `account.setTopUpEnabled(true)` to that file's `setUp` with a comment saying the default is off and this suite is about the path once opened. Re-run until all pass. Expected after the fix: 60 passed (48 + 12).
 
 - [ ] **Step 6: Commit**
 
