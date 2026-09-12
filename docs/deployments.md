@@ -49,6 +49,122 @@ Not yet done at this point: gas constants are still the plan's guesses (Task
 11), and nothing has been re-proved on mainnet (Task 12). `topUpEnabled` stays
 `false` until Task 12 proves the refusal it causes, then flips it to prove x402.
 
+### What v2 was proved to do, 2026-09-12
+
+Every figure below was read off the chain at the transaction's own block, not
+after its receipt. forno is load-balanced and serves stale reads after a
+confirmed transaction, so a receipt proves a transaction landed and never that
+the next node asked has seen that block.
+
+**The policy gates a spend, and the refusal costs nothing.**
+A `preCheck` of 0.90 against the 0.50 per-transaction cap returned
+`per_tx_cap_exceeded` as a staticcall — no transaction, no gas. Then a real
+0.01 spend, tx: 0x11cc0100809084880c68b401668dfa46b3eaf32d61bea43fa40ee897dc8246fc
+at block 77320153. Read at 77320152 against 77320153: `remainingToday`
+1000000 → 990000, the account 1000000 → 990000, the payee 150000 → 160000.
+All three moved by exactly 10000.
+
+**Zero-CELO gas, and attribution.** The operator held `0` native CELO for every
+transaction on this page — asserted, not assumed. `verifyTx({client, hash})`
+on the spend above returned `["celo_3dec652cd977"]`, matching `ATTRIBUTION_TAG`.
+
+**An agent spent through the policy.** An MCP agent in a separate session,
+given the account through `LEASH_ACCOUNT` and no amount or payee by any human,
+called `leash_pay`:
+tx: 0x3cb307a4fde990a3f9282348999127daf022f4caea264af16426595158148704
+at block 77322601. Read at 77322600 against 77322601: `remainingToday`
+932670 → 832670, the account 935509 → 835509, the payee 885417 → 985417 — all
+three by exactly 100000.
+
+**`topUpOperator` refused while the switch was off.** Free: a staticcall sends
+nothing. The JSON an agent receives names the owner and `setTopUpEnabled` and
+does not mention midnight, because waiting never clears a switch a human threw.
+Getting this proof is what found the `leash_fetch` defect fixed at 21a4f96 —
+it was attaching `daily_cap: 0.000000` to a refusal that carries no figures.
+
+**The switch, turned on from the dashboard.**
+`TopUpEnabledSet(true)`,
+tx: 0x4fb014ee38f97a8b343ed9f7b71eb6e99e3d7dacd44c46ee654041630629a201
+at block 77321507.
+
+**x402 Path B, with a real draw through the policy.**
+draw tx: 0xd03c3b264129ba303bc394f8cfbaedad545ca4813b6e0fc6c1a12447d2baa807
+at block 77321850,
+settlement tx: 0xedd104e390d32c0d96b0b1c5e07365e2688344ee4905c3d7f3092d21815865ef.
+Paid 16753, drew 17330, HTTP 200, settlement `success`. Read at 77321849
+against 77321850: `remainingToday` 990000 → 972670 and the account
+1037839 → 1020509, both exactly the size of the draw. The draw is bounded by
+the same daily cap as any spend, which is the guarantee being made.
+
+The operator had to be drained below the price first. An earlier run bought the
+same resource outright with money it already held — `drawn_from_account`
+0.000000, settlement
+tx: 0x9e0d4b7fe36506bc776b336336ee574352979908512199cda6179c853a0e6ef7 — which
+is documented behaviour and proves nothing about the switch. It is recorded
+here so it is not mistaken later for the proof above.
+
+**The demo, end to end.** Three spends and a refusal:
+tx: 0x8e67d5232faed5cf2153b90186a8fc26a00f581f258f7550ce9252e12f1c3a68,
+tx: 0x2b3508ddfa4ca8fe0e8b8133fab42960a03a4c31a8572b0c839682acd87f02d8,
+tx: 0x6690783517b7a924d9d89e92e30b0def7b1dd91367881247a904d084ff9c5d1c.
+`remaining_today` fell 0.96267 → 0.95267 → 0.94267 → 0.93267, then
+`per_tx_cap_exceeded` on 0.90 as a staticcall costing nothing.
+
+An earlier run of the same demo lost two of its three spends and is **not** a
+proof. Its first spend is real
+(tx: 0x3978ce635b1bf82c6df6cbe11d8da0c2d2920a92338080a13d4d14a3bdc778a5) but a
+run that failed twice is not what the demo claims to be. What it failed on is
+the defect fixed at 10e1fc8.
+
+**The live feed.** Observed by the maintainer with the dashboard open and no
+reload. There is no machine artefact for this one and none is claimed: a feed
+that updates without a reload can only be watched.
+
+**The account changed hands, and came back.** Six events, of which only two
+moved anything:
+
+| block | event | tx |
+|---|---|---|
+| 77322794 | `OwnershipTransferStarted` 0x2B33 → 0x64Ad | tx: 0x2c5044f073c8f6f3cf117ed3967c8e3238a3b1dc5a08a8fffaa7e47d4d2405a5 |
+| 77322898 | **`OwnershipTransferred`** 0x2B33 → 0x64Ad | tx: 0xc703cbcd32d37cee69a3fd618cca0f7fc4da4ac11a3150c7fbce210456499e47 |
+| 77323063 | `OwnershipTransferStarted` 0x64Ad → 0x64Ad | tx: 0x315f80f4098c8a30d30d7f937bcf7a7d12d48e39b58f661af0de763f5801ed8b |
+| 77323222 | `OwnershipTransferStarted` 0x64Ad → 0x2B33 | tx: 0x25707cc95218d10ab49849eda2fcbc59e96b0169efd549e50bf58b5b66829963 |
+| 77323234 | `OwnershipTransferStarted` 0x64Ad → 0x2B33 | tx: 0xefbc7a85fa1a925a9019e3124617ee187e7a3534f6f8ac30e5cc6a05737dcc57 |
+| 77323403 | **`OwnershipTransferred`** 0x64Ad → 0x2B33 | tx: 0xe025d7e66bf00c475c716934ab21e4d99714783466c3a8ef20a043a08dfb157e |
+
+The nomination at 77323063 is a wallet nominating itself, and it is left in the
+record rather than tidied away. It is the case the 2026-09-12 invariant work
+decided **not** to guard against — a self-nomination confers nothing, because
+the wallet already holds every power acceptance would grant, and forbidding a
+no-op would have cost a line of a contract that cannot be upgraded. It then
+happened on mainnet within the hour and was harmless, as predicted.
+
+While ownership sat with 0x64Ad, the original owner was refused: a simulated
+`transferOwnership` from 0x2B33 reverted `NotOwner` (`0x30cd7471`), and from an
+address holding only the dashboard link it reverted the same way. The display
+gate in the app hides the control, but the contract is the boundary.
+
+**Two outcomes were NOT observed and are not claimed.** `spend_reverted` and
+`sent_unconfirmed` need a chain that misbehaves on cue. Both are covered by
+unit tests only. Do not read this page as saying otherwise.
+
+Three defects were found by earning these proofs rather than by any test, and
+each is fixed with a regression test: `leash_fetch` inventing cap figures
+(21a4f96), `MIN_OPERATOR_FLOAT` too small to stop the bricking it exists to
+prevent (10e1fc8), and a success message outliving the wallet that earned it
+(6d4a68b).
+
+State at the end of the session:
+
+| | |
+|---|---|
+| `owner()` | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — handed back |
+| `pendingOwner()` | `0x0000000000000000000000000000000000000000` |
+| `topUpEnabled()` | `true` — left on, having been proved in both states |
+| `remainingToday(USDC)` | `832670` |
+| account USDC | `835509` |
+| operator USDC | `41781`, native CELO `0` |
+
 ---
 
 ## Celo mainnet (42220) — v1, superseded 2026-09-12
