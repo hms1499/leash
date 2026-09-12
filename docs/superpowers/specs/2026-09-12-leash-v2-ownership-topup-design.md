@@ -229,10 +229,17 @@ Read this as the checklist; §6 details the wizard and §7 the order.
 
 **SDK**
 
-- `sdk/src/abi.ts` — add errors `TopUpDisabled`, `NotPendingOwner`, `ZeroOwner`;
-  add `topUpEnabled`, `pendingOwner`, `transferOwnership`, `acceptOwnership`,
-  `setTopUpEnabled`; add events `OwnershipTransferStarted`,
-  `OwnershipTransferred`, `TopUpEnabledSet`.
+- `sdk/src/abi.ts` — add errors `TopUpDisabled`, `NotPendingOwner`, `ZeroOwner`
+  and the two views `topUpEnabled`, `pendingOwner`. **No events, and not the
+  three write functions.** An earlier revision of this section asked for both and
+  was wrong on an established convention: this ABI carries functions and error
+  definitions only, recorded at `app/lib/useFeed.ts:194-196` — "the SDK's ABI
+  carries functions and error definitions only — it has no `event` entries, so
+  asking for those would silently match nothing." Event decoding lives in the
+  app's own `EVENT_ABI` (§5, app), and nothing in `sdk/src` or `mcp/src` calls
+  `transferOwnership`, `acceptOwnership` or `setTopUpEnabled` — those are driven
+  from the wizard's `SETUP_ABI` and the dashboard's `OWNERSHIP_ABI`, each local
+  to its caller. Adding them here would be surface nothing exercises.
 - `sdk/src/policyClient.ts` — `describePreCheckFailure` gains
   `case 'TopUpDisabled'` → error `top_up_disabled`. It must follow the rule the
   2026-09-05 session paid for: **a non-cap refusal says who can clear it and
