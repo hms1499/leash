@@ -37,23 +37,49 @@ export type PayForResourceResult = {
  *
  * T0.1 measured a tagged send at ~2228 atomic units, so 15000 covers the gas
  * and leaves ~12772: a few more transactions of headroom, for $0.015.
+ *
+ * Raised to 30,000 on 2026-09-12. The 12,772 that figure left behind is below
+ * MIN_OPERATOR_FLOAT's re-measured 25,000, so a draw sized by it landed the
+ * operator back under the floor it had just been lifted over — which is how
+ * the demo's second spend failed while its first succeeded. The buffer has to
+ * clear the floor, not merely the gas.
  */
-const DEFAULT_GAS_BUFFER = 15_000n
+const DEFAULT_GAS_BUFFER = 30_000n
 
 /**
  * The balance below which the operator can no longer send anything.
  *
- * A node reserves `gasLimit * maxFeePerGas` before it will simulate, roughly
- * 3x what the transaction actually costs, so a wallet under this cannot send
- * a transaction at all — including the `topUpOperator` that would refill it.
- * It strands until the owner sweeps to it.
+ * A node reserves `gasLimit * maxFeePerGas` in the fee currency before it will
+ * even admit the transaction, so a wallet under this cannot send at all —
+ * including the `topUpOperator` that would refill it. It strands until the
+ * owner sweeps to it.
  *
  * This is why affording the price is not the same as being able to pay it:
  * an operator holding EXACTLY the price buys the resource and is then bricked,
  * because the settlement takes every unit it had. The draw below is therefore
  * triggered by what survives the purchase, not by what covers it.
+ *
+ * **6,700 until 2026-09-12, and it stranded the operator twice that evening.**
+ * It was derived from a reserve of "about 0.003 USDC" recorded in
+ * policyClient.ts, which was true at the gas price of the day it was measured
+ * and is not a constant. Measured against forno on 2026-09-12 at 202.5 gwei,
+ * the node demanded **11,603** atomic units for the SDK's 300,000 gas limit —
+ * nearly 4x that figure. An operator holding 11,423 was refused with
+ * `insufficient fee-currency balance: required 11603484774000000, available
+ * 11423000000000000`, and the demo lost two of its three spends the same way
+ * at 9,017.
+ *
+ * The reserve is `GAS_LIMIT * gasPrice` converted into the fee currency, so it
+ * moves with the gas price and no fixed number is right for ever. To
+ * re-measure: send anything from a near-empty operator and read `required`
+ * out of the node's `details` — it states the exact figure.
+ *
+ * 25,000 is that 11,603 with room for roughly a doubling of the gas price. The
+ * costs are asymmetric and that is the whole reason for the margin: too high
+ * only draws a little more than needed and the surplus stays in the operator's
+ * own wallet, while too low bricks it and needs the owner to rescue it by hand.
  */
-const MIN_OPERATOR_FLOAT = 6_700n
+const MIN_OPERATOR_FLOAT = 25_000n
 
 /**
  * Buys a 402-gated resource with money drawn through the on-chain policy.

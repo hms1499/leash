@@ -149,6 +149,64 @@ export function buildTopUpCalldata(
  */
 const GAS_LIMIT = 300_000n
 
+/**
+ * The operator could not afford the node's gas reserve.
+ *
+ * Distinct from every policy refusal: nothing was refused and nothing was
+ * simulated, because the transaction was never admitted. An agent told to look
+ * for a cap here will not find one.
+ */
+export class InsufficientGasReserveError extends Error {
+  readonly code = 'insufficient_gas_reserve'
+  /** What the node demanded, in the fee currency's atomic units. */
+  readonly required: bigint | null
+  /** What the operator held, in the same units. */
+  readonly available: bigint | null
+  constructor(message: string, required: bigint | null, available: bigint | null) {
+    super(message)
+    this.name = 'InsufficientGasReserveError'
+    this.required = required
+    this.available = available
+  }
+}
+
+/**
+ * Says what actually went wrong when a send is rejected before it is mined.
+ *
+ * viem reports a `-32602` from forno as "Missing or invalid parameters. Double
+ * check you have provided the correct parameters." — which sends a reader
+ * hunting through their calldata. The node's real sentence is one level down
+ * in `details`, and on 2026-09-12 it was:
+ *
+ *   insufficient fee-currency balance: required 11603484774000000,
+ *   available 11423000000000000 for sender 0xd44d... in fee-currency 0x2F25...
+ *
+ * An operator 180 units short of the gas reserve was being reported as a
+ * malformed request. It cost two debugging rounds and a demo that lost two of
+ * its three spends while printing nothing about a balance.
+ *
+ * The figures are 1e12-scaled against a 6-decimal token here, exactly as the
+ * node prints them; they are carried raw rather than converted, because a
+ * conversion this code cannot verify would be one more number to distrust.
+ */
+export function translateSendFailure(error: unknown): unknown {
+  const details = (error as { details?: string; cause?: { details?: string } })
+  const text = details?.details ?? details?.cause?.details
+  if (typeof text !== 'string' || !text.includes('insufficient fee-currency balance')) {
+    return error
+  }
+  const numbers = text.match(/required (\d+), available (\d+)/)
+  const required = numbers ? BigInt(numbers[1]) : null
+  const available = numbers ? BigInt(numbers[2]) : null
+  return new InsufficientGasReserveError(
+    'the agent wallet cannot cover the gas reserve this transaction needs, so nothing was sent and no money moved'
+      + (numbers ? ` — the node required ${required} and the wallet holds ${available}` : '')
+      + '. Only the owner can fix it, by sending more of the fee token to the agent wallet; waiting does not.',
+    required,
+    available,
+  )
+}
+
 export class LeashClient {
   readonly #pub: LeashPublicClient
   readonly #wallet: LeashWalletClient
@@ -243,14 +301,18 @@ export class LeashClient {
    * fee currency cannot be bypassed by a new method forgetting to apply them.
    */
   async #sendRaw(tx: { to: `0x${string}`; data: `0x${string}`; feeCurrency: `0x${string}` }) {
-    return this.#wallet.sendTransaction({
-      account: this.#account,
-      chain: celo,
-      to: tx.to,
-      data: tx.data,
-      feeCurrency: tx.feeCurrency,
-      gas: GAS_LIMIT,
-    })
+    try {
+      return await this.#wallet.sendTransaction({
+        account: this.#account,
+        chain: celo,
+        to: tx.to,
+        data: tx.data,
+        feeCurrency: tx.feeCurrency,
+        gas: GAS_LIMIT,
+      })
+    } catch (error) {
+      throw translateSendFailure(error)
+    }
   }
 
   /** How much of `token` the operator EOA itself holds. */
