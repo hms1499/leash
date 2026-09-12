@@ -53,6 +53,11 @@ export function describePreCheckFailure(
       // intentionally frozen." The SDK cannot tell the two apart from this
       // revert alone, and neither should an agent consuming this JSON.
       return { ok: false, error: 'token_not_configured', spent: 0n, cap: 0n }
+    case 'TopUpDisabled':
+      // No args, so no figures: this refusal carries none and must not borrow
+      // any. Waiting clears nothing — only the owner calling
+      // setTopUpEnabled(true) does, which is what pay.ts must say.
+      return { ok: false, error: 'top_up_disabled', spent: 0n, cap: 0n }
     case 'ContractPaused':
       return { ok: false, error: 'account_paused', spent: 0n, cap: 0n }
     case 'NotOperator':

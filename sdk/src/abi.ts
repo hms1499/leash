@@ -31,6 +31,14 @@ export const spendPolicyAccountAbi = [
     ],
     outputs: [],
   },
+  {
+    type: 'function', name: 'topUpEnabled', stateMutability: 'view',
+    inputs: [], outputs: [{ type: 'bool' }],
+  },
+  {
+    type: 'function', name: 'pendingOwner', stateMutability: 'view',
+    inputs: [], outputs: [{ type: 'address' }],
+  },
   // Error definitions for SpendPolicyAccount.sol's full revert surface.
   //
   // These MUST be present in this ABI (not just the function selectors above)
@@ -67,4 +75,7 @@ export const spendPolicyAccountAbi = [
     inputs: [{ name: 'payee', type: 'address' }],
   },
   { type: 'error', name: 'TransferFailed', inputs: [] },
+  { type: 'error', name: 'TopUpDisabled', inputs: [] },
+  { type: 'error', name: 'NotPendingOwner', inputs: [] },
+  { type: 'error', name: 'ZeroOwner', inputs: [] },
 ] as const

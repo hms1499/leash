@@ -50,4 +50,16 @@ describe('describePreCheckFailure', () => {
     if (out.ok) throw new Error('unreachable')
     expect(out.error).toBe('unknown_policy_error')
   })
+
+  it('names the owner as the only party who can clear a disabled top-up', () => {
+    const result = describePreCheckFailure({ name: 'TopUpDisabled', args: [] })
+    expect(result).toEqual({ ok: false, error: 'top_up_disabled', spent: 0n, cap: 0n })
+  })
+
+  it('does not invent a cap for a refusal that carried none', () => {
+    const result = describePreCheckFailure({ name: 'TopUpDisabled', args: [] })
+    if (result.ok) throw new Error('expected a refusal')
+    expect(result.cap).toBe(0n)
+    expect(result.spent).toBe(0n)
+  })
 })
