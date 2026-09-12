@@ -15,7 +15,16 @@ contract SpendPolicyAccount {
     event OperatorChanged(address indexed operator, bool enabled);
     event PausedSet(bool paused);
 
-    address public immutable owner;
+    // Storage, not immutable, so ownership can move. The getter keeps its name
+    // and signature, so every read in app/, sdk/ and mcp/ is unaffected.
+    //
+    // This is migration, not recovery: a key already lost has nobody left to
+    // sign transferOwnership. What it buys is rotating a hot wallet to a
+    // hardware wallet, handing an account to a colleague, or leaving a wallet
+    // you suspect is compromised — none of which used to be possible without
+    // redeploying and moving the money.
+    address public owner;
+    address public pendingOwner;
     bool public paused;
     mapping(address => bool) public operators;
 
@@ -34,8 +43,41 @@ contract SpendPolicyAccount {
         _;
     }
 
+    error ZeroOwner();
+
     constructor(address _owner) {
+        // A fund-holding contract with no administrator is exactly the failure
+        // transferable ownership exists to prevent, and v1 accepted it without
+        // comment. The wizard always passes the connected wallet, so this is
+        // unreachable through the product and reachable by anyone deploying the
+        // bytecode directly.
+        if (_owner == address(0)) revert ZeroOwner();
         owner = _owner;
+    }
+
+    error NotPendingOwner();
+    event OwnershipTransferStarted(address indexed from, address indexed to);
+    event OwnershipTransferred(address indexed from, address indexed to);
+
+    /// @notice Nominates the next owner. Nothing changes until they accept.
+    /// @dev Two steps on purpose. A one-step transfer makes a single mistyped
+    ///      character permanent and unrecoverable — strictly worse than an
+    ///      immutable owner, where the operator at least drains the balance at
+    ///      the daily-cap rate. `to == address(0)` cancels a nomination:
+    ///      acceptOwnership can never be reached from the zero address.
+    function transferOwnership(address to) external onlyOwner {
+        pendingOwner = to;
+        emit OwnershipTransferStarted(owner, to);
+    }
+
+    /// @notice Completes a transfer. Only the nominee can call it, which is
+    ///         what makes an address that cannot sign unable to take ownership.
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert NotPendingOwner();
+        address from = owner;
+        owner = msg.sender;
+        pendingOwner = address(0);
+        emit OwnershipTransferred(from, msg.sender);
     }
 
     function setOperator(address operator, bool enabled) external onlyOwner {
