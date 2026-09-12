@@ -191,10 +191,10 @@ contract SpendPolicyAccount {
         onlyOperator
         notPaused
     {
-        // Before _consume, never after: a refused draw must cost the agent
-        // nothing. Behind _consume, a disabled top-up would silently eat the
-        // day's allowance and then tell the agent to wait for a reset it had
-        // already spent.
+        // Before _consume rather than after, so a refusal does not pay for
+        // storage writes the revert then discards. Only gas rides on this: a
+        // revert unwinds _consume's writes wherever it fires, so the allowance
+        // is safe either way.
         if (!topUpEnabled) revert TopUpDisabled();
         _consume(token, amount);
         if (!IERC20(token).transfer(msg.sender, amount)) revert TransferFailed();

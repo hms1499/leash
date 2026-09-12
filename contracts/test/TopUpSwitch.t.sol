@@ -44,9 +44,9 @@ contract TopUpSwitchTest is Test {
         assertEq(token.balanceOf(operator), 1e6);
     }
 
-    /// A refused draw must cost the agent nothing. If the check sat after
-    /// _consume, a disabled top-up would silently eat the day's allowance and
-    /// the agent would be told to wait for a reset it had already spent.
+    /// A refused draw must cost the agent nothing. This holds wherever the
+    /// check sits -- a revert unwinds _consume's writes in the same call frame --
+    /// so this test pins the behaviour, not the statement order.
     function test_refusedTopUpConsumesNoAllowance() public {
         vm.prank(operator);
         vm.expectRevert(SpendPolicyAccount.TopUpDisabled.selector);

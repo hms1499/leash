@@ -22,3 +22,12 @@ celo_sepolia = "https://forno.celo-sepolia.celo-testnet.org"
 #   set -a && . ./.env && set +a
 [etherscan]
 celo = { key = "${CELOSCAN_KEY}", chain = 42220, url = "https://api.etherscan.io/v2/api?chainid=42220" }
+
+# Pinned rather than left to defaults so a failing run can be reproduced and a
+# passing one means something specific. depth is what lets a sequence reach a
+# day boundary with spend accounting live — the one line in this contract no
+# unit test had ever crossed.
+[invariant]
+runs = 256
+depth = 64
+fail_on_revert = false
