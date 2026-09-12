@@ -1,6 +1,7 @@
 import { parseUnits } from 'viem'
 import type { LeashConfig } from '../config.js'
 import { human } from '../errors.js'
+import { WITHOUT_NUMBERS } from './pay.js'
 
 type FetchDeps = {
   config: LeashConfig
@@ -116,11 +117,18 @@ export async function fetchTool(
       may_have_settled: mayHaveSettled,
       suggestion: mayHaveSettled
         // x402 has no refund and no idempotency key. A retry here is a second
-        // payment, so the instruction has to be unambiguous.
+        // payment, so the instruction has to be unambiguous, and it outranks
+        // every other sentence below.
         ? 'DO NOT RETRY. The payment may already have settled. Call leash_status to check the balance, and inspect the resource before spending again.'
         : drew
           ? 'Nothing was paid and nothing was signed, so the resource was not bought. But the draw was already sent: that money has left the account and the daily allowance has been charged for it. Call leash_status before trying again — a second attempt draws a second time.'
-          : 'This failed before any money moved. Fix the request and try again.',
+          // The same sentences leash_pay gives, from the same table. "Fix the
+          // request and try again" is wrong advice for a policy decision: there
+          // is nothing in the request to fix, and the retry it invites is
+          // refused identically. Measured on mainnet 2026-09-12, where a
+          // disabled top-up reached an agent under exactly that line.
+          : WITHOUT_NUMBERS[e.code ?? '']
+            ?? 'This failed before any money moved. Fix the request and try again.',
     }
     if (e.topUpTx !== undefined) base.top_up_transaction = e.topUpTx
     if (typeof e.toppedUp === 'bigint') base.drawn_from_account = human(e.toppedUp)
@@ -128,11 +136,22 @@ export async function fetchTool(
     // something better than a status code to relay.
     if (e.status !== undefined) base.status = e.status
     if (e.body !== undefined) base.gateway_response = e.body
-    if (typeof e.spent === 'bigint' && typeof e.cap === 'bigint') {
+    // `cap` means a different thing for each refusal, and nothing at all for
+    // most of them: the daily cap for DailyCapExceeded, the per-transaction cap
+    // for PerTxCapExceeded, and a placeholder zero everywhere else. Labelling
+    // it daily_cap unconditionally — which this did until 2026-09-12 — reported
+    // a 0.50 per-transaction cap as a 0.50 daily cap, and told an agent refused
+    // by a switch that its daily cap was 0.000000. pay.ts was fixed for exactly
+    // this on 2026-09-05 and its sibling here was not; CLAUDE.md's rule that
+    // two implementations of one operation must not disagree is what this pair
+    // of branches now satisfies.
+    if (e.code === 'daily_cap_exceeded' && typeof e.spent === 'bigint' && typeof e.cap === 'bigint') {
       const remaining = e.cap > e.spent ? e.cap - e.spent : 0n
       base.spent_today = human(e.spent)
       base.daily_cap = human(e.cap)
       base.remaining_today = human(remaining)
+    } else if (e.code === 'per_tx_cap_exceeded' && typeof e.cap === 'bigint') {
+      base.per_tx_cap = human(e.cap)
     }
     return base
   }

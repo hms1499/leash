@@ -29,7 +29,7 @@ type PayDeps = {
  * on purpose — so each of these says plainly that waiting is not the answer,
  * and names who can actually clear it.
  */
-const WITHOUT_NUMBERS: Record<string, string> = {
+export const WITHOUT_NUMBERS: Record<string, string> = {
   account_paused:
     'The owner has paused the account. Nothing will succeed until they resume it — the daily reset does not clear a pause.',
   not_an_operator:

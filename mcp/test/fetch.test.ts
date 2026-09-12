@@ -71,6 +71,65 @@ describe('fetchTool', () => {
     expect(out.remaining_today).toBe('0.100000')
   })
 
+  // The 2026-09-05 defect, alive in the sibling implementation. pay.ts was
+  // fixed then: one `cap` field whose meaning changes with the error, labelled
+  // daily_cap unconditionally. fetch.ts still did it, so a refusal carrying no
+  // figures at all rendered "daily_cap: 0.000000" — an agent reading that is
+  // told its daily cap is zero, which is a different and wrong problem.
+  it('invents no cap figures for a refusal that carried none', async () => {
+    const err = Object.assign(new Error('switched off'), {
+      code: 'top_up_disabled', mayHaveSettled: false, spent: 0n, cap: 0n,
+    })
+    const deps = { config, quote: vi.fn(), payForResource: vi.fn().mockRejectedValue(err) } as never
+    const out = await fetchTool(deps, { url: URL_, max_amount: '1' })
+    expect(out.error).toBe('top_up_disabled')
+    expect(out.daily_cap).toBeUndefined()
+    expect(out.spent_today).toBeUndefined()
+    expect(out.remaining_today).toBeUndefined()
+  })
+
+  // PerTxCapExceeded carries the per-transaction cap. Reporting it as
+  // daily_cap told an agent its daily allowance was 0.50 on an account whose
+  // daily cap was 1.00 — measured against mainnet 2026-09-05, and fixed in
+  // pay.ts alone.
+  it('names the per-transaction cap as such', async () => {
+    const err = Object.assign(new Error('refused'), {
+      code: 'per_tx_cap_exceeded', mayHaveSettled: false, spent: 0n, cap: 500_000n,
+    })
+    const deps = { config, quote: vi.fn(), payForResource: vi.fn().mockRejectedValue(err) } as never
+    const out = await fetchTool(deps, { url: URL_, max_amount: '1' })
+    expect(out.per_tx_cap).toBe('0.500000')
+    expect(out.daily_cap).toBeUndefined()
+    expect(out.remaining_today).toBeUndefined()
+  })
+
+  // "Fix the request and try again" is wrong advice for a switch a human threw
+  // on purpose: there is nothing to fix in the request, and the retry it
+  // invites will be refused identically. The suggestion has to carry the same
+  // sentence leash_pay gives.
+  it('tells an agent who can lift a refusal a retry will not', async () => {
+    const err = Object.assign(new Error('switched off'), {
+      code: 'top_up_disabled', mayHaveSettled: false, spent: 0n, cap: 0n,
+    })
+    const deps = { config, quote: vi.fn(), payForResource: vi.fn().mockRejectedValue(err) } as never
+    const out = await fetchTool(deps, { url: URL_, max_amount: '1' })
+    expect(String(out.suggestion)).toMatch(/owner/i)
+    expect(String(out.suggestion)).toMatch(/setTopUpEnabled/)
+    expect(String(out.suggestion)).not.toMatch(/try again/i)
+    expect(String(out.suggestion)).not.toMatch(/midnight/i)
+  })
+
+  // Precedence: a payment that may already have settled outranks every other
+  // sentence here. x402 has no refunds.
+  it('keeps DO NOT RETRY ahead of the policy vocabulary', async () => {
+    const err = Object.assign(new Error('paused mid-flight'), {
+      code: 'account_paused', mayHaveSettled: true, spent: 0n, cap: 0n,
+    })
+    const deps = { config, quote: vi.fn(), payForResource: vi.fn().mockRejectedValue(err) } as never
+    const out = await fetchTool(deps, { url: URL_, max_amount: '1' })
+    expect(String(out.suggestion)).toMatch(/do not retry/i)
+  })
+
   // fetch.ts has no second mapping table: the code an agent sees is whatever
   // the SDK threw. If that were flattened to the generic x402_failed, a policy
   // decision would read as a gateway outage — the defect that told a reader the
