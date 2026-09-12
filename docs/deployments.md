@@ -1,6 +1,57 @@
 # Deployments
 
-## Celo mainnet (42220) — current
+## Celo mainnet (42220) — current, v2
+
+- SpendPolicyAccount: `0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d`
+- Owner: `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57`
+- Operator (= registered `agentWalletAddress`): `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6`
+- Explorer: https://celoscan.io/address/0xbe380aa73c036da30d3b2fd5e75b0d1d89e11c3d
+- Verified: yes — `SpendPolicyAccount`, solc `0.8.24`, verified 2026-09-12 and
+  confirmed with `forge verify-check` returning `Pass - Verified`, not inferred
+  from the submission's `OK`
+- Deploy tx: 0xad28ee0dc8a25bc9e1896fed8bde1d3dd88804f3f4f93a5eb96c4f32422e7449
+- Block: 77319026
+- Constructor argument: `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` (the owner)
+- Deployed: 2026-09-12, through the wizard at `/setup` rather than through a
+  script — `app/lib/contract.ts` is where a stale-bytecode bug hides, and a
+  `forge` deploy would not have touched it
+
+v2 makes the owner movable and puts `topUpOperator` behind an owner switch that
+is off at construction. The contract is not upgradeable, so this is a new
+address and `0x7aDa926B…E43fd2` is superseded.
+
+**The first attempt deployed v1.** The wizard was started from the main
+checkout, whose `app/lib/contract.ts` still carries v1 bytecode — every v2 change
+lives on an unpushed branch in a worktree. It produced
+`0x7156af4f9552a77736ad77772b46fd4d3c3c5e07`, which answers `owner()` and
+reverts on `pendingOwner()`. Caught by Step 3's three `cast call`s, which exist
+for exactly this. The 1.000000 USDC it held was swept back to the owner,
+tx: 0x6aef2c65af8cfa4df25d6ea281ffdd3fd8004ed43ecc16b80844231e13f6d0ff, and the
+account reads 0 afterwards. Cost: CELO gas only, no USDC lost.
+
+Checked against the chain rather than taken from the deploy output:
+
+| call | value |
+|---|---|
+| `owner()` | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` |
+| `pendingOwner()` | `0x0000000000000000000000000000000000000000` — **v1 reverts here; this is the v2 proof** |
+| `topUpEnabled()` | `false` — off at construction, as designed |
+| `operators(operator)` | `true` |
+| `paused()` | `false` |
+| `allowlistEnabled()` | `false` — matching v1, so the proofs stay comparable |
+| `limits(USDC)` | perTx `500000`, daily `1000000`, spentToday `0` |
+| `remainingToday(USDC)` | `1000000` |
+| USDC balance | `1000000` |
+| operator USDC balance | `87776` |
+| code size | 3766 bytes, against v1's 3406 |
+
+Not yet done at this point: gas constants are still the plan's guesses (Task
+11), and nothing has been re-proved on mainnet (Task 12). `topUpEnabled` stays
+`false` until Task 12 proves the refusal it causes, then flips it to prove x402.
+
+---
+
+## Celo mainnet (42220) — v1, superseded 2026-09-12
 
 - SpendPolicyAccount: `0x7aDa926B021BAef4896F51F237bCA61435E43fd2`
 - Owner: `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57`
