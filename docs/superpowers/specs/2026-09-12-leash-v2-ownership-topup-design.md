@@ -416,12 +416,23 @@ statement of something v2 promises:
 
 | Invariant | The bug it forbids |
 |---|---|
-| `spentToday <= daily` whenever `day == today` | daily-cap accounting |
+| `remainingToday() == 0` once `spentToday >= daily` today | a cap that stops binding |
 | `remainingToday() <= daily` | underflow in `daily > spent ? daily - spent : 0` |
 | `balanceOf == funded - spent - toppedUp - swept` | value leaving by a path nobody accounts for |
 | every outward transfer traces to an operator or owner call | a missing modifier |
 | **`owner != address(0)`, always** | §1.1 — pins the constructor guard and the two-step |
-| `pendingOwner` holds no owner power until acceptance | the two-step being bypassed |
+| `owner` equals the last address to have ACCEPTED | the two-step collapsing into one step |
+
+**Two of these were restated after the first draft failed on correct contract
+behaviour, and the corrections are the point rather than a footnote.**
+`spentToday <= daily` is not a property this contract has: an owner may lower a
+cap below what today has already spent, and `setPolicy` does not reconcile
+`spentToday` downward because that would GRANT allowance. What the contract
+guarantees is that nothing further is admitted, which `remainingToday` reports
+as zero. And `pendingOwner != owner` is not a property either: an owner may
+nominate itself, which is a harmless no-op. The property worth asserting is that
+`owner` only ever becomes an address that called `acceptOwnership`, which needs a
+ghost the handler writes only on a successful acceptance.
 
 **The handler must expose `warpDay()`.** Everything hard in this contract is the
 day rollover, and a stateful run that never moves time never reaches it. That is
@@ -434,8 +445,13 @@ acceptance; `ZeroOwner` on construction.
 
 **`TopUpSwitch.t.sol`** — `topUpOperator` reverts `TopUpDisabled` by default;
 works once enabled; `execute` is unaffected in both states; only the owner can
-flip it; a disabled top-up consumes **no** daily allowance (the revert must come
-before `_consume`, or a refused draw would silently eat the day's cap).
+flip it; a disabled top-up consumes **no** daily allowance — which holds wherever the
+check sits, because a revert unwinds `_consume`'s storage writes in the same
+call frame. Placing the check before `_consume` is a gas choice, not a safety
+one: it avoids paying for writes the revert discards. **An earlier revision of
+this document claimed the ordering was load-bearing for allowance accounting.
+That was wrong**, proved by a test in which a revert fired after `_consume` and
+`remainingToday` was still untouched.
 
 **Fuzz, stateless:** the `perTx` boundary is exact (`cap` passes, `cap + 1`
 reverts); daily accumulates exactly; a day rollover resets the spend;

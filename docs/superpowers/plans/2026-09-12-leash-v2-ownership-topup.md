@@ -424,9 +424,9 @@ contract TopUpSwitchTest is Test {
         assertEq(token.balanceOf(operator), 1e6);
     }
 
-    /// A refused draw must cost the agent nothing. If the check sat after
-    /// _consume, a disabled top-up would silently eat the day's allowance and
-    /// the agent would be told to wait for a reset it had already spent.
+    /// A refused draw must cost the agent nothing. This holds wherever the
+    /// check sits — a revert unwinds _consume's writes in the same call frame —
+    /// so this test pins the behaviour, not the statement order.
     function test_refusedTopUpConsumesNoAllowance() public {
         vm.prank(operator);
         vm.expectRevert(SpendPolicyAccount.TopUpDisabled.selector);
@@ -540,10 +540,10 @@ In `topUpOperator`, add the check as the **first** statement in the body:
         onlyOperator
         notPaused
     {
-        // Before _consume, never after: a refused draw must cost the agent
-        // nothing. Behind _consume, a disabled top-up would silently eat the
-        // day's allowance and then tell the agent to wait for a reset it had
-        // already spent.
+        // Before _consume rather than after, so a refusal does not pay for
+        // storage writes the revert then discards. Only gas rides on this: a
+        // revert unwinds _consume's writes wherever it fires, so the allowance
+        // is safe either way.
         if (!topUpEnabled) revert TopUpDisabled();
         _consume(token, amount);
 ```
@@ -576,9 +576,9 @@ x402 and EIP-3009 need the agent to sign for itself — so that promise was fals
 for any account with funds: the key drew a full daily cap to its own address.
 
 topUpEnabled is off at construction and only the owner can flip it. The check
-sits before _consume, so a refused draw costs no allowance; behind it, a
-disabled top-up would have eaten the day's cap and then told the agent to wait
-for a reset it had already spent.
+sits before _consume so a refusal does not pay for storage writes the revert
+discards. Only gas rides on that ordering — a revert unwinds _consume's writes
+wherever it fires.
 
 TopUp.t.sol was written against a contract where the path was always open and
 now enables it in setUp.
@@ -650,6 +650,11 @@ contract AccountHandler is CommonBase, StdUtils {
     address public operator;
     address public successor;
 
+    /// The last owner to have ACCEPTED. Written only inside a successful
+    /// acceptOwnership, never by a nomination -- that asymmetry is what lets
+    /// invariant_ownerChangesOnlyByAcceptance detect a collapsed two-step.
+    address public ghostAcceptedOwner;
+
     uint256 public ghostFunded;
     uint256 public ghostSpent;
     uint256 public ghostToppedUp;
@@ -667,6 +672,7 @@ contract AccountHandler is CommonBase, StdUtils {
         owner = _owner;
         operator = _operator;
         successor = _successor;
+        ghostAcceptedOwner = _owner;
     }
 
     function fund(uint96 amount) external {
@@ -735,9 +741,9 @@ contract AccountHandler is CommonBase, StdUtils {
         address current = account.owner();
         address next = current == owner ? successor : owner;
         vm.prank(current);
-        try account.transferOwnership(next) {} catch {}
+        try account.transferOwnership(next) {} catch { return; }
         vm.prank(next);
-        try account.acceptOwnership() {} catch {}
+        try account.acceptOwnership() { ghostAcceptedOwner = next; } catch {}
     }
 
     /// A nomination nobody accepts. The invariants must hold while one is
@@ -797,11 +803,20 @@ contract InvariantsTest is Test {
         targetContract(address(handler));
     }
 
-    /// Today's spend can never pass the cap that admitted it.
-    function invariant_spentTodayNeverExceedsDaily() public view {
+    /// Once today's spend has reached the cap, nothing further is admitted.
+    ///
+    /// Deliberately NOT `spentToday <= daily`. The owner may lower a cap below
+    /// what has already been spent today -- tightening a policy mid-day -- and
+    /// `setPolicy` does not reconcile `spentToday` downward, because doing so
+    /// would GRANT allowance rather than remove it. The guarantee the contract
+    /// actually makes is that no further spend is admitted, which
+    /// `remainingToday` reports as zero. A first draft of this suite asserted
+    /// the identity and failed on three ordinary calls with no fuzzing:
+    /// execute(1367), then setPolicy(daily = 452).
+    function invariant_noAllowanceOnceCapIsReached() public view {
         (, uint256 daily, uint256 spentToday, uint64 day) = account.limits(address(token));
-        if (day == uint64(block.timestamp / 1 days)) {
-            assertLe(spentToday, daily);
+        if (day == uint64(block.timestamp / 1 days) && spentToday >= daily) {
+            assertEq(account.remainingToday(address(token)), 0);
         }
     }
 
@@ -833,13 +848,17 @@ contract InvariantsTest is Test {
         assertTrue(account.owner() != address(0));
     }
 
-    /// A nominee holds no power until it accepts. If this breaks, the two-step
-    /// has collapsed into a one-step.
-    function invariant_pendingOwnerIsNotTheOwner() public view {
-        address pending = account.pendingOwner();
-        if (pending != address(0)) {
-            assertTrue(pending != account.owner());
-        }
+    /// Ownership moves only through acceptOwnership. If a nomination alone
+    /// could move it, the two-step would have collapsed into a one-step, which
+    /// is the whole failure mode the second step exists to prevent.
+    ///
+    /// Deliberately NOT `pendingOwner != owner`. An owner may nominate itself,
+    /// which is a harmless no-op -- it already holds every power acceptance
+    /// would confer -- and a first draft of this suite failed on exactly that.
+    /// The ghost is updated only inside a successful acceptOwnership, so a
+    /// nomination nobody accepts cannot satisfy it.
+    function invariant_ownerChangesOnlyByAcceptance() public view {
+        assertEq(account.owner(), handler.ghostAcceptedOwner());
     }
 }
 ```
@@ -855,7 +874,29 @@ Expected: 6 invariants pass, each reporting its calls and reverts.
 
 - [ ] **Step 5: Prove the invariants can actually fail**
 
-An invariant that cannot fail proves nothing. Temporarily change `topUpOperator`'s guard to sit *after* `_consume`, re-run, and confirm a failure appears. Then revert that change and re-run to green. Record what you saw in the commit body.
+An invariant that cannot fail proves nothing.
+
+**Do not use the guard-ordering move for this.** Moving `topUpOperator`'s
+`TopUpDisabled` check to sit after `_consume` does NOT break anything: a revert
+unwinds `_consume`'s storage writes in the same call frame, so the allowance is
+untouched either way. That was checked with a deterministic test, and an earlier
+revision of this plan was wrong about it.
+
+Use a break that changes what the contract actually does. In `execute`, change
+the transfer's recipient from `to` to `msg.sender`:
+
+```solidity
+        if (!IERC20(token).transfer(msg.sender, amount)) revert TransferFailed();
+```
+
+That turns a payment into a self-pay, so the operator's balance grows on a path
+that is not a top-up. Re-run the invariants and confirm
+`invariant_operatorOnlyGainsThroughTopUp` fails with a counterexample. Then
+restore the line exactly and re-run to green.
+
+Diffing `contracts/src/SpendPolicyAccount.sol` MUST show no change before you
+commit. Record in the report which invariant failed, its counterexample, and
+that the restore was byte-for-byte.
 
 - [ ] **Step 6: Run the whole suite and commit**
 
