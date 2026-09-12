@@ -339,7 +339,7 @@ Expected: 48 passed (32 existing + 16). **Every one of the 32 must still pass** 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/vanhuy/Desktop/celo
+cd "$(git rev-parse --show-toplevel)"
 git add contracts/src/SpendPolicyAccount.sol contracts/test/Ownership2Step.t.sol
 git commit -m "$(cat <<'EOF'
 feat(contracts): an owner key can be rotated instead of only lost
@@ -565,7 +565,7 @@ Expected: **`TopUp.t.sol` now fails.** It was written against a contract where `
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/vanhuy/Desktop/celo
+cd "$(git rev-parse --show-toplevel)"
 git add contracts/src/SpendPolicyAccount.sol contracts/test/TopUpSwitch.t.sol contracts/test/TopUp.t.sol
 git commit -m "$(cat <<'EOF'
 feat(contracts): the drain path a leaked agent key had is now off until the owner opens it
@@ -906,7 +906,7 @@ cd contracts && forge test
 Expected: 66 passed (60 from Task 2 + 6 invariants).
 
 ```bash
-cd /Users/vanhuy/Desktop/celo
+cd "$(git rev-parse --show-toplevel)"
 git add contracts/foundry.toml contracts/test/Invariants.t.sol contracts/test/handlers/AccountHandler.sol
 git commit -m "$(cat <<'EOF'
 test(contracts): the day rollover had never been crossed with spend accounting live
@@ -963,7 +963,7 @@ Then regenerate `app/lib/contract.ts`. Read its header comment first — it name
 Verify the regeneration actually happened:
 
 ```bash
-cd /Users/vanhuy/Desktop/celo
+cd "$(git rev-parse --show-toplevel)"
 grep -c "transferOwnership\|acceptOwnership\|topUpEnabled\|setTopUpEnabled\|pendingOwner" app/lib/contract.ts
 ```
 Expected: at least 1 (they are on one long line). If 0, the file is stale and Task 10 would deploy v1.
@@ -1849,7 +1849,7 @@ EOF
 
 ```bash
 cd contracts && forge test                    # expect 66 passed
-cd /Users/vanhuy/Desktop/celo
+cd "$(git rev-parse --show-toplevel)"
 pnpm -F @leash/sdk test                       # 77
 pnpm -F leash-agentpay test                   # 30
 pnpm -F @leash/app test                       # 350
@@ -2025,7 +2025,7 @@ git commit -m "docs(deployments): v2 re-proved on mainnet, and which two outcome
 - [ ] **Step 1: Find every occurrence — count, do not recall**
 
 ```bash
-cd /Users/vanhuy/Desktop/celo
+cd "$(git rev-parse --show-toplevel)"
 grep -rn "0x7aDa926B\|0x7ada926b" --include='*.ts' --include='*.tsx' --include='*.md' --include='*.json' . \
   | grep -v node_modules | grep -v '\.next' | grep -v test-results
 ```
@@ -2048,7 +2048,7 @@ Write no ref hashes and no countdown into `RESUME.md`. That file has asserted a 
 
 ```bash
 cd contracts && forge test
-cd /Users/vanhuy/Desktop/celo
+cd "$(git rev-parse --show-toplevel)"
 pnpm -F @leash/sdk test && pnpm -F leash-agentpay test && pnpm -F @leash/app test
 pnpm -F @leash/app test:e2e
 LEASH_E2E_URL=https://leash-app-phi.vercel.app pnpm -F @leash/app test:e2e
