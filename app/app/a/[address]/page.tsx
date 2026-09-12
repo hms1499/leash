@@ -17,6 +17,7 @@ import LimitsDrawer from '../../../components/LimitsDrawer'
 import StopButton from '../../../components/StopButton'
 import AgentPanel from '../../../components/AgentPanel'
 import AgentAccessPanel from '../../../components/AgentAccessPanel'
+import OwnershipDrawer from '../../../components/OwnershipDrawer'
 import AccountSwitcher from '../../../components/AccountSwitcher'
 import { AccountOverview, SecurityPolicy } from '../../../components/DashboardOverview'
 import { useAccountState } from '../../../lib/useAccountState.js'
@@ -389,6 +390,19 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                   operator={gasOperator}
                 />
               )}
+              {/* Deliberately NOT wrapped in isOwner. The nominee's Accept is
+                  the one affordance in this app whose caller is not the
+                  owner, and gating it here would hide it from the only wallet
+                  that can use it. OwnershipDrawer's own ownershipRole decides,
+                  from owner() and pendingOwner() read off the chain, and
+                  renders nothing at all for a stranger. */}
+              <OwnershipDrawer
+                account={address}
+                owner={state.owner}
+                pendingOwner={state.pendingOwner}
+                connected={connected}
+                onChanged={state.refetch}
+              />
             </div>
             {operators.length === 0 && operatorCheckFailed && (
               <Label className="block" style={{ color: 'var(--bad)' }}>

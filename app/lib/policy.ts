@@ -104,6 +104,29 @@ export function canEdit(
   return owner.toLowerCase() === connected.toLowerCase()
 }
 
+/**
+ * Which ownership affordance a connected wallet gets.
+ *
+ * `acceptOwnership` is the first write in this app whose caller is deliberately
+ * not the owner, so it cannot hang off canEdit -- gating it there would hide
+ * Accept from the only wallet that can use it. Both values are read from the
+ * chain -- owner() and pendingOwner() -- never from a query parameter: a
+ * `?operator=` is only ever a candidate.
+ *
+ * 'none' for an unread owner, like canEdit: this is a positive observation of
+ * the chain, so a failed read promotes nobody.
+ */
+export function ownershipRole(
+  owner: string | null | undefined,
+  pendingOwner: string | null | undefined,
+  connected: string | null | undefined,
+): 'owner' | 'incoming' | 'none' {
+  if (!connected) return 'none'
+  if (canEdit(owner, connected)) return 'owner'
+  if (canEdit(pendingOwner, connected)) return 'incoming'
+  return 'none'
+}
+
 export type LimitsValidation =
   | { ok: true; perTx: bigint; daily: bigint }
   | { ok: false; error: string }
