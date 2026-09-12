@@ -36,6 +36,8 @@ const WITHOUT_NUMBERS: Record<string, string> = {
     'This wallet is not an authorised operator on the account. Only the owner can restore it, with setOperator; the daily reset does not clear this.',
   payee_not_allowed:
     'The payee allowlist is on and this address is not on it. Pay an address that is already allowed, or ask the owner to add this one; the daily reset does not clear this.',
+  top_up_disabled:
+    'This account does not let the agent draw funds into its own wallet — the owner has agent-funded payments switched off. Only the owner can change it, with setTopUpEnabled; the daily reset does not clear this. Pay the payee directly with leash_pay instead, which is unaffected.',
   token_not_configured:
     'The account has no policy for this token — or the owner deliberately froze it by setting its daily cap to 0, which the contract cannot tell apart. Ask the owner rather than assuming it merely needs configuring.',
   transfer_failed:

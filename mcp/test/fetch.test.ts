@@ -71,6 +71,23 @@ describe('fetchTool', () => {
     expect(out.remaining_today).toBe('0.100000')
   })
 
+  // fetch.ts has no second mapping table: the code an agent sees is whatever
+  // the SDK threw. If that were flattened to the generic x402_failed, a policy
+  // decision would read as a gateway outage — the defect that told a reader the
+  // gateway had failed when the account had refused.
+  it('shows a disabled top-up as itself, not as a failed gateway', async () => {
+    const err = Object.assign(
+      new Error('the account has agent-funded payments switched off'),
+      { code: 'top_up_disabled', mayHaveSettled: false, spent: 0n, cap: 0n },
+    )
+    const deps = { config, quote: vi.fn(), payForResource: vi.fn().mockRejectedValue(err) } as never
+    const out = await fetchTool(deps, { url: URL_, max_amount: '1' })
+    expect(out.error).toBe('top_up_disabled')
+    expect(out.error).not.toBe('x402_failed')
+    expect(out.may_have_settled).toBe(false)
+    expect(String(out.message)).toMatch(/switched off/i)
+  })
+
   // The draw landed on the daily cap even though the purchase never happened.
   // The generic "failed before any money moved" line is false here: money did
   // leave the contract, it is sitting in the operator wallet, and the

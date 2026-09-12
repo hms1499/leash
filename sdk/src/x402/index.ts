@@ -127,9 +127,18 @@ export async function payForResource(args: {
     // is the answer, and it must surface as itself rather than as a failed
     // transaction.
     if (!check.ok && held < price) {
+      // A cap is a clock and this is a switch. Every other refusal here is
+      // something that either clears at UTC midnight or moves as the day's
+      // spending does; `top_up_disabled` is a decision the owner made and
+      // nothing but the owner undoes it. Handing both the same sentence is
+      // the 2026-09-05 defect one layer down — an x402 caller reading "the
+      // policy refused a draw" backs off and retries against a switch.
+      const message = check.error === 'top_up_disabled'
+        ? `the account has agent-funded payments switched off, so a draw of ${want} is not possible; only the owner can enable it with setTopUpEnabled, and waiting will not`
+        : `the on-chain policy refused a draw of ${want}`
       const e = new X402PaymentError(
         check.error,
-        `the on-chain policy refused a draw of ${want}`,
+        message,
         { mayHaveSettled: false },
       )
       throw Object.assign(e, { spent: check.spent, cap: check.cap })

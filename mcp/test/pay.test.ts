@@ -163,6 +163,22 @@ describe('payTool', () => {
     expect(out.suggestion).toMatch(/does not clear/i)
   })
 
+  // The same lesson as the pause above, for the switch v2 adds. A disabled
+  // top-up is a decision the owner made, not an allowance that runs out, so an
+  // agent told to wait for UTC midnight sleeps against something no clock
+  // clears. It also has somewhere to go: paying a payee directly is untouched.
+  it('tells an agent a disabled top-up needs the owner, not a wait', async () => {
+    const leash = refusedBy('TopUpDisabled', [], 1_000_000n)
+    const out = await payTool({ leash: leash as never, config, feeBalances: fees }, { to: PAYEE, amount: '0.01' })
+    expect(out.error).toBe('top_up_disabled')
+    expect(String(out.suggestion)).toMatch(/owner/i)
+    expect(String(out.suggestion)).toMatch(/setTopUpEnabled/)
+    expect(String(out.suggestion)).not.toMatch(/midnight/i)
+    expect(out.daily_cap).toBeUndefined()
+    expect(out.per_tx_cap).toBeUndefined()
+    expect(out.remaining_today).toBeUndefined()
+  })
+
   it.each([
     ['NotOperator', [], 'not_an_operator', /setOperator/],
     ['PayeeNotAllowed', ['0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57'], 'payee_not_allowed', /allowlist/i],

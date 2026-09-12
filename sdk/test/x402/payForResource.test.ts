@@ -179,6 +179,27 @@ describe('payForResource', () => {
     expect(16_753n + out.toppedUp - 16_753n).toBeGreaterThan(6_700n)
   })
 
+  // A cap clears at UTC midnight; this never does. An x402 caller reading the
+  // generic "the policy refused a draw" backs off and retries against a switch
+  // the owner threw on purpose — so the switch says who lifts it, and that
+  // waiting is not how.
+  it('tells a refused draw apart from a cap when the switch is off', async () => {
+    const leash = fakeLeash({
+      balance: 0n,
+      preCheck: { ok: false, error: 'top_up_disabled', spent: 0n, cap: 0n },
+    })
+    const fetchImpl = vi.fn().mockResolvedValue(res(402, raw))
+    await expect(payForResource({
+      leash, account, url: URL_, body: BODY, feeBalances: fees,
+      maxAmount: 20_000n, fetchImpl: fetchImpl as never,
+    })).rejects.toMatchObject({ code: 'top_up_disabled' })
+    await expect(payForResource({
+      leash, account, url: URL_, body: BODY, feeBalances: fees,
+      maxAmount: 20_000n, fetchImpl: vi.fn().mockResolvedValue(res(402, raw)) as never,
+    })).rejects.toThrow(/setTopUpEnabled/)
+    expect((leash as never as { topUp: ReturnType<typeof vi.fn> }).topUp).not.toHaveBeenCalled()
+  })
+
   // The float is a nicety; the purchase is the job. Refusing to buy something
   // the wallet can already afford, because the policy will not fund a float
   // on top, blocks a legitimate payment over a future inconvenience the owner

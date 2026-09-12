@@ -56,9 +56,13 @@ describe('describePreCheckFailure', () => {
     expect(result).toEqual({ ok: false, error: 'top_up_disabled', spent: 0n, cap: 0n })
   })
 
+  // The code has to be asserted alongside the zeroes or this test proves
+  // nothing: the unknown_policy_error fallback also returns 0n/0n, so a
+  // version of the switch that was never mapped passes a cap-only assertion.
   it('does not invent a cap for a refusal that carried none', () => {
     const result = describePreCheckFailure({ name: 'TopUpDisabled', args: [] })
     if (result.ok) throw new Error('expected a refusal')
+    expect(result.error).toBe('top_up_disabled')
     expect(result.cap).toBe(0n)
     expect(result.spent).toBe(0n)
   })
