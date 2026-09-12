@@ -6,6 +6,7 @@ import { publicClient, REQUIRED_CHAIN_ID, SET_TOP_UP_ENABLED_GAS, WRONG_NETWORK 
 import { pollUntil } from '../lib/confirm.js'
 import { useArming } from '../lib/arming.js'
 import { describeTopUpState, topUpNeedsArming } from '../lib/topUp.js'
+import { noteForWallet, type WalletNote } from '../lib/walletNote.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
 import Button from './ui/Button'
@@ -42,9 +43,14 @@ export default function TopUpDrawer({
 }) {
   const { armed, arm, disarm } = useArming()
   const [busy, setBusy] = useState(false)
-  const [note, setNote] = useState<string | null>(null)
+  // Scoped to the wallet that caused it, for the reason OwnershipDrawer is:
+  // an account switch does not remount this, so a bare string outlives the
+  // wallet it describes. Fixing one of a pair and not the other is what
+  // CLAUDE.md forbids by name.
+  const [rawNote, setRawNote] = useState<WalletNote>(null)
   const { writeContractAsync } = useWriteContract()
-  const { chainId } = useAccount()
+  const { address: connected, chainId } = useAccount()
+  const note = noteForWallet(rawNote, connected)
 
   // A non-owner gets the state and no control. The state is not private — it
   // is the single most useful thing this panel can tell someone deciding
@@ -62,15 +68,16 @@ export default function TopUpDrawer({
   }
 
   async function send(next: boolean) {
-    setNote(null)
+    const say = (text: string) => setRawNote(connected ? { text, wallet: connected } : null)
+    setRawNote(null)
     // Before the wallet, never after: a guard that opens a wallet prompt and
     // then refuses leaves a person cancelling a dialogue they did not ask for.
-    if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
+    if (chainId !== REQUIRED_CHAIN_ID) { say(WRONG_NETWORK); return }
     // A poll satisfied on its first iteration confirms nothing. This is the
     // same guard protectRecipient carries in the wizard, for the same reason:
     // it once reported success for a transaction that never existed.
     if (next === enabled) {
-      setNote(next
+      say(next
         ? 'Agent-funded payments are already on — nothing to change.'
         : 'Agent-funded payments are already off — nothing to change.')
       return
@@ -83,7 +90,7 @@ export default function TopUpDrawer({
           args: [next], chainId: REQUIRED_CHAIN_ID, gas: SET_TOP_UP_ENABLED_GAS,
         })
       } catch {
-        setNote('The transaction was not sent.'); return
+        say('The transaction was not sent.'); return
       }
       // The condition, not the receipt. forno is load-balanced and serves
       // stale reads after a confirmed transaction.
@@ -94,10 +101,10 @@ export default function TopUpDrawer({
       ) === next)
       if (confirmed) {
         disarm()
-        setNote(next ? '✓ Agent-funded payments turned on.' : '✓ Agent-funded payments turned off.')
+        say(next ? '✓ Agent-funded payments turned on.' : '✓ Agent-funded payments turned off.')
         onChanged()
       } else {
-        setNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
+        say('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }
     } finally { setBusy(false) }
   }

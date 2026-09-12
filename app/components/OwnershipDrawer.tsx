@@ -8,6 +8,7 @@ import {
 import { isValidAddress } from '../lib/address.js'
 import { ownershipRole } from '../lib/policy.js'
 import { pollUntil } from '../lib/confirm.js'
+import { noteForWallet, type WalletNote } from '../lib/walletNote.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
 import Button from './ui/Button'
@@ -53,12 +54,16 @@ export default function OwnershipDrawer(
   const [open, setOpen] = useState(false)
   const [to, setTo] = useState('')
   const [busy, setBusy] = useState(false)
-  const [note, setNote] = useState<string | null>(null)
+  // Scoped to the wallet that caused it: an account switch in MetaMask does
+  // not remount this component, so a bare string outlives the wallet it
+  // describes. See lib/walletNote.ts — measured on mainnet during a hand-back.
+  const [rawNote, setRawNote] = useState<WalletNote>(null)
   const { writeContractAsync } = useWriteContract()
   const { chainId } = useAccount()
 
   // A nomination outstanding to somebody. ZERO is the contract's "nobody",
   // and it is also what a cancel writes, so the two are the same state.
+  const note = noteForWallet(rawNote, connected)
   const nominated = pendingOwner !== null && pendingOwner !== ZERO
 
   /**
@@ -80,13 +85,14 @@ export default function OwnershipDrawer(
     arg: `0x${string}` | null,
     gas: bigint,
   ) {
-    setNote(null)
+    const say = (text: string) => setRawNote({ text, wallet: connected! })
+    setRawNote(null)
     if (!connected) return
     // Before the wallet, never after: a guard that opens a wallet prompt and
     // then refuses leaves a person cancelling a dialogue they did not ask for.
-    if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
+    if (chainId !== REQUIRED_CHAIN_ID) { say(WRONG_NETWORK); return }
     if (arg !== null && arg !== ZERO && !isValidAddress(arg)) {
-      setNote('That is not a valid address.'); return
+      say('That is not a valid address.'); return
     }
     setBusy(true)
     try {
@@ -97,7 +103,7 @@ export default function OwnershipDrawer(
           chainId: REQUIRED_CHAIN_ID, gas,
         } as never)
       } catch {
-        setNote('The transaction was not sent.'); return
+        say('The transaction was not sent.'); return
       }
       // The condition, not the receipt. forno is load-balanced and serves
       // stale reads after a confirmed transaction, and
@@ -112,12 +118,12 @@ export default function OwnershipDrawer(
       })
       if (confirmed) {
         setTo('')
-        setNote(fn === 'acceptOwnership'
+        say(fn === 'acceptOwnership'
           ? '✓ You now own this account.'
           : arg === ZERO ? '✓ Nomination cancelled.' : '✓ Nomination saved.')
         onChanged()
       } else {
-        setNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
+        say('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }
     } finally { setBusy(false) }
   }
@@ -168,7 +174,7 @@ export default function OwnershipDrawer(
             <Label className="block mt-6">New owner address</Label>
             <input className="num field w-full mt-2 p-2" aria-label="New owner address"
               placeholder="0x…" value={to} disabled={busy}
-              onChange={(event) => { setTo(event.target.value); setNote(null) }} />
+              onChange={(event) => { setTo(event.target.value); setRawNote(null) }} />
             <Button variant="primary" className="mt-3" disabled={busy}
               onClick={() => void write('transferOwnership', to as `0x${string}`, TRANSFER_OWNERSHIP_GAS)}>
               {busy ? 'Nominating…' : 'Nominate new owner'}
