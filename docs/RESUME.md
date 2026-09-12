@@ -15,7 +15,9 @@ a prompt, so a leaked agent key does not become an unbounded one.
   It stays editable until the deadline, so a video or a fix still lands.
 - **Primary track:** `judges-favorite` · **Bounties:** `judges-favorite`,
   `best-stablecoin-adoption`. `askbots-growth` was never entered.
-- **Deadline:** 2026-09-14 09:00 GMT (16:00 ICT, Monday) — **8 days left**
+- **Deadline:** 2026-09-14 09:00 GMT (16:00 ICT, Monday). **No countdown is
+  written here.** The one that was here said "8 days left" and was still saying
+  it on 2026-09-12, when two remained. Subtract from the date.
 - **Repo:** https://github.com/hms1499/leash (public)
 
 ## Read these, in order
@@ -45,18 +47,23 @@ somebody adds a file to it.
 | Suite | Status |
 |---|---|
 | `cd contracts && forge test` | 32/32 |
-| `cd sdk && pnpm run test` | 66/66 |
+| `cd sdk && pnpm run test` | 75/75 |
 | `cd mcp && pnpm run test` | 29/29 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 232/232 (including multi-account registry and explorer discovery tests) |
-| `cd app && pnpm run test:e2e` | 13/13 local; deployed URL has not yet been updated with the multi-account UI |
+| `cd app && pnpm run test` | 338/338 (including multi-account registry and explorer discovery tests) |
+| `cd app && pnpm run test:e2e` | 41/41 local **and** 41/41 against <https://leash-app-phi.vercel.app> with `LEASH_E2E_URL` — the deployed build does carry the multi-account UI |
+| `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
+
+Every row above except `test:bundle` was re-run on **2026-09-12** and is that
+run's output, not a recollection. Three of them had rotted: sdk was written 66
+against 75, app 232 against 338, and e2e 13 against 41. A suite count is a
+figure like any other — run it rather than copying the line above it.
 
 The app's `/accounts` route discovers direct contract deployments through the
 Etherscan V2 Celo index (`chainid=42220`), then verifies the owner and complete
 read interface used by the dashboard over Celo RPC before caching or displaying a result. Set
 `CELOSCAN_KEY` in the app's server environment; it must not use a
 `NEXT_PUBLIC_` prefix.
-| `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
 **Merged and pushed 2026-09-07.** `feat/npm-distribution` went onto `main` by
 fast-forward — `main` was a strict ancestor, so no merge commit and no rewritten
@@ -86,6 +93,11 @@ and `pnpm -F leash-agentpay test:gate` **spend real money** — see Hazards.
 as of 2026-09-07: cold cache, empty directory, bin started by name,
 `leash_status` and two `leash_fetch` quotes against the live gateway. Repeat it
 with `pnpm -F leash-agentpay verify:published <version>` (costs nothing).
+
+**The registry's `latest` is `0.3.1`**, read 2026-09-12 with `npm view
+leash-agentpay version`. Every version number in the proofs below names the
+build that was actually walked or spent through — do not renumber them to
+match the registry, or the proof stops being about anything that happened.
 
 **`leash_pay` was proven on mainnet the same day**, through the published
 package: a real 0.01 USDC payment, `ok: true` returned only after 7.4s of
@@ -262,17 +274,18 @@ fetch a stranger's code. Do not "fix" that back.
 | | |
 |---|---|
 | `SpendPolicyAccount` | `0x7aDa926B021BAef4896F51F237bCA61435E43fd2` (source-verified) |
-| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.040000 USDC**, `remainingToday` 0.990000. Was left paused by the 2026-09-05 wrong-network test and has since been resumed — read ACTIVE on 2026-09-05. Not project infrastructure; use it to exercise the UI, not as the demo account. |
+| Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.000000 USDC**, `remainingToday` 1.000000, and is **`paused` true again** — read 2026-09-12 at block 77278716. It was resumed on 2026-09-05 and something has stopped it since; the dated note further down saying it is not paused was true when written and is not now. Not project infrastructure; use it to exercise the UI, not as the demo account. |
 | Superseded instance | `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` — **do not use.** It accepted native CELO that could never be recovered; swept to 0 and replaced. See `docs/deployments.md`. |
-| Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.5639 CELO |
-| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.041078 USDC |
+| Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.5367 CELO, 0.200000 USDC, read 2026-09-12 at block 77278716 |
+| Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.037776 USDC, read 2026-09-12 at block 77278716 |
 | Attribution tag | `celo_3dec652cd977` |
 | ERC-8004 identity | agentId 9804, owned by the operator |
 | Policy | USDC: perTx 0.50, daily 1.00. `paused` false, allowlist off |
-| Contract holds | 0.190000 USDC · `remainingToday` 0.990000 — read 2026-09-07 at block 76852175. It was found **empty** earlier that day (0.000000, `can_spend` false) against 2.436567 recorded on 2026-09-05; the owner refunded it, and `prove:pay` then spent 0.010000 of it. **Roughly six takes at ~0.03 each — top up before filming.** |
+| Contract holds | **0.000000 USDC** · `remainingToday` 1.000000 — read 2026-09-12 at block 77278716. The 0.190000 recorded on 2026-09-07 was swept to the owner EOA on 2026-09-11, tx: 0x62a21d2838448b8938677b480e5f9041ce183aecb4aeeeaf92f11c566778aa39 — so the money is in the project, not lost, but **the demo account cannot spend anything today.** The policy is not the blocker: `paused` is false and the full day's allowance is intact. **Fund it before filming** — ~0.03 USDC a take. |
 
-Read back from mainnet on 2026-09-05. The figures above are the state, not a
-recollection of it.
+Every row above carries the date it was read. Those figures are the state at
+that date, not a recollection of it — and a row not dated today is a row nobody
+has checked today.
 
 ### Proven on mainnet, not asserted
 
@@ -744,12 +757,16 @@ A pre-commit guard (`scripts/check-secrets.sh`, wired via
 again.
 
 Money spent to date: roughly **$0.102** of gas plus **$0.034** of USDC on two
-x402 purchases. The project holds 2.587646 USDC across its four addresses —
-account 2.436567, test account 0.040000, operator 0.041078, owner 0.070001 —
-and 3.5639 CELO in the owner wallet. The rise since 2026-09-04 is 0.10 USDC
-sent in from the browser wallet `0x94f7…6459` to fund the refuel test; the
-demo's 0.03 moved from the account to the payee, which is the owner EOA, so
-it never left the project.
+x402 purchases. The project holds **0.237776 USDC** across its four addresses —
+account 0.000000, test account 0.000000, operator 0.037776, owner 0.200000 —
+and 3.5367 CELO in the owner wallet. Read 2026-09-12 at block 77278716.
+
+That is down from 2.587646 on 2026-09-07, and none of it was spent: 2.436567
+went back out of the account to the funding browser wallet `0x94f7…6459` on
+2026-09-07, and the remaining 0.190000 was swept to the owner EOA on
+2026-09-11. Both moves left the four addresses this paragraph counts, which is
+why the total fell without the gas figure moving. **Neither the account nor the
+test account can spend today** — both hold nothing.
 
 ## How this project is being executed
 
