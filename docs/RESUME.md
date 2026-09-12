@@ -46,18 +46,20 @@ somebody adds a file to it.
 
 | Suite | Status |
 |---|---|
-| `cd contracts && forge test` | 32/32 |
-| `cd sdk && pnpm run test` | 75/75 |
-| `cd mcp && pnpm run test` | 29/29 |
+| `cd contracts && forge test` | 66/66 |
+| `cd sdk && pnpm run test` | 78/78 |
+| `cd mcp && pnpm run test` | 31/31 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 338/338 (including multi-account registry and explorer discovery tests) |
+| `cd app && pnpm run test` | 353/353 (including multi-account registry and explorer discovery tests) |
 | `cd app && pnpm run test:e2e` | 41/41 local **and** 41/41 against <https://leash-app-phi.vercel.app> with `LEASH_E2E_URL` — the deployed build does carry the multi-account UI |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
 Every row above except `test:bundle` was re-run on **2026-09-12** and is that
-run's output, not a recollection. Three of them had rotted: sdk was written 66
-against 75, app 232 against 338, and e2e 13 against 41. A suite count is a
-figure like any other — run it rather than copying the line above it.
+run's output, not a recollection. Three of them had rotted earlier that day: sdk
+was written 66 against 75, app 232 against 338, and e2e 13 against 41. Every row
+but `test:bundle` and e2e moved again the same evening as v2 Tasks 1-9 landed —
+contracts 32 to 66, sdk 75 to 78, mcp 29 to 31, app 338 to 353. A suite count is
+a figure like any other: run it rather than copying the line above it.
 
 The app's `/accounts` route discovers direct contract deployments through the
 Etherscan V2 Celo index (`chainid=42220`), then verifies the owner and complete

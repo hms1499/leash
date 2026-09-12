@@ -36,7 +36,15 @@ The money never sits in the agent's wallet. It sits in a contract the agent does
 not own. The agent can only *ask* that contract to spend, and the contract
 refuses past its per-transaction cap, its daily cap, and its optional payee
 allowlist. A leaked agent key does not become an unbounded one — it becomes a
-key that can spend at most one day's allowance, only to addresses you named.
+key that can spend at most one day's allowance.
+
+Where that allowance can go depends on one switch, which is **off** when an
+account is created. With it off, the agent can only pay addresses you named,
+and it has no way to move funds into its own wallet at all. Turning it on is
+what x402 needs — the agent pays those APIs from its own wallet — and it opens
+the one path the allowlist cannot reach: the agent may draw up to the day's
+allowance to itself, and spend that anywhere. The caps bind either way; the
+allowlist is a complete constraint only while the switch is off.
 
 The limits are bytecode on Celo mainnet. They are not upgradeable, and they are
 not ours to change on your behalf.
@@ -237,20 +245,26 @@ float can spend. That float is the real x402 exposure, so keep it thin.
 
 Stated plainly, because a security tool that oversells itself is worse than none:
 
-- **Ownership cannot be transferred.** `owner` is `immutable` and there is no
-  transfer function. Lose the owner key and the funds are unreachable, since
-  `sweep` is owner-only. **Use a multisig (e.g. Safe) as the owner.**
+- **Ownership is migration, not recovery.** `transferOwnership` nominates and
+  `acceptOwnership` completes it, so a mistyped address is recoverable — nothing
+  moves until the nominee signs. But it is only useful while you can still sign:
+  a key already lost has nobody left to nominate with, and an account paused when
+  its key was lost cannot be resumed by anyone. **Use a multisig (e.g. Safe) as
+  the owner.**
 - **The allowlist does not cover `topUpOperator`.** An agent configured for x402
   can draw funds to its own wallet within the caps and then pay anyone. The caps
   always apply; the allowlist is a full constraint only when that path is unused.
+  That path is now behind an owner switch that is off at construction, so an
+  account that never needs x402 never opens it.
 - **Caps are policy accounting, not solvency.** They limit what may be spent, not
   what is there. The dashboard shows both for exactly this reason.
 - **Non-standard ERC-20s are out of scope.** `execute` requires `transfer` to
   return `true`; fee-on-transfer and rebasing tokens would also break the
   accounting. Configure ordinary tokens (USDC is what this is built and proven
   against).
-- **The contract is unaudited.** It is 153 lines, deliberately small, and covered
-  by 32 Foundry tests — but it has not been through a professional audit.
+- **The contract is unaudited.** It is deliberately small and covered by 66
+  Foundry tests, six of them stateful invariants — but it has not been through a
+  professional audit.
 
 ### Key handling
 
@@ -284,11 +298,11 @@ pnpm install
 
 | Command | Suite |
 |---|---|
-| `cd contracts && forge test` | 32 contract tests |
-| `pnpm -F @leash/sdk test` | 66 SDK tests |
-| `pnpm -F leash-agentpay test` | 27 MCP tests |
-| `pnpm -F @leash/app test` | 201 app tests (vitest) |
-| `pnpm -F @leash/app test:e2e` | 8 end-to-end tests (playwright) |
+| `cd contracts && forge test` | 66 contract tests, six of them invariants |
+| `pnpm -F @leash/sdk test` | 78 SDK tests |
+| `pnpm -F leash-agentpay test` | 31 MCP tests |
+| `pnpm -F @leash/app test` | 353 app tests (vitest) |
+| `pnpm -F @leash/app test:e2e` | 41 end-to-end tests (playwright) |
 | `npx tsc --noEmit` | run inside `sdk`, `mcp`, `app`, `examples`, `spikes` |
 
 > [!CAUTION]
