@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const ACCOUNT = process.env.LEASH_E2E_ACCOUNT ?? '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
+const ACCOUNT = process.env.LEASH_E2E_ACCOUNT ?? '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d'
 
 /**
  * The judge's path: open the submitted link in a browser with no wallet and

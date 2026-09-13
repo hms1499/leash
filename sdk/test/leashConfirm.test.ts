@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { privateKeyToAccount, generatePrivateKey } from 'viem/accounts'
 import { LeashClient } from '../src/policyClient.js'
 
-const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2' as const
+const ACCOUNT = '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d' as const
 // Fabricated, not a mainnet hash: every receipt below is invented, and a real
 // hash here would imply this test says something about a real transaction.
 const HASH = ('0x' + 'ab'.repeat(32)) as `0x${string}`

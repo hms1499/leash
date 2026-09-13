@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { describeDeployReceipt } from '../lib/deploy.js'
 
 const HASH = '0xabc' as `0x${string}`
-const ADDRESS = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2' as `0x${string}`
+const ADDRESS = '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d' as `0x${string}`
 
 describe('describeDeployReceipt', () => {
   it('refuses a reverted creation even though it carries an address', () => {

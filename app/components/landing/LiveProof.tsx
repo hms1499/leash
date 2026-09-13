@@ -10,7 +10,7 @@ import { useFeed } from '../../lib/useFeed.js'
 import { explorerUrl } from '../../lib/proofs.js'
 import { WINDOW_LABEL } from '../../lib/feed.js'
 
-const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2' as const
+const ACCOUNT = '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d' as const
 const OPERATOR = '0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6' as const
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const DECIMALS = 6
@@ -99,7 +99,20 @@ export default function LiveProof() {
               rel="noreferrer"
             >
               <span>{r.text}</span>
-              <span className="num shrink-0">↗</span>
+              {/* --t-data, not the 14px the row above inherits. `.num` switches
+                  the family to mono, and mono at 14px 400 is not a step the
+                  scale declares -- 14px mono is `subhead`, at 500. (Writing the
+                  raw class name here would also have moved the debt ratchet in
+                  test/scaleUsage.test.ts, which counts the file's text.) This
+                  branch only renders when
+                  the account has spent something inside the feed window, so it
+                  had never been drawn on the landing until the demo address
+                  moved to v2, and e2e/faces.spec.ts caught it the first time it
+                  was. SecurityBoundary draws its arrow the same way. */}
+              <span
+                className="num shrink-0"
+                style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)' }}
+              >↗</span>
             </a>
           ))
         )}

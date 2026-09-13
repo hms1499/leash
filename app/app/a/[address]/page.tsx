@@ -35,7 +35,7 @@ import { readLocal } from '../../../lib/browserStorage.js'
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const DECIMALS = 6
 const SYMBOL = 'USDC'
-const DEMO_ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2'
+const DEMO_ACCOUNT = '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d'
 const DEMO_OPERATOR = '0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6'
 
 const OPERATOR_ABI = [

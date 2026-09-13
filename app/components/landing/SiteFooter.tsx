@@ -6,7 +6,7 @@ import { DATA, PROSE } from '../ui/prose'
 const LINKS = [
   { label: 'Setup guide', href: 'https://github.com/hms1499/leash/blob/main/docs/mcp-setup.md' },
   { label: 'Source code', href: 'https://github.com/hms1499/leash' },
-  { label: 'Verified contract', href: 'https://celoscan.io/address/0x7ada926b021baef4896f51f237bca61435e43fd2#code' },
+  { label: 'Verified contract', href: 'https://celoscan.io/address/0xbe380aa73c036da30d3b2fd5e75b0d1d89e11c3d#code' },
 ] as const
 
 export default function SiteFooter() {

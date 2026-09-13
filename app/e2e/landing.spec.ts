@@ -63,7 +63,7 @@ test('the landing page explains itself and shows live mainnet numbers', async ({
   await expect(dashboardPreviews.first()).toHaveAttribute('href', '#live-proof')
   await expect(page.getByRole('link', { name: 'Open full dashboard' })).toHaveAttribute(
     'href',
-    '/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2?operator=0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6',
+    '/a/0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d?operator=0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6',
   )
   await expect(page.locator('a button, button a')).toHaveCount(0)
 })

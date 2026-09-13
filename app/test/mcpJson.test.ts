@@ -5,7 +5,7 @@ import {
 } from '../lib/mcpJson.js'
 
 const handoff = {
-  account: '0x7aDa926B021BAef4896F51F237bCA61435E43fd2',
+  account: '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d',
   token: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
   feeAdapter: '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B',
   attributionTag: 'celo_3dec652cd977',

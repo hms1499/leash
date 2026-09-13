@@ -179,6 +179,13 @@ State at the end of the session:
 - Deployed: 2026-09-03
 - Cost, deploy through migration: 0.194338 CELO (about $0.015)
 
+**Superseded by v2 `0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d`**, which makes
+the owner movable and puts `topUpOperator` behind a switch that is off at
+construction. The contract is not upgradeable, so neither change could reach
+this address. Nothing here is wrong — v1 still enforces every cap it ever did,
+and the transaction hashes on this page stay because they are true statements
+about v1. It is simply no longer what the repo points at.
+
 Deployed because removing `receive()` changes the bytecode. The previous
 instance accepted native CELO it could never return — `sweep()` moves ERC-20
 only and nothing in the contract can `call{value:}` — so anything sent that way
@@ -294,7 +301,8 @@ generate an operator, and did not.
 
 **Submission gap, open at the time of writing.** `ownContracts` on the
 celobuilders submission declares `0x7aDa926B…`, `0xA73DB76f…` and `0x895B773E…`.
-It does **not** declare `0x7757035d…`. The skill warns that undeclared wallets
+It declares neither `0x7757035d…` nor the v2 account `0xBE380aa7…` that
+superseded `0x7aDa926B…` and is what every live surface now points at. The skill warns that undeclared wallets
 which look project-controlled are read as farming signals at audit, so this is
 worth closing.
 

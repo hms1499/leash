@@ -20,10 +20,10 @@ pnpm workspace (`sdk`, `mcp`, `app`, `examples`, `spikes`), pnpm 9.12.0, Node 20
 Contracts are Foundry and are not part of the workspace.
 
 ```bash
-pnpm -F @leash/sdk test          # 78 tests
-pnpm -F leash-agentpay test      # 31
+pnpm -F @leash/sdk test          # 83 tests
+pnpm -F leash-agentpay test      # 35
 pnpm -F leash-agentpay test:bundle  # 3 (packs the tarball and starts the bin; minutes, not seconds)
-pnpm -F @leash/app test          # 353 (vitest)
+pnpm -F @leash/app test          # 362 (vitest)
 pnpm -F @leash/app test:e2e      # 41 (playwright; builds and serves unless LEASH_E2E_URL is set)
 cd contracts && forge test       # 66
 ```
@@ -82,8 +82,15 @@ decides.
 - `app/lib/contract.ts` holds the ABI and bytecode copied out of `contracts/out` by
   `forge build`. Regenerate after any contract change — stale bytecode deploys the old
   contract.
-- `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` is a superseded deployment. Do not use it
-  or add it to fixtures.
+- **The live account is `0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d` (v2).** It is what
+  every fixture, test, e2e spec and README link points at.
+- Three superseded deployments. Do not use any of them, and do not add one to a fixture:
+  `0x7aDa926B021BAef4896F51F237bCA61435E43fd2` (v1 — owner was `immutable` and
+  `topUpOperator` had no off switch), `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` (it
+  accepted native CELO that could never be recovered), and
+  `0x7156af4f9552a77736ad77772b46fd4d3c3c5e07` (a v2 deploy attempt that shipped v1
+  bytecode, because the wizard was started from a checkout with a stale
+  `app/lib/contract.ts` — the exact hazard the line above this one describes).
 
 ## Conventions
 

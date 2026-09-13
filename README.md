@@ -8,12 +8,12 @@ Spend limits and payee allowlists enforced on-chain — not by a prompt.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![Network: Celo Mainnet](https://img.shields.io/badge/Network-Celo%20Mainnet-fcff52.svg)](https://celoscan.io/)
-[![Contract: verified](https://img.shields.io/badge/Contract-source--verified-brightgreen.svg)](https://celoscan.io/address/0x7ada926b021baef4896f51f237bca61435e43fd2#code)
+[![Contract: verified](https://img.shields.io/badge/Contract-source--verified-brightgreen.svg)](https://celoscan.io/address/0xbe380aa73c036da30d3b2fd5e75b0d1d89e11c3d#code)
 [![Not upgradeable](https://img.shields.io/badge/Proxy-none-blue.svg)](contracts/src/SpendPolicyAccount.sol)
 
 [Live app](https://leash-app-phi.vercel.app) ·
-[Live account](https://leash-app-phi.vercel.app/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2) ·
-[Contract](https://celoscan.io/address/0x7ada926b021baef4896f51f237bca61435e43fd2) ·
+[Live account](https://leash-app-phi.vercel.app/a/0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d) ·
+[Contract](https://celoscan.io/address/0xbe380aa73c036da30d3b2fd5e75b0d1d89e11c3d) ·
 [Connect an agent](docs/quickstart.md) ·
 [Agent setup](docs/mcp-setup.md) ·
 [Deployments & proofs](docs/deployments.md)
@@ -101,7 +101,16 @@ and nothing is a claim about what the code *would* do.
 | **The attribution tag round-trips.** The ERC-8021 suffix decodes to `["celo_3dec652cd977"]` off-chain and again straight from raw chain data. | same tx as above |
 | **x402 paid with money drawn through the policy.** The agent rented a Google Cloud VM and the daily counter fell by exactly the draw — the caps apply to agent purchases, not only to plain transfers. | draw tx: [`0xec08a200…6f2f33db`](https://celoscan.io/tx/0xec08a20020983992d18d6faa7cccd91e0bba0f2432e6f22e534616b96f2f33db) · settlement tx: [`0xb5dd4d16…f7f2a91e25`](https://celoscan.io/tx/0xb5dd4d16a7e65453ddcdc70b235384a7bc20c8845a8ce5096084c7f7f2a91e25) |
 | **A real MCP agent spent through the policy.** `leash_pay` called by a Claude session with no human typing an amount or a payee. The allowance fell one step; the `Spent` event carries the operator. | tx: [`0x218d7f95…a244396`](https://celoscan.io/tx/0x218d7f9516481a3c5747226cf2f90e73beaa4fde86e68c363e9259a66a244396) |
-| **The contract is deployed and source-verified.** 3406 bytes, solc 0.8.24, not a proxy and not upgradeable. The owner can set policy, pause and sweep, and is deliberately *not* an operator — it cannot spend through the agent's paths. | deploy tx: [`0x8a6f4d8c…0a2fc779`](https://celoscan.io/tx/0x8a6f4d8cfd9d49d22f3948af384f87ba169533d903e12885aa3296bc0a2fc779) |
+| **The contract is deployed and source-verified.** 3766 bytes, solc 0.8.24, not a proxy and not upgradeable. The owner can set policy, pause and sweep, and is deliberately *not* an operator — it cannot spend through the agent's paths. Verification confirmed with `forge verify-check`, not inferred from the submission's `OK`. | deploy tx: [`0xad28ee0d…422e7449`](https://celoscan.io/tx/0xad28ee0dc8a25bc9e1896fed8bde1d3dd88804f3f4f93a5eb96c4f32422e7449) |
+| **The owner key can be rotated, and the drain path can be shut.** `transferOwnership` nominates, `acceptOwnership` completes, and both branches were exercised by a second real wallet on mainnet — including the old owner being refused afterwards. `topUpOperator` is off at construction until the owner opens it. | tx: [`0xc703cbcd…56499e47`](https://celoscan.io/tx/0xc703cbcd32d37cee69a3fd618cca0f7fc4da4ac11a3150c7fbce210456499e47) · handed back, tx: [`0xe025d7e6…a08dfb157e`](https://celoscan.io/tx/0xe025d7e66bf00c475c716934ab21e4d99714783466c3a8ef20a043a08dfb157e) |
+
+**The first four rows were earned on v1** — `0x7aDa926B…3fd2`, superseded on
+2026-09-12 when the owner became movable and `topUpOperator` gained an off
+switch. Every one of them was re-proved against the v2 account above rather than
+carried over, with new hashes read at their own blocks;
+[`docs/deployments.md`](docs/deployments.md) has both sets. Two outcomes,
+`spend_reverted` and `sent_unconfirmed`, are covered by unit tests only and have
+never been observed on-chain. They are not claimed here.
 
 [`docs/deployments.md`](docs/deployments.md) has the full working: every value
 read back off the chain rather than taken from a test's own output, what each
@@ -118,7 +127,7 @@ The dashboard reads Celo mainnet directly. Policy limits, remaining allowance,
 balances and the live activity feed all render for a stranger with an empty
 browser.
 
-**<https://leash-app-phi.vercel.app/a/0x7aDa926B021BAef4896F51F237bCA61435E43fd2>**
+**<https://leash-app-phi.vercel.app/a/0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d>**
 
 That is a live account and the numbers on it are real.
 
@@ -340,10 +349,12 @@ keep — it is the only place a bundle that failed to inline `@leash/sdk` would
 be caught, because every other suite resolves that import through the workspace
 symlink and passes either way.
 
-Also known and deliberately deferred: an ownership transfer path in a future
-non-upgradeable v2, an owner switch to disable `topUpOperator`, and a factory
-contract so account addresses are deterministic and the frontend never carries
-bytecode.
+Two of the three items deferred here shipped in v2 on 2026-09-12: the ownership
+transfer path and the owner switch that disables `topUpOperator`. **Still
+deferred: a factory** so account addresses are deterministic and the frontend
+never carries bytecode. It stays deferred because `/accounts` discovers accounts
+by scanning direct deployments from the owner EOA, and behind a factory the
+deployer is the factory — discovery would have to be rewritten first.
 
 ---
 

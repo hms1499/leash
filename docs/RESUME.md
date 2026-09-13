@@ -42,24 +42,36 @@ five files sat there, was corrected to five, and was still saying five once the
 npm plan made six. A number written beside a directory goes stale the next time
 somebody adds a file to it.
 
-## State: all six plans complete. Reviewed, and the review's fixes applied.
+## State: all six plans complete, and v2 is deployed and re-proved on mainnet.
+
+v2 makes the owner movable (`transferOwnership` nominates, `acceptOwnership`
+completes) and puts `topUpOperator` behind an owner switch that is off at
+construction. The contract is not upgradeable, so that meant a fresh deployment:
+**`0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d`**, which is what every fixture,
+test, e2e spec and README link now points at. Every proof earned on v1 was
+re-earned against it rather than carried over. The work lives on
+`feat/v2-ownership-topup`; where that branch has got to is a question for
+`git log`, not for this line — this file has asserted a wrong push state four
+times.
 
 | Suite | Status |
 |---|---|
 | `cd contracts && forge test` | 66/66 |
-| `cd sdk && pnpm run test` | 78/78 |
-| `cd mcp && pnpm run test` | 31/31 |
+| `cd sdk && pnpm run test` | 83/83 |
+| `cd mcp && pnpm run test` | 35/35 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 353/353 (including multi-account registry and explorer discovery tests) |
-| `cd app && pnpm run test:e2e` | 41/41 local **and** 41/41 against <https://leash-app-phi.vercel.app> with `LEASH_E2E_URL` — the deployed build does carry the multi-account UI |
+| `cd app && pnpm run test` | 362/362 (including multi-account registry and explorer discovery tests) |
+| `cd app && pnpm run test:e2e` | 41/41 local. **40/41 against <https://leash-app-phi.vercel.app>** with `LEASH_E2E_URL`, and the one failure is the deploy signal, not a defect: `landing.spec.ts` asserts the landing links to the v2 account and the deployed build still serves v1's. It goes back to 41/41 when the app is redeployed from this branch. |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
-Every row above except `test:bundle` was re-run on **2026-09-12** and is that
-run's output, not a recollection. Three of them had rotted earlier that day: sdk
-was written 66 against 75, app 232 against 338, and e2e 13 against 41. Every row
-but `test:bundle` and e2e moved again the same evening as v2 Tasks 1-9 landed —
-contracts 32 to 66, sdk 75 to 78, mcp 29 to 31, app 338 to 353. A suite count is
-a figure like any other: run it rather than copying the line above it.
+Every row above except `test:bundle` was re-run on **2026-09-13** and is that
+run's output, not a recollection. These counts have rotted twice now. On
+2026-09-12 sdk was written 66 against 75, app 232 against 338, and e2e 13
+against 41; the same evening v2 Tasks 1-9 moved contracts 32 to 66, sdk 75 to
+78, mcp 29 to 31 and app 338 to 353; and the three defects that mainnet found
+during Task 12 moved sdk to 83, mcp to 35 and app to 362 while these lines still
+said otherwise. A suite count is a figure like any other: run it rather than
+copying the line above it.
 
 The app's `/accounts` route discovers direct contract deployments through the
 Etherscan V2 Celo index (`chainid=42220`), then verifies the owner and complete
@@ -179,6 +191,10 @@ there is no redeploy and no new address, and `app/lib/contract.ts` still holds
 the bytecode that is source-verified on Celoscan. An account deployed through
 the wizard today is byte-identical to `0x7aDa926B…3fd2`.
 
+*Superseded 2026-09-12.* True of that audit and false now: v2 changed the
+contract, redeployed it to `0xBE380aa7…11C3d`, and regenerated
+`app/lib/contract.ts`. The wizard now deploys v2. See **Live on Celo mainnet**.
+
 **The two fixes the node-only suite cannot reach were verified in a browser on
 2026-09-09**, against `pnpm dev` and live forno, and each was checked BOTH ways
 -- with the fix, and with only that fix reverted -- so the probe is known to be
@@ -221,11 +237,14 @@ first-run wizard is the case they have to cover.
    and none should be until somebody walks it with a clock running. The walk
    also reused the registered operator EOA rather than generating one, so even
    a timed repeat would understate a stranger's cost by that step.
-2. **Three deferred items from the status section still stand**: an ownership
-   transfer path in a v2 (the contract's `owner` is `immutable`, so losing the
-   owner key loses the funds), an owner switch to disable `topUpOperator`, and
-   a factory so account addresses are deterministic and the frontend carries no
-   bytecode.
+2. **Two of the three deferred items shipped in v2 on 2026-09-12**: the
+   ownership transfer path (two-step `transferOwnership`/`acceptOwnership`, both
+   branches exercised by a real second wallet on mainnet) and the owner switch
+   that disables `topUpOperator`. **The factory is still deferred** — account
+   addresses are not deterministic and the frontend still carries the deploy
+   bytecode. `/accounts` finds accounts by scanning direct deployments from the
+   owner EOA, and behind a factory the deployer is the factory, so discovery
+   would have to be rewritten first.
 3. **The GitHub Actions annotation is cosmetic, for now.** Every job warns that
    `actions/checkout@v4`, `actions/setup-node@v4` and `pnpm/action-setup@v4`
    target the deprecated Node 20 *action runtime*. That is not the project's
@@ -275,9 +294,11 @@ fetch a stranger's code. Do not "fix" that back.
 
 | | |
 |---|---|
-| `SpendPolicyAccount` | `0x7aDa926B021BAef4896F51F237bCA61435E43fd2` (source-verified) |
+| `SpendPolicyAccount` (v2) | `0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d` (source-verified — `forge verify-check` returned `Pass - Verified`, not inferred from the submission's `OK`). Deployed 2026-09-12 **through the wizard**, which is where a stale-bytecode bug would hide. `owner` is a storage slot, `pendingOwner()` answers instead of reverting, and `topUpEnabled` was flipped **true** on 2026-09-12 to prove the x402 draw. |
 | Test account (2026-09-04) | `0xA73DB76f20c5ede3ABE883565D22905760F83982` — deployed **through the wizard** by a real browser wallet, which is what proved the deploy path. Owner `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459`, operator `0xd44daF…50D6`, perTx 0.50 / daily 1.00, holds **0.000000 USDC**, `remainingToday` 1.000000, and is **`paused` true again** — read 2026-09-12 at block 77278716. It was resumed on 2026-09-05 and something has stopped it since; the dated note further down saying it is not paused was true when written and is not now. Not project infrastructure; use it to exercise the UI, not as the demo account. |
+| Superseded instance (v1) | `0x7aDa926B021BAef4896F51F237bCA61435E43fd2` — **do not use.** Replaced by v2 on 2026-09-12 because the owner was `immutable` and `topUpOperator` had no off switch, and the contract is not upgradeable. Held 0.000000 USDC at the time, so no funds had to move. See `docs/deployments.md`. |
 | Superseded instance | `0x895B773Ef88cA27699Df58F9F45962F847bbE9CE` — **do not use.** It accepted native CELO that could never be recovered; swept to 0 and replaced. See `docs/deployments.md`. |
+| First v2 attempt | `0x7156af4f9552a77736ad77772b46fd4d3c3c5e07` — **do not use.** The wizard was started from the main checkout, whose `app/lib/contract.ts` still carried v1 bytecode, so this is a v1 contract. Swept to 0 and abandoned. |
 | Owner EOA | `0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57` — 3.5367 CELO, 0.200000 USDC, read 2026-09-12 at block 77278716 |
 | Operator EOA (= registered `agentWalletAddress`) | `0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6` — **0 CELO**, 0.037776 USDC, read 2026-09-12 at block 77278716 |
 | Attribution tag | `celo_3dec652cd977` |

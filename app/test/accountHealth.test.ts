@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { accountHealth } from '../lib/accountHealth.js'
 
-const ACCOUNT = '0x7aDa926B021BAef4896F51F237bCA61435E43fd2' as `0x${string}`
+const ACCOUNT = '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d' as `0x${string}`
 const OPERATOR = '0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6'
 
 /** A healthy account: every gate passed, protection off. */
