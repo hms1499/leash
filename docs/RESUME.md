@@ -61,7 +61,7 @@ times.
 | `cd mcp && pnpm run test` | 35/35 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
 | `cd app && pnpm run test` | 362/362 (including multi-account registry and explorer discovery tests) |
-| `cd app && pnpm run test:e2e` | 41/41 local. **40/41 against <https://leash-app-phi.vercel.app>** with `LEASH_E2E_URL`, and the one failure is the deploy signal, not a defect: `landing.spec.ts` asserts the landing links to the v2 account and the deployed build still serves v1's. It goes back to 41/41 when the app is redeployed from this branch. |
+| `cd app && pnpm run test:e2e` | 41/41 local **and** 41/41 against <https://leash-app-phi.vercel.app> with `LEASH_E2E_URL`. The deployed run was 40/41 until the redeploy: `landing.spec.ts` asserts the landing links to the v2 account and the build then serving that URL still carried v1's. That failure was the deploy signal, and it cleared the moment the deploy landed. |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
 Every row above except `test:bundle` was re-run on **2026-09-13** and is that
