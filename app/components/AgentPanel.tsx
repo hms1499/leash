@@ -6,6 +6,7 @@ import { publicClient, REQUIRED_CHAIN_ID, SWEEP_GAS, WRONG_NETWORK } from '../li
 import { formatDisplayAmount, parseAmount } from '../lib/policy.js'
 import { planRefuel, transactionsLeft } from '../lib/gasFloat.js'
 import { pollUntil } from '../lib/confirm.js'
+import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import Address from './ui/Address'
 import Panel from './ui/Panel'
 import { PANEL_GRID } from './ui/page'
@@ -50,7 +51,8 @@ export default function AgentPanel({
   // configured" — the same silent-vanish shape this branch already fixed
   // once for the feed (commit 21c9fcc).
   const [failed, setFailed] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const [phase, setPhase] = useState<WritePhase>('idle')
+  const busy = isBusy(phase)
   const [note, setNote] = useState<string | null>(null)
   const { writeContractAsync } = useWriteContract()
   const { chainId } = useAccount()
@@ -131,7 +133,7 @@ export default function AgentPanel({
         : `The protected account holds ${formatDisplayAmount(protectedBalance, decimals)} ${symbol}, which is not enough for even one agent transaction. Fund the account first.`)
       return
     }
-    setBusy(true)
+    setPhase('sending')
     try {
       const amount = plan.amount
       const before = float as bigint
@@ -139,6 +141,10 @@ export default function AgentPanel({
         address: account, abi: SWEEP_ABI, functionName: 'sweep',
         args: [token, operator, amount], chainId: REQUIRED_CHAIN_ID, gas: SWEEP_GAS,
       })
+      // The wallet is done; everything past here is the chain. See
+      // lib/writePhase.ts -- this refuel waits on the operator's balance
+      // rising, which is the slowest condition any control in this app polls.
+      setPhase('confirming')
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.
       const confirmed = await pollUntil(async () => {
@@ -164,7 +170,7 @@ export default function AgentPanel({
       // as a broken button.
       setNote('The transaction was not sent.')
     } finally {
-      setBusy(false)
+      setPhase('idle')
     }
   }
 
@@ -203,7 +209,11 @@ export default function AgentPanel({
         Funds in the agent wallet are outside recipient restrictions. This is
         required for gas and x402 payments.
       </p>
-      {note && <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>{note}</p>}
+      {/* role="status" for the reason StopButton's note carries one: this is
+          the only account an owner gets of a refuel that was refused in the
+          wallet or went unconfirmed, and without a live region a screen
+          reader announces none of it. */}
+      {note && <p role="status" className="text-sm mt-2" style={{ color: 'var(--bad)' }}>{note}</p>}
       {isOwner && low && !plan.ok && (
         <p className="text-sm mt-3" style={{ color: 'var(--bad)' }}>
           {plan.reason === 'empty'
@@ -213,7 +223,10 @@ export default function AgentPanel({
       )}
       {isOwner && low && plan.ok && (
         <Button variant="primary" className="mt-3" disabled={busy} onClick={() => void refuel()}>
-          {busy ? 'Sending…' : `Send ${formatDisplayAmount(plan.amount, decimals)} ${symbol} for gas`}
+          {writeLabel(phase, {
+            idle: `Send ${formatDisplayAmount(plan.amount, decimals)} ${symbol} for gas`,
+            sending: 'Sending…',
+          })}
         </Button>
       )}
     </Panel>

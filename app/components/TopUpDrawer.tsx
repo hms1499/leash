@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, SET_TOP_UP_ENABLED_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
+import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import { useArming } from '../lib/arming.js'
 import { describeTopUpState, topUpNeedsArming } from '../lib/topUp.js'
 import { noteForWallet, type WalletNote } from '../lib/walletNote.js'
@@ -42,7 +43,8 @@ export default function TopUpDrawer({
   onChanged: () => void
 }) {
   const { armed, arm, disarm } = useArming()
-  const [busy, setBusy] = useState(false)
+  const [phase, setPhase] = useState<WritePhase>('idle')
+  const busy = isBusy(phase)
   // Scoped to the wallet that caused it, for the reason OwnershipDrawer is:
   // an account switch does not remount this, so a bare string outlives the
   // wallet it describes. Fixing one of a pair and not the other is what
@@ -82,7 +84,7 @@ export default function TopUpDrawer({
         : 'Agent-funded payments are already off — nothing to change.')
       return
     }
-    setBusy(true)
+    setPhase('sending')
     try {
       try {
         await writeContractAsync({
@@ -92,6 +94,8 @@ export default function TopUpDrawer({
       } catch {
         say('The transaction was not sent.'); return
       }
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setPhase('confirming')
       // The condition, not the receipt. forno is load-balanced and serves
       // stale reads after a confirmed transaction.
       const confirmed = await pollUntil(async () => (
@@ -106,7 +110,7 @@ export default function TopUpDrawer({
       } else {
         say('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }
-    } finally { setBusy(false) }
+    } finally { setPhase('idle') }
   }
 
   const next = !enabled
@@ -148,11 +152,12 @@ export default function TopUpDrawer({
         disabled={busy || loading}
         onClick={press}
       >
-        {busy
-          ? 'Saving…'
-          : enabled
+        {writeLabel(phase, {
+          idle: enabled
             ? 'Turn off agent-funded payments'
-            : armed ? 'Confirm — allow agent-funded payments' : 'Allow agent-funded payments'}
+            : armed ? 'Confirm — allow agent-funded payments' : 'Allow agent-funded payments',
+          sending: 'Saving…',
+        })}
       </Button>
 
       {note && (

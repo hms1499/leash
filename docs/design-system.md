@@ -518,7 +518,8 @@ observed" is not "failed."**
 
 | State | How it speaks | Example |
 |---|---|---|
-| Working | verb + `…`, **on the control itself** | `Sending…` `Stopping…` `Saving…` `Resuming…` `Switching…` |
+| Working — the wallet has it | verb + `…`, **on the control itself** | `Sending…` `Stopping…` `Saving…` `Resuming…` `Switching…` |
+| Working — the chain has it | `Waiting for Celo…`, **the same words on every control** | after the wallet returns a hash |
 | Empty | a label, then one sentence naming the **window** | "No activity yet — nothing spent in the last 24h" |
 | Read failed | `Could not …`, and still retrying | "Could not read the agent wallet balance." |
 | Write refused by the user | `The transaction was not sent.` | wallet rejection |
@@ -526,6 +527,29 @@ observed" is not "failed."**
 
 **Every block that can be in one of these states must say which.** Silence
 reads as a broken button.
+
+**Working is two states, not one.** Every write in this app is two waits back
+to back: the owner's wallet has the transaction, and then the chain does. One
+flag covered both, so a pressed button said `Stopping…` from the press until
+`pollUntil` returned — up to a minute (20 attempts at 3s), with nothing changing
+at the moment the owner's own part finished. An owner given no sign the wallet
+is done is an owner deciding whether to press again, and a second press is a
+second transaction. `app/lib/writePhase.ts` holds the three phases and the one
+shared sentence; the decision is there rather than in the eight components that
+make it because this suite runs in the node environment (§2.2) and cannot mount
+one.
+
+The second sentence does not vary by control. The wait is the same wait
+everywhere — `pollUntil` on a condition — and CLAUDE.md's rule is that two
+implementations of one operation must not behave differently, so `writeLabel`
+does not let a caller supply its own.
+
+**A control that reports nothing while it runs is the same defect.** Two shipped
+without a progress label at all: the recipient-protection toggle in
+`LimitsDrawer`, and the pair of choice cards in the wizard that only dimmed. And
+a control must report only its OWN work: three ownership buttons shared one
+flag, so pressing Cancel put `Cancelling…` on one button and `Nominating…` on
+the one beside it, for the same transaction.
 
 Two rules that follow:
 

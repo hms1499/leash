@@ -5,6 +5,7 @@ import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, SET_PAUSED_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
 import { useArming } from '../lib/arming.js'
+import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import Button from './ui/Button'
 import Label from './ui/Label'
 
@@ -26,7 +27,8 @@ export default function StopButton({
   onChanged: () => void
 }) {
   const { armed, arm, disarm } = useArming()
-  const [busy, setBusy] = useState(false)
+  const [phase, setPhase] = useState<WritePhase>('idle')
+  const busy = isBusy(phase)
   const [note, setNote] = useState<string | null>(null)
   const { writeContractAsync } = useWriteContract()
   const { chainId } = useAccount()
@@ -50,12 +52,16 @@ export default function StopButton({
   async function send(next: boolean) {
     setNote(null)
     if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
-    setBusy(true)
+    setPhase('sending')
     try {
       await writeContractAsync({
         address: account, abi: PAUSE_ABI, functionName: 'setPaused', args: [next],
         chainId: REQUIRED_CHAIN_ID, gas: SET_PAUSED_GAS,
       })
+      // The owner's part is over the moment the wallet returns a hash, and the
+      // button has to stop claiming otherwise -- everything below this line is
+      // the chain being waited on, not them.
+      setPhase('confirming')
       // Wait on the condition, not the receipt: forno serves stale reads
       // after a confirmed transaction.
       const confirmed = await pollUntil(async () => {
@@ -75,7 +81,7 @@ export default function StopButton({
       // as a broken button.
       setNote('The transaction was not sent.')
     } finally {
-      setBusy(false)
+      setPhase('idle')
       disarm()
     }
   }
@@ -87,12 +93,17 @@ export default function StopButton({
           owner most needs to read (why Resume did nothing) was invisible at
           1.00:1. Measured 2026-09-05 while testing the wrong-network guard:
           the guard fired correctly and said so where nobody could see it. */}
+      {/* role="status" because this note is the only account an owner gets of
+          a write that failed or went unconfirmed, and without a live region a
+          screen reader says nothing at all when Stop is refused by the wallet.
+          Every sibling note in the app -- AgentAccessPanel, OwnershipDrawer,
+          TopUpDrawer -- already announces the same sentences. */}
       {note && (
-        <Label style={{ color: paused ? 'var(--bg)' : 'var(--bad)' }}>{note}</Label>
+        <Label role="status" style={{ color: paused ? 'var(--bg)' : 'var(--bad)' }}>{note}</Label>
       )}
       {paused ? (
         <Button variant="ghost" onDangerBand={paused} disabled={busy} onClick={() => void send(false)}>
-          {busy ? 'Resuming…' : 'Resume'}
+          {writeLabel(phase, { idle: 'Resume', sending: 'Resuming…' })}
         </Button>
       ) : (
         <Button
@@ -100,7 +111,10 @@ export default function StopButton({
           disabled={busy}
           onClick={() => (armed ? void send(true) : arm(true))}
         >
-          {busy ? 'Stopping…' : armed ? 'Confirm stop' : '■ Stop'}
+          {writeLabel(phase, {
+            idle: armed ? 'Confirm stop' : '■ Stop',
+            sending: 'Stopping…',
+          })}
         </Button>
       )}
     </span>

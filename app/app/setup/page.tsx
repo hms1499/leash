@@ -24,6 +24,7 @@ import {
   type BalanceRead, type SetupStage,
 } from '../../lib/setup.js'
 import { pollUntil } from '../../lib/confirm.js'
+import { isBusy, writeLabel, type WritePhase } from '../../lib/writePhase.js'
 import { readLocal, writeLocal } from '../../lib/browserStorage.js'
 import { describeDeployReceipt } from '../../lib/deploy.js'
 import { PAGE, PANEL_GRID } from '../../components/ui/page'
@@ -142,29 +143,34 @@ export default function Onboard() {
     document.getElementById(STAGE_HEADING_ID)?.focus()
   }, [activeStage])
   const [account, setAccount] = useState<`0x${string}` | null>(null)
-  const [deploying, setDeploying] = useState(false)
+  const [deployPhase, setDeployPhase] = useState<WritePhase>('idle')
+  const deploying = isBusy(deployPhase)
   const [restoring, setRestoring] = useState(false)
   const [restoreNote, setRestoreNote] = useState<string | null>(null)
 
   const [perTx, setPerTx] = useState('0.50')
   const [daily, setDaily] = useState('5.00')
   const [confirmedLimits, setConfirmedLimits] = useState<ConfirmedLimits | null>(null)
-  const [limitsBusy, setLimitsBusy] = useState(false)
+  const [limitsPhase, setLimitsPhase] = useState<WritePhase>('idle')
+  const limitsBusy = isBusy(limitsPhase)
   const [limitsNote, setLimitsNote] = useState<string | null>(null)
 
   const [recipientMode, setRecipientMode] = useState<RecipientMode>('any')
   const [recipientProtectionEnabled, setRecipientProtectionEnabled] = useState(false)
   const [recipient, setRecipient] = useState('')
-  const [recipientBusy, setRecipientBusy] = useState(false)
+  const [recipientPhase, setRecipientPhase] = useState<WritePhase>('idle')
+  const recipientBusy = isBusy(recipientPhase)
   const [recipientNote, setRecipientNote] = useState<string | null>(null)
 
   const [topUpEnabled, setTopUpEnabled] = useState(false)
-  const [topUpBusy, setTopUpBusy] = useState(false)
+  const [topUpPhase, setTopUpPhase] = useState<WritePhase>('idle')
+  const topUpBusy = isBusy(topUpPhase)
   const [topUpNote, setTopUpNote] = useState<string | null>(null)
 
   const [agent, setAgent] = useState('')
   const [agentAuthorized, setAgentAuthorized] = useState(false)
-  const [agentBusy, setAgentBusy] = useState(false)
+  const [agentPhase, setAgentPhase] = useState<WritePhase>('idle')
+  const agentBusy = isBusy(agentPhase)
   const [agentNote, setAgentNote] = useState<string | null>(null)
 
   const [protectedBalance, setProtectedBalance] = useState<BalanceRead>({ status: 'reading' })
@@ -174,6 +180,13 @@ export default function Onboard() {
   const [protectedFundNote, setProtectedFundNote] = useState<string | null>(null)
   const [agentFundNote, setAgentFundNote] = useState<string | null>(null)
   const [fundingTarget, setFundingTarget] = useState<FundingTarget | null>(null)
+  /**
+   * Which wait the in-flight transfer is in. `fundingTarget` already says
+   * WHICH of the two balances is being funded; this says what is being waited
+   * on, so the label under the pressed button can stop saying "Sending…" once
+   * the wallet is done with it.
+   */
+  const [fundPhase, setFundPhase] = useState<WritePhase>('idle')
   const [checkingBalances, setCheckingBalances] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -358,7 +371,7 @@ export default function Onboard() {
   async function deploy() {
     setError(null)
     if (chainId !== REQUIRED_CHAIN_ID) { setError(WRONG_NETWORK); return }
-    setDeploying(true)
+    setDeployPhase('sending')
     try {
       const { abi, bytecode } = await import('../../lib/contract.js')
       let hash: `0x${string}`
@@ -370,6 +383,10 @@ export default function Onboard() {
         setError('The deployment was not sent.')
         return
       }
+      // The wallet returned a hash; the chain is what is left. This is the
+      // longest wait in the app -- a contract creation -- and it was the one
+      // giving the least sign of life. lib/writePhase.ts.
+      setDeployPhase('confirming')
       try {
         const receipt = await publicClient.waitForTransactionReceipt({ hash })
         // A receipt is not a success. See describeDeployReceipt: a reverted
@@ -390,7 +407,7 @@ export default function Onboard() {
       }
     } catch {
       setError('The deployment did not start. Reload and try again.')
-    } finally { setDeploying(false) }
+    } finally { setDeployPhase('idle') }
   }
 
   async function setLimits() {
@@ -398,12 +415,14 @@ export default function Onboard() {
     if (chainId !== REQUIRED_CHAIN_ID) { setLimitsNote(WRONG_NETWORK); return }
     const parsed = validateLimits(perTx, daily, DECIMALS, confirmedLimits ?? undefined)
     if (!parsed.ok) { setLimitsNote(parsed.error); return }
-    setLimitsBusy(true)
+    setLimitsPhase('sending')
     try {
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setPolicy',
         args: [TOKEN, parsed.perTx, parsed.daily], chainId: REQUIRED_CHAIN_ID, gas: SET_POLICY_GAS,
       })
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setLimitsPhase('confirming')
       const confirmed = await pollUntil(async () => {
         const limits = await publicClient.readContract({
           address: account!, abi: SETUP_ABI, functionName: 'limits', args: [TOKEN],
@@ -417,7 +436,7 @@ export default function Onboard() {
       } else setLimitsNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
     } catch {
       setLimitsNote('The transaction was not sent.')
-    } finally { setLimitsBusy(false) }
+    } finally { setLimitsPhase('idle') }
   }
 
   async function chooseAnyRecipient() {
@@ -431,12 +450,14 @@ export default function Onboard() {
       setRecipientNote(WRONG_NETWORK)
       return
     }
-    setRecipientBusy(true)
+    setRecipientPhase('sending')
     try {
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setAllowlistEnabled',
         args: [false], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_ENABLED_GAS,
       })
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setRecipientPhase('confirming')
       const confirmed = await pollUntil(async () => !Boolean(
         await publicClient.readContract({ address: account!, abi: SETUP_ABI, functionName: 'allowlistEnabled' }),
       ))
@@ -450,14 +471,14 @@ export default function Onboard() {
     } catch {
       setRecipientMode('protected')
       setRecipientNote('The transaction was not sent.')
-    } finally { setRecipientBusy(false) }
+    } finally { setRecipientPhase('idle') }
   }
 
   async function protectRecipient() {
     setRecipientNote(null)
     if (!isValidAddress(recipient)) { setRecipientNote('Enter a valid recipient address.'); return }
     if (chainId !== REQUIRED_CHAIN_ID) { setRecipientNote(WRONG_NETWORK); return }
-    setRecipientBusy(true)
+    setRecipientPhase('sending')
     try {
       const alreadyApproved = await publicClient.readContract({
         address: account!, abi: SETUP_ABI, functionName: 'payeeAllowlist', args: [recipient],
@@ -476,6 +497,8 @@ export default function Onboard() {
           address: account!, abi: SETUP_ABI, functionName: 'setAllowlist',
           args: [recipient, true], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_GAS,
         })
+        // First of the two writes is signed. lib/writePhase.ts.
+        setRecipientPhase('confirming')
         const approved = await pollUntil(async () => Boolean(
           await publicClient.readContract({
             address: account!, abi: SETUP_ABI, functionName: 'payeeAllowlist', args: [recipient],
@@ -487,11 +510,16 @@ export default function Onboard() {
         }
       }
       if (!recipientProtectionEnabled) {
+        // Back to the wallet: this step takes two confirmations, and the label
+        // goes back with it rather than keep saying the chain is the one being
+        // waited on. The panel under the button already warns of the two.
+        setRecipientPhase('sending')
         await writeContractAsync({
           address: account!, abi: SETUP_ABI, functionName: 'setAllowlistEnabled',
           args: [true], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_ENABLED_GAS,
         })
       }
+      setRecipientPhase('confirming')
       const enabled = await pollUntil(async () => Boolean(
         await publicClient.readContract({ address: account!, abi: SETUP_ABI, functionName: 'allowlistEnabled' }),
       ))
@@ -503,7 +531,7 @@ export default function Onboard() {
       } else setRecipientNote('The recipient is approved, but protection has not been confirmed yet.')
     } catch {
       setRecipientNote('The requested policy change was not completed.')
-    } finally { setRecipientBusy(false) }
+    } finally { setRecipientPhase('idle') }
   }
 
   async function chooseTopUp(next: boolean) {
@@ -520,7 +548,7 @@ export default function Onboard() {
         : 'Agent-funded payments are already off — nothing to change.')
       return
     }
-    setTopUpBusy(true)
+    setTopUpPhase('sending')
     try {
       try {
         await writeContractAsync({
@@ -531,6 +559,8 @@ export default function Onboard() {
         setTopUpNote('The change was not sent.')
         return
       }
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setTopUpPhase('confirming')
       // The condition, not the receipt. forno is load-balanced and serves stale
       // reads after a confirmed transaction.
       const confirmed = await pollUntil(async () => {
@@ -547,7 +577,7 @@ export default function Onboard() {
       } else {
         setTopUpNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }
-    } finally { setTopUpBusy(false) }
+    } finally { setTopUpPhase('idle') }
   }
 
   async function addAgent() {
@@ -558,7 +588,7 @@ export default function Onboard() {
       return
     }
     if (chainId !== REQUIRED_CHAIN_ID) { setAgentNote(WRONG_NETWORK); return }
-    setAgentBusy(true)
+    setAgentPhase('sending')
     try {
       // Ask the chain before writing to it. Two things depended on this and
       // neither worked:
@@ -603,6 +633,8 @@ export default function Onboard() {
         address: account!, abi: SETUP_ABI, functionName: 'setOperator',
         args: [agent, true], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
       })
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setAgentPhase('confirming')
       const confirmed = await pollUntil(async () => Boolean(
         await publicClient.readContract({
           address: account!, abi: SETUP_ABI, functionName: 'operators', args: [agent],
@@ -621,7 +653,7 @@ export default function Onboard() {
       } else setAgentNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
     } catch {
       setAgentNote('The transaction was not sent.')
-    } finally { setAgentBusy(false) }
+    } finally { setAgentPhase('idle') }
   }
 
   async function refreshBalances() {
@@ -668,6 +700,7 @@ export default function Onboard() {
       return
     }
     setFundingTarget(target)
+    setFundPhase('sending')
     try {
       // Read rather than discovered from a revert. wagmi does not simulate, so
       // a transfer larger than the wallet holds is signed, lands, reverts and
@@ -684,6 +717,8 @@ export default function Onboard() {
         address: TOKEN, abi: ERC20_ABI, functionName: 'transfer',
         args: [destination, amount], chainId: REQUIRED_CHAIN_ID, gas: ERC20_TRANSFER_GAS,
       })
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setFundPhase('confirming')
       let nextBalance = before
       const confirmed = await pollUntil(async () => {
         nextBalance = await readBalance(destination)
@@ -696,7 +731,7 @@ export default function Onboard() {
       } else setNote('Sent, but the balance has not changed yet. Check the transaction before trying again.')
     } catch {
       setNote('The transfer was not sent.')
-    } finally { setFundingTarget(null) }
+    } finally { setFundingTarget(null); setFundPhase('idle') }
   }
 
   return (
@@ -833,7 +868,10 @@ export default function Onboard() {
                   to another wallet later from the dashboard, in two steps.
                 </p>
                 <Button variant="primary" className="mt-3" disabled={deploying || restoring} onClick={() => void deploy()}>
-                  {deploying ? 'Creating…' : 'Create protected account'}
+                  {writeLabel(deployPhase, {
+                    idle: 'Create protected account',
+                    sending: 'Creating…',
+                  })}
                 </Button>
               </div>
             )}
@@ -873,7 +911,9 @@ export default function Onboard() {
             <span className="num">{daily || '—'} USDC</span> per UTC day.
           </div>
           <Button variant="primary" className="mt-4" disabled={limitsBusy || limitsConfirmed} onClick={() => void setLimits()}>
-            {limitsBusy ? 'Saving…' : limitsConfirmed ? 'Limits saved' : 'Save limits'}
+            {limitsBusy
+              ? writeLabel(limitsPhase, { idle: 'Save limits', sending: 'Saving…' })
+              : limitsConfirmed ? 'Limits saved' : 'Save limits'}
           </Button>
           {limitsNote && <p role="status" className="text-sm mt-2"
             style={{ color: noteColor(limitsNote, 'Protection limits saved.') }}>{limitsNote}</p>}
@@ -907,7 +947,10 @@ export default function Onboard() {
                   placeholder="0x…" value={recipient}
                   onChange={(event) => { setRecipient(event.target.value); setRecipientNote(null) }} disabled={recipientBusy} />
                 <Button variant="ghost" className="mt-3" disabled={recipientBusy} onClick={() => void protectRecipient()}>
-                  {recipientBusy ? 'Saving protection…' : recipientProtectionEnabled ? 'Approve another recipient' : 'Approve & enable'}
+                  {writeLabel(recipientPhase, {
+                    idle: recipientProtectionEnabled ? 'Approve another recipient' : 'Approve & enable',
+                    sending: 'Saving protection…',
+                  })}
                 </Button>
                 <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
                   Enabling for the first time requires two wallet confirmations: approve the address, then enable protection.
@@ -949,6 +992,18 @@ export default function Onboard() {
                 <span className="block mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>Needed for x402 APIs the agent pays for itself.</span>
               </button>
             </div>
+            {/* The two cards are the only write control in the wizard with no
+                label of its own to change -- pressing one dims both and then
+                says nothing for as long as the chain takes. This line is that
+                missing half, and it disappears when topUpNote replaces it. */}
+            {topUpBusy && (
+              <p role="status" className="mt-3" style={{ ...PROSE, color: 'var(--dim)' }}>
+                {writeLabel(topUpPhase, {
+                  idle: '',
+                  sending: 'Confirm the change in your wallet…',
+                })}
+              </p>
+            )}
             {/* Every string below is load-bearing: a reworded note that is not
                 in this list renders in --bad, which is how a success once
                 turned red. */}
@@ -997,7 +1052,7 @@ export default function Onboard() {
                   placeholder="0x…" value={agent}
                   onChange={(event) => { setAgent(event.target.value); setAgentNote(null) }} disabled={agentBusy} />
                 <Button variant="primary" className="mt-3" disabled={agentBusy} onClick={() => void addAgent()}>
-                  {agentBusy ? 'Authorizing…' : 'Authorize agent'}
+                  {writeLabel(agentPhase, { idle: 'Authorize agent', sending: 'Authorizing…' })}
                 </Button>
               </>
             ) : (
@@ -1051,9 +1106,11 @@ export default function Onboard() {
                     inputMode="decimal" value={protectedAmount}
                     onChange={(event) => { setProtectedAmount(event.target.value); setProtectedFundNote(null) }} disabled={fundingTarget !== null} />
                   <Button variant="ghost" className="mt-3" disabled={fundingTarget !== null} onClick={() => void fund('protected')}>
-                    {fundingTarget === 'protected' ? 'Sending…' : 'Add protected funds'}
+                    {fundingTarget === 'protected'
+                      ? writeLabel(fundPhase, { idle: 'Add protected funds', sending: 'Sending…' })
+                      : 'Add protected funds'}
                   </Button>
-                  {protectedFundNote && <p className="mt-2"
+                  {protectedFundNote && <p role="status" className="mt-2"
                     style={{ ...PROSE, color: noteColor(protectedFundNote, 'Protected funds added.') }}>{protectedFundNote}</p>}
                 </div>
 
@@ -1077,9 +1134,11 @@ export default function Onboard() {
                     inputMode="decimal" value={agentGasAmount}
                     onChange={(event) => { setAgentGasAmount(event.target.value); setAgentFundNote(null) }} disabled={fundingTarget !== null} />
                   <Button variant="ghost" className="mt-3" disabled={fundingTarget !== null} onClick={() => void fund('agent')}>
-                    {fundingTarget === 'agent' ? 'Sending…' : 'Add agent gas'}
+                    {fundingTarget === 'agent'
+                      ? writeLabel(fundPhase, { idle: 'Add agent gas', sending: 'Sending…' })
+                      : 'Add agent gas'}
                   </Button>
-                  {agentFundNote && <p className="mt-2"
+                  {agentFundNote && <p role="status" className="mt-2"
                     style={{ ...PROSE, color: noteColor(agentFundNote, 'Agent gas added.') }}>{agentFundNote}</p>}
                 </div>
               </div>

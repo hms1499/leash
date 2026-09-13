@@ -8,6 +8,7 @@ import {
 import { isValidAddress } from '../lib/address.js'
 import { ownershipRole } from '../lib/policy.js'
 import { pollUntil } from '../lib/confirm.js'
+import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import { noteForWallet, type WalletNote } from '../lib/walletNote.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
@@ -53,7 +54,18 @@ export default function OwnershipDrawer(
   const role = ownershipRole(owner, pendingOwner, connected)
   const [open, setOpen] = useState(false)
   const [to, setTo] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [phase, setPhase] = useState<WritePhase>('idle')
+  /**
+   * Which of the three controls is in flight.
+   *
+   * All three share one `write`, and all three used to read one `busy` -- so
+   * pressing Cancel put "Cancelling…" on the cancel button and "Nominating…"
+   * on the nominate button beside it, at the same time, for the same
+   * transaction. Only the pressed control reports progress now; the others
+   * stay disabled and keep saying what they do.
+   */
+  const [pending, setPending] = useState<null | 'accept' | 'nominate' | 'cancel'>(null)
+  const busy = isBusy(phase)
   // Scoped to the wallet that caused it: an account switch in MetaMask does
   // not remount this component, so a bare string outlives the wallet it
   // describes. See lib/walletNote.ts — measured on mainnet during a hand-back.
@@ -94,7 +106,8 @@ export default function OwnershipDrawer(
     if (arg !== null && arg !== ZERO && !isValidAddress(arg)) {
       say('That is not a valid address.'); return
     }
-    setBusy(true)
+    setPending(fn === 'acceptOwnership' ? 'accept' : arg === ZERO ? 'cancel' : 'nominate')
+    setPhase('sending')
     try {
       try {
         await writeContractAsync({
@@ -105,6 +118,8 @@ export default function OwnershipDrawer(
       } catch {
         say('The transaction was not sent.'); return
       }
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setPhase('confirming')
       // The condition, not the receipt. forno is load-balanced and serves
       // stale reads after a confirmed transaction, and
       // waitForTransactionReceipt resolves on revert besides.
@@ -125,7 +140,7 @@ export default function OwnershipDrawer(
       } else {
         say('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }
-    } finally { setBusy(false) }
+    } finally { setPhase('idle'); setPending(null) }
   }
 
   const noteTone = note !== null && note.startsWith('✓') ? 'var(--ok)' : 'var(--bad)'
@@ -144,7 +159,9 @@ export default function OwnershipDrawer(
         </p>
         <Button variant="primary" className="mt-3" disabled={busy}
           onClick={() => void write('acceptOwnership', null, ACCEPT_OWNERSHIP_GAS)}>
-          {busy ? 'Accepting…' : 'Accept ownership'}
+          {pending === 'accept'
+            ? writeLabel(phase, { idle: 'Accept ownership', sending: 'Accepting…' })
+            : 'Accept ownership'}
         </Button>
         {note && <p role="status" className="mt-3" style={{ ...PROSE, color: noteTone }}>{note}</p>}
       </Panel>
@@ -177,7 +194,9 @@ export default function OwnershipDrawer(
               onChange={(event) => { setTo(event.target.value); setRawNote(null) }} />
             <Button variant="primary" className="mt-3" disabled={busy}
               onClick={() => void write('transferOwnership', to as `0x${string}`, TRANSFER_OWNERSHIP_GAS)}>
-              {busy ? 'Nominating…' : 'Nominate new owner'}
+              {pending === 'nominate'
+                ? writeLabel(phase, { idle: 'Nominate new owner', sending: 'Nominating…' })
+                : 'Nominate new owner'}
             </Button>
 
             {nominated && (
@@ -192,7 +211,9 @@ export default function OwnershipDrawer(
                 </p>
                 <Button variant="stop" className="mt-3" disabled={busy}
                   onClick={() => void write('transferOwnership', ZERO, TRANSFER_OWNERSHIP_GAS)}>
-                  {busy ? 'Cancelling…' : 'Cancel nomination'}
+                  {pending === 'cancel'
+                    ? writeLabel(phase, { idle: 'Cancel nomination', sending: 'Cancelling…' })
+                    : 'Cancel nomination'}
                 </Button>
               </div>
             )}

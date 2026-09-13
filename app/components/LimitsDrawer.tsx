@@ -9,6 +9,7 @@ import {
 import { formatDisplayAmount, validateLimits } from '../lib/policy.js'
 import { isValidAddress } from '../lib/address.js'
 import { pollUntil } from '../lib/confirm.js'
+import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import { useArming } from '../lib/arming.js'
 import Panel from './ui/Panel'
 import { PANEL_GRID } from './ui/page'
@@ -55,8 +56,18 @@ export default function LimitsDrawer({
   const [perTxInput, setPerTx] = useState('')
   const [dailyInput, setDaily] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [recipientBusy, setRecipientBusy] = useState(false)
+  const [phase, setPhase] = useState<WritePhase>('idle')
+  const [recipientPhase, setRecipientPhase] = useState<WritePhase>('idle')
+  /**
+   * Which recipient control is in flight. The three payee buttons are
+   * mutually exclusive branches, but the protection toggle below them renders
+   * at the same time as all three -- so one shared flag would have put a
+   * progress label on a control nobody pressed.
+   */
+  const [recipientPending, setRecipientPending] =
+    useState<null | 'check' | 'payee' | 'protection'>(null)
+  const busy = isBusy(phase)
+  const recipientBusy = isBusy(recipientPhase)
   const [recipientNote, setRecipientNote] = useState<string | null>(null)
   const [payee, setPayee] = useState('')
   const [payeeAllowed, setPayeeAllowed] = useState<boolean | null>(null)
@@ -84,12 +95,14 @@ export default function LimitsDrawer({
     const parsed = validateLimits(perTxInput, dailyInput, decimals, { perTx, daily })
     if (!parsed.ok) { setError(parsed.error); return }
 
-    setBusy(true)
+    setPhase('sending')
     try {
       await writeContractAsync({
         address: account, abi: POLICY_ABI, functionName: 'setPolicy',
         args: [token, parsed.perTx, parsed.daily], chainId: REQUIRED_CHAIN_ID, gas: SET_POLICY_GAS,
       })
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setPhase('confirming')
       const confirmed = await pollUntil(async () => {
         const limits = await publicClient.readContract({
           address: account, abi: POLICY_ABI, functionName: 'limits', args: [token],
@@ -106,19 +119,22 @@ export default function LimitsDrawer({
     } catch {
       setError('The transaction was not sent.')
     } finally {
-      setBusy(false)
+      setPhase('idle')
     }
   }
 
   async function setRecipientProtection(next: boolean) {
     setRecipientNote(null)
     if (chainId !== REQUIRED_CHAIN_ID) { setRecipientNote(WRONG_NETWORK); return }
-    setRecipientBusy(true)
+    setRecipientPending('protection')
+    setRecipientPhase('sending')
     try {
       await writeContractAsync({
         address: account, abi: POLICY_ABI, functionName: 'setAllowlistEnabled',
         args: [next], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_ENABLED_GAS,
       })
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setRecipientPhase('confirming')
       const confirmed = await pollUntil(async () => Boolean(
         await publicClient.readContract({
           address: account, abi: POLICY_ABI, functionName: 'allowlistEnabled',
@@ -131,14 +147,18 @@ export default function LimitsDrawer({
     } catch {
       setRecipientNote('The transaction was not sent.')
     } finally {
-      setRecipientBusy(false)
+      setRecipientPhase('idle')
+      setRecipientPending(null)
     }
   }
 
   async function checkPayee() {
     setRecipientNote(null)
     if (!isValidAddress(payee)) { setRecipientNote('Enter a valid Celo address.'); return }
-    setRecipientBusy(true)
+    // A read, not a write: it never reaches 'confirming' because there is no
+    // transaction for the chain to confirm.
+    setRecipientPending('check')
+    setRecipientPhase('sending')
     try {
       const allowed = await publicClient.readContract({
         address: account, abi: POLICY_ABI, functionName: 'payeeAllowlist', args: [payee],
@@ -147,7 +167,8 @@ export default function LimitsDrawer({
     } catch {
       setRecipientNote('Could not check this recipient on chain.')
     } finally {
-      setRecipientBusy(false)
+      setRecipientPhase('idle')
+      setRecipientPending(null)
     }
   }
 
@@ -155,12 +176,15 @@ export default function LimitsDrawer({
     setRecipientNote(null)
     if (!isValidAddress(payee)) { setRecipientNote('Enter a valid Celo address.'); return }
     if (chainId !== REQUIRED_CHAIN_ID) { setRecipientNote(WRONG_NETWORK); return }
-    setRecipientBusy(true)
+    setRecipientPending('payee')
+    setRecipientPhase('sending')
     try {
       await writeContractAsync({
         address: account, abi: POLICY_ABI, functionName: 'setAllowlist',
         args: [payee, next], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_GAS,
       })
+      // Signed and sent. What follows is the chain. lib/writePhase.ts.
+      setRecipientPhase('confirming')
       const confirmed = await pollUntil(async () => Boolean(
         await publicClient.readContract({
           address: account, abi: POLICY_ABI, functionName: 'payeeAllowlist', args: [payee],
@@ -176,7 +200,8 @@ export default function LimitsDrawer({
     } catch {
       setRecipientNote('The transaction was not sent.')
     } finally {
-      setRecipientBusy(false)
+      setRecipientPhase('idle')
+      setRecipientPending(null)
     }
   }
 
@@ -274,7 +299,7 @@ export default function LimitsDrawer({
                 </div>
                 {error && <p role="alert" className="text-sm mt-3" style={{ color: 'var(--bad)' }}>{error}</p>}
                 <Button variant="primary" className="mt-4" disabled={busy} onClick={() => void saveLimits()}>
-                  {busy ? 'Saving…' : 'Save limits'}
+                  {writeLabel(phase, { idle: 'Save limits', sending: 'Saving…' })}
                 </Button>
 
                 <details className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
@@ -319,7 +344,9 @@ export default function LimitsDrawer({
                     <div className="flex flex-wrap items-center gap-2 mt-3">
                       {payeeAllowed === null ? (
                         <Button variant="ghost" disabled={recipientBusy} onClick={() => void checkPayee()}>
-                          {recipientBusy ? 'Checking…' : 'Check address'}
+                          {recipientPending === 'check'
+                            ? writeLabel(recipientPhase, { idle: 'Check address', sending: 'Checking…' })
+                            : 'Check address'}
                         </Button>
                       ) : payeeAllowed ? (
                         <Button
@@ -331,11 +358,18 @@ export default function LimitsDrawer({
                               : armRemove(true)
                           )}
                         >
-                          {recipientBusy ? 'Removing…' : removeArmed ? 'Confirm removal' : 'Remove address'}
+                          {recipientPending === 'payee'
+                            ? writeLabel(recipientPhase, {
+                                idle: removeArmed ? 'Confirm removal' : 'Remove address',
+                                sending: 'Removing…',
+                              })
+                            : removeArmed ? 'Confirm removal' : 'Remove address'}
                         </Button>
                       ) : (
                         <Button variant="primary" disabled={recipientBusy} onClick={() => void setPayeeAccess(true)}>
-                          {recipientBusy ? 'Approving…' : 'Approve address'}
+                          {recipientPending === 'payee'
+                            ? writeLabel(recipientPhase, { idle: 'Approve address', sending: 'Approving…' })
+                            : 'Approve address'}
                         </Button>
                       )}
                       {payeeAllowed !== null && (
@@ -359,7 +393,20 @@ export default function LimitsDrawer({
                         disabled={recipientBusy || (!allowlistEnabled && payeeAllowed !== true)}
                         onClick={() => void setRecipientProtection(!allowlistEnabled)}
                       >
-                        {allowlistEnabled ? 'Turn off recipient protection' : 'Turn on recipient protection'}
+                        {/* This control reported nothing at all while it ran:
+                            a write with a pollUntil behind it and a label that
+                            never changed, so the only feedback was the button
+                            greying out. */}
+                        {recipientPending === 'protection'
+                          ? writeLabel(recipientPhase, {
+                              idle: allowlistEnabled
+                                ? 'Turn off recipient protection'
+                                : 'Turn on recipient protection',
+                              sending: allowlistEnabled ? 'Turning off…' : 'Turning on…',
+                            })
+                          : allowlistEnabled
+                            ? 'Turn off recipient protection'
+                            : 'Turn on recipient protection'}
                       </Button>
                     </div>
 

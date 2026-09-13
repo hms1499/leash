@@ -5,6 +5,7 @@ import { useAccount, useWriteContract } from 'wagmi'
 import { isValidAddress } from '../lib/address.js'
 import { publicClient, REQUIRED_CHAIN_ID, SET_OPERATOR_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
+import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import { useArming } from '../lib/arming.js'
 import { readLocal, removeLocal, writeLocal } from '../lib/browserStorage.js'
 import Address from './ui/Address'
@@ -41,7 +42,8 @@ export default function AgentAccessPanel({
   onAgentRevoked: (operator: `0x${string}`) => void
 }) {
   const [agentInput, setAgentInput] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [phase, setPhase] = useState<WritePhase>('idle')
+  const busy = isBusy(phase)
   // Which row is armed, by address: one shared boolean would arm every
   // Revoke button at once on a multi-operator account.
   // The third caller of the same two-beat confirm, and the one that made the
@@ -71,12 +73,14 @@ export default function AgentAccessPanel({
     }
     if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
 
-    setBusy(true)
+    setPhase('sending')
     try {
       await writeContractAsync({
         address: account, abi: OPERATOR_ABI, functionName: 'setOperator',
         args: [agentInput, true], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
       })
+      // Past the wallet, into the chain's wait. lib/writePhase.ts.
+      setPhase('confirming')
       const confirmed = await pollUntil(async () => Boolean(
         await publicClient.readContract({
           address: account, abi: OPERATOR_ABI, functionName: 'operators', args: [agentInput],
@@ -93,7 +97,7 @@ export default function AgentAccessPanel({
     } catch {
       setNote('The transaction was not sent.')
     } finally {
-      setBusy(false)
+      setPhase('idle')
     }
   }
 
@@ -101,12 +105,14 @@ export default function AgentAccessPanel({
     setNote(null)
     if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
 
-    setBusy(true)
+    setPhase('sending')
     try {
       await writeContractAsync({
         address: account, abi: OPERATOR_ABI, functionName: 'setOperator',
         args: [operator, false], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
       })
+      // Past the wallet, into the chain's wait. lib/writePhase.ts.
+      setPhase('confirming')
       const confirmed = await pollUntil(async () => !Boolean(
         await publicClient.readContract({
           address: account, abi: OPERATOR_ABI, functionName: 'operators', args: [operator],
@@ -125,7 +131,7 @@ export default function AgentAccessPanel({
     } catch {
       setNote('The transaction was not sent.')
     } finally {
-      setBusy(false)
+      setPhase('idle')
       disarmRevoke()
     }
   }
@@ -165,9 +171,12 @@ export default function AgentAccessPanel({
                       arming === op ? void revokeAccess(op) : armRevoke(op)
                     )}
                   >
-                    {busy && arming === op
-                      ? 'Revoking…'
-                      : arming === op ? 'Confirm revoke' : 'Revoke access'}
+                    {/* Per row: only the row being revoked reports progress.
+                        A phase label on every row would say the chain is
+                        being waited on for operators nobody touched. */}
+                    {arming === op
+                      ? writeLabel(phase, { idle: 'Confirm revoke', sending: 'Revoking…' })
+                      : 'Revoke access'}
                   </Button>
                 )}
               </div>
@@ -207,7 +216,7 @@ export default function AgentAccessPanel({
             disabled={busy}
           />
           <Button variant="primary" className="mt-3" disabled={busy} onClick={() => void grantAccess()}>
-            {busy ? 'Granting…' : 'Grant access'}
+            {writeLabel(phase, { idle: 'Grant access', sending: 'Granting…' })}
           </Button>
         </>
       ) : (
