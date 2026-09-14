@@ -1,7 +1,7 @@
 # Use Leash with your agent
 
 > **Came from the wizard with a `.mcp.json` in hand?** You do not need this
-> page. [`docs/quickstart.md`](quickstart.md) is the five steps that follow
+> page. [`docs/quickstart.md`](quickstart.md) is the eight steps that follow
 > that block, and nothing else. Come back here for what each variable means,
 > for deploying an account from the command line, or when something below is
 > the reference you actually want.

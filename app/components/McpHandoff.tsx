@@ -9,8 +9,11 @@ import Label from './ui/Label'
 import Button from './ui/Button'
 
 /**
- * The five steps that follow this block, for a reader who came through the
- * wizard and has everything except OPERATOR_PK. Deliberately NOT
+ * The steps that follow this block, for a reader who came through the
+ * wizard and has everything except OPERATOR_PK. Its first three are a folder
+ * and a text file, deliberately ahead of the installs: this block is in their
+ * clipboard and the operator key was shown once, and neither survives ten
+ * minutes of `brew install node`. Deliberately NOT
  * docs/mcp-setup.md: that page opens with two paths and a Foundry deploy, and
  * a wizard user has to work out that its first two sections do not apply to
  * them. Sending them there was the handoff's weakest link.

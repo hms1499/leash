@@ -8,13 +8,21 @@ repository.
 **You will edit exactly one value**: `OPERATOR_PK`, the private key of the agent
 wallet the wizard shows you. Everything else in the block is already filled in.
 
+**Keep the wizard tab open until you finish step 3.** You are holding two
+things that do not survive being left alone: the block, which lives in your
+clipboard until something else is copied, and the agent's private key, which
+the wizard shows once and cannot show again. Steps 1 to 3 put both on disk and
+need nothing installed, which is why they come before the installs rather than
+after them. Lose the key and the way back is authorising a new agent wallet —
+another mainnet transaction, paid for again.
+
 ## Before you start
 
 | | |
 |---|---|
-| **Node 20 or newer** | Only the Leash server needs it, and `npx` fetches the server itself. Step 1 checks. |
+| **Node 20 or newer** | Only the Leash server needs it, and `npx` fetches the server itself. Step 4 checks. |
 | **An MCP client** | This guide uses **Claude Code**. Cursor and Codex read the same `.mcp.json` — the server speaks plain stdio MCP and does not care which one starts it. |
-| **A paid Claude plan** | Pro, Max, Team, Enterprise or Console. **Claude Code only** — it is not in the free plan. If you are using Cursor or Codex, skip this and skip step 3. |
+| **A paid Claude plan** | Pro, Max, Team, Enterprise or Console. **Claude Code only** — it is not in the free plan. If you are using Cursor or Codex, skip this and skip step 5 — steps 1-3 and 6 apply to you unchanged. |
 
 None of this is needed to *create* a protected account. The wizard finishes
 without it and the account is already protected; this guide is the optional
@@ -22,7 +30,54 @@ step that hands the account to an agent.
 
 ---
 
-## 1. Install Node
+## 1. Make a project folder
+
+This is where the agent will work, and where the config has to live. Not your
+home directory.
+
+Nothing is installed yet and nothing needs to be: this step and the two after
+it are a folder and a text file. Do them first and the two things you are
+holding — the block in your clipboard and a key you were shown once — are on
+disk before anything can take them away.
+
+**macOS**
+
+```bash
+mkdir -p ~/my-agent
+cd ~/my-agent
+```
+
+**Windows PowerShell**
+
+```powershell
+mkdir ~/my-agent
+cd ~/my-agent
+```
+
+## 2. Add `.mcp.json` to the folder
+
+Save the block from your clipboard as a file named `.mcp.json` inside the folder
+you made in step 1:
+
+```
+~/my-agent/
+└── .mcp.json
+```
+
+## 3. Paste the operator key
+
+Open `.mcp.json` in any text editor — TextEdit on macOS, Notepad on Windows —
+and replace `0xYourAgentOperatorPrivateKey` with the private key of the agent
+wallet the wizard shows you: `0x` followed by 64 hex characters. Save the file.
+
+Paste an *address* here by mistake (40 characters) and the server refuses to
+start.
+
+**This is the last step that needs the wizard tab.** Once the key is saved here
+you can close it. That file is now a secret — anyone who reads it can spend up
+to your limits.
+
+## 4. Install Node
 
 The Leash server runs through `npx`, which needs **Node 20 or newer**. (Claude
 Code itself does not use Node — this is only for the server.)
@@ -51,35 +106,7 @@ Confirm before moving on:
 node -v      # v20.x or newer
 ```
 
-## 2. Fetch the Leash server
-
-**There is no install step for `leash-agentpay`, and you are not missing one.**
-The `.mcp.json` block runs it with `npx -y`, which downloads the package the
-first time Claude Code starts it and caches it after that. Nothing goes into
-your project and nothing is installed globally.
-
-That first download happens invisibly, inside Claude Code's startup, where a
-network failure surfaces only as "server failed to connect". Pull it now
-instead, so you find out here:
-
-```bash
-npx -y leash-agentpay
-```
-
-Expect it to **fail**, in exactly this way:
-
-```
-Error: OPERATOR_PK is not set. The Leash MCP server needs it to start.
-```
-
-That error is the success condition for this step: the package downloaded, ran,
-read its configuration, and stopped because you have not given it any yet. You
-will, in step 6.
-
-Any other outcome is a real problem — `command not found: npx` means step 1 did
-not take, and a registry or network error means `npx` could not reach npm.
-
-## 3. Install Claude Code
+## 5. Install Claude Code
 
 **macOS**
 
@@ -99,46 +126,38 @@ Confirm it landed:
 claude --version      # prints something like 2.1.266 (Claude Code)
 ```
 
-If your shell says `command not found`, open a new terminal window first — the
-installer adds `claude` to a path your current shell has not re-read.
+## 6. Fetch the Leash server
 
-## 4. Make a project folder
+**There is no install step for `leash-agentpay`, and you are not missing one.**
+The `.mcp.json` block runs it with `npx -y`, which downloads the package the
+first time Claude Code starts it and caches it after that. Nothing goes into
+your project and nothing is installed globally.
 
-This is where the agent will work, and where the config has to live. Not your
-home directory.
+That first download happens invisibly, inside Claude Code's startup, where a
+network failure surfaces only as "server failed to connect". Pull it now
+instead, so you find out here.
 
-**macOS**
+**This command is supposed to fail.** Run it from anywhere — it reads
+environment variables, not your `.mcp.json`, so it will stop for want of a key
+and that is the point:
 
 ```bash
-mkdir -p ~/my-agent
-cd ~/my-agent
+npx -y leash-agentpay
 ```
 
-**Windows PowerShell**
-
-```powershell
-mkdir ~/my-agent
-cd ~/my-agent
-```
-
-## 5. Add `.mcp.json` to the folder
-
-Save the block from your clipboard as a file named `.mcp.json` inside the folder
-you made in step 4:
+The failure you want, exactly:
 
 ```
-~/my-agent/
-└── .mcp.json
+Error: OPERATOR_PK is not set. The Leash MCP server needs it to start.
 ```
 
-## 6. Paste the operator key
+That error is the success condition for this step: the package downloaded, ran,
+read its configuration, and stopped because this particular invocation was
+given none. The key you saved in step 3 is not missing — Claude Code passes it
+in when *it* starts the server, which is step 7.
 
-Open `.mcp.json` in any text editor — TextEdit on macOS, Notepad on Windows —
-and replace `0xYourAgentOperatorPrivateKey` with the private key of the agent
-wallet the wizard shows you: `0x` followed by 64 hex characters. Save the file.
-
-Paste an *address* here by mistake (40 characters) and the server refuses to
-start.
+Any other outcome is a real problem — `command not found: npx` means step 4 did
+not take, and a registry or network error means `npx` could not reach npm.
 
 ## 7. Start Claude Code
 
