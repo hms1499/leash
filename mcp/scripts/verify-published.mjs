@@ -16,7 +16,7 @@
  *
  * Needs the operator key, so it is a script rather than a test:
  *
- *   set -a && . ./.env && set +a && pnpm -F leash-agentpay verify:published 0.2.1
+ *   set -a && . ./.env && set +a && pnpm -F leash-agentpay verify:published 0.3.1
  *
  * It lives under `mcp/` rather than the repo's `scripts/` because it imports
  * the MCP client SDK, which Node resolves from the importing FILE's directory

@@ -7,7 +7,7 @@
  * environment variable for the same reason `examples/demo-agent.ts` is.
  *
  *   set -a && . ./.env && set +a && \
- *   LEASH_PROVE_SPEND_REAL_MONEY=yes pnpm -F leash-agentpay prove:pay 0.2.1
+ *   LEASH_PROVE_SPEND_REAL_MONEY=yes pnpm -F leash-agentpay prove:pay 0.3.1
  *
  * What it establishes that no unit test can: that `ok: true` comes back only
  * after a receipt was actually read, and that the figures the tool reports
@@ -37,7 +37,11 @@ if (process.env.LEASH_PROVE_SPEND_REAL_MONEY !== 'yes') {
   process.exit(1)
 }
 
-const VERSION = process.argv[2] ?? '0.2.1'
+// The registry's `latest`, not the version the docs' proofs were earned on.
+// A default that names a superseded build silently proves the wrong bytes:
+// this script installs VERSION from npm, so `prove:pay` with no argument was
+// spending real money to test a package nobody runs any more.
+const VERSION = process.argv[2] ?? '0.3.1'
 const AMOUNT = '0.01'
 const ATOMIC = 10_000n
 

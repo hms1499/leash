@@ -420,6 +420,51 @@ Read back off the chain rather than taken from the test's own output:
    *and* leave a float — an operator below the reserve cannot send even the draw
    that would refill it, and strands until the owner rescues it.
 
+## npm — `leash-agentpay@0.3.1`, published 2026-09-10
+
+| | |
+|---|---|
+| Package | `leash-agentpay@0.3.1`, public, tag `latest` |
+| Contents | 4 files |
+| Unpacked | 52,986 bytes |
+| shasum | `b3393c9b9f5263d0a18645d7128140f18b439f87` |
+| Publisher | npm account `vanhuy1999` |
+
+**This is what `npx -y leash-agentpay` serves today**, and what every reader of
+`docs/quickstart.md` runs. The sections below it document 0.2.1 and 0.1.0 and
+are kept as the record of those releases, not as the current version.
+
+A patch over 0.3.0, cut 36 minutes later, for a reason worth stating plainly:
+`leash_fetch`'s description ships *inside* the published bin. 65c36a3 corrected
+that description — it had been promising a guarantee the policy cannot make —
+but a correction in the repository reaches nobody running `npx`. Until a
+version carried it, 0.3.0 kept telling every agent that the caps always apply.
+
+Verified before cutting: `test:bundle` 3/3 against the packed tarball, mcp
+29/29 at that commit (35/35 today).
+
+## npm — `leash-agentpay@0.3.0`, published 2026-09-10
+
+| | |
+|---|---|
+| Package | `leash-agentpay@0.3.0`, public |
+| Contents | 4 files |
+| Unpacked | 51,250 bytes |
+| shasum | `922d66d632d8a79d029335214e93a9012b13abd4` |
+| Publisher | npm account `vanhuy1999` |
+
+0.2.1 read the x402 challenge out of the 402 body, so every **v2** endpoint came
+back `malformed_challenge`. The transport fix landed in f19abab; this is the
+version that carried it to anyone running `npx leash-agentpay`.
+
+Proved end to end before publishing, not after: bought
+`agent402.tools/api/tls-cert` for 0.001 USDC through the build, settled on
+chain at block 77145888, status `0x1` — an `AuthorizationUsed` plus a
+1000-atomic `Transfer` to the `payTo` the v2 challenge named. First time
+`PAYMENT-SIGNATURE` was accepted by a real v2 facilitator.
+
+sdk 75/75, mcp 29/29, `test:bundle` 3/3 at that commit.
+
 ## npm — `leash-agentpay@0.2.1`, published 2026-09-07
 
 | | |
