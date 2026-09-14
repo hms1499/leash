@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  belongsToToken, describeLog, rowKey, relativeAge, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
+  arrivedKeys, belongsToToken, describeLog, rowKey, relativeAge, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
+  type FeedRow,
   tailRange, MAX_LOG_RANGE_BLOCKS, liveOperators,
 } from '../lib/feed.js'
 
@@ -290,5 +291,49 @@ describe('liveOperators', () => {
   it('never returns the same address twice', () => {
     const out = liveOperators([at(A, true, 100n), at(A, true, 200n), at(A, true, 300n)])
     expect(out).toEqual([A])
+  })
+})
+
+/**
+ * design-system.md §12, widened 2026-09-14 from "nothing moves that the reader
+ * did not cause" to "…the reader or the chain". This is the only thing the
+ * widening admits, so these assert the two halves of it: an arrival moves, and
+ * a first render does not.
+ */
+describe('arrivedKeys', () => {
+  const row = (txHash: string, logIndex = 0): FeedRow => ({
+    kind: 'spent', text: 'paid', amount: 1n,
+    txHash: txHash as `0x${string}`, blockNumber: 1n, logIndex,
+  })
+
+  /**
+   * The load-bearing half. §12: "A transition does not run on first render."
+   * Without this the whole feed would announce itself every time the panel
+   * mounted, which is an entrance -- the exact thing the rule refuses.
+   */
+  it('reports nothing before it has seen a poll', () => {
+    expect([...arrivedKeys(new Set(), false, [row('0xa'), row('0xb')])]).toEqual([])
+  })
+
+  it('reports a row whose transaction was not in the previous poll', () => {
+    const seen = new Set([rowKey(row('0xa'))])
+    expect([...arrivedKeys(seen, true, [row('0xb'), row('0xa')])])
+      .toEqual([rowKey(row('0xb'))])
+  })
+
+  it('reports nothing when the poll returned what it returned last time', () => {
+    const rows = [row('0xa'), row('0xb')]
+    const seen = new Set(rows.map(rowKey))
+    expect([...arrivedKeys(seen, true, rows)]).toEqual([])
+  })
+
+  /**
+   * Two logs in one transaction are two rows. Keying on the hash alone would
+   * silence the second, which is the case rowKey's own tests exist for.
+   */
+  it('tells two logs of one transaction apart', () => {
+    const seen = new Set([rowKey(row('0xa', 0))])
+    expect([...arrivedKeys(seen, true, [row('0xa', 1), row('0xa', 0)])])
+      .toEqual([rowKey(row('0xa', 1))])
   })
 })

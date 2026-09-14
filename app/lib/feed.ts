@@ -96,6 +96,30 @@ export function relativeAge(seconds: number): string {
  * transaction can emit several events, and the backfill and the live watcher
  * can both deliver the same log.
  */
+/**
+ * Which of these rows were not in the previous poll.
+ *
+ * design-system.md §12 bans motion the reader did not cause, and was widened
+ * on 2026-09-14 to "the reader **or the chain**". This is the whole of what
+ * that widening admits: a row appearing because an agent just paid somebody is
+ * the page reporting an event, not the page moving on its own.
+ *
+ * `primed` is the half that keeps it honest. §12 also says a transition does
+ * not run on first render, and without this flag every row would announce
+ * itself the moment the panel mounted -- an entrance, which is the thing the
+ * rule refuses. So the first poll teaches this function what already existed
+ * and moves nothing; only what turns up afterwards is an arrival.
+ *
+ * Keyed by `rowKey`, not by transaction hash: one transaction can carry two
+ * logs and they are two rows.
+ */
+export function arrivedKeys(
+  seen: ReadonlySet<string>, primed: boolean, rows: readonly FeedRow[],
+): ReadonlySet<string> {
+  if (!primed) return new Set()
+  return new Set(rows.map(rowKey).filter((key) => !seen.has(key)))
+}
+
 export function rowKey(row: FeedRow): string {
   return `${row.txHash}-${row.logIndex}`
 }

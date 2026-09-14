@@ -114,7 +114,7 @@ export default function Hero() {
               color: 'var(--text)',
             }}
           >
-            A real account, not a mockup
+            Live account, real money
           </h2>
           <p className="mt-2 mb-6" style={{ ...PROSE, color: 'var(--dim)' }}>
             Policy, balance and recent activity, read straight from a deployed

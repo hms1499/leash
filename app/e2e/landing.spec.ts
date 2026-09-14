@@ -81,7 +81,7 @@ test('the live dashboard preview stays on the homepage until the user opens the 
   await page.getByRole('link', { name: 'View live dashboard' }).first().click()
 
   await expect(page).toHaveURL(/\/#live-proof$/)
-  await expect(page.getByRole('heading', { name: 'A real account, not a mockup' })).toBeInViewport()
+  await expect(page.getByRole('heading', { name: 'Live account, real money' })).toBeInViewport()
 })
 
 test('the primary journey links landing, setup and the account directory without dead ends', async ({ page }) => {
@@ -124,7 +124,7 @@ test('the page tells its story in order as you scroll', async ({ page }) => {
   const headings = await page.locator('h1, h2').allTextContents()
   expect(headings.map((h) => h.trim())).toEqual([
     'Give an AI agent a wallet without trusting it.',
-    'A real account, not a mockup',
+    'Live account, real money',
     'Built for agents that need to spend, not hold unlimited funds',
     'Keep the budget and the hot key separate',
     'The controls a production agent wallet actually needs',

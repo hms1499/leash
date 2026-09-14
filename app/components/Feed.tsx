@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatDisplayAmount } from '../lib/policy.js'
-import { relativeAge, rowKey, WINDOW_LABEL, type FeedRow } from '../lib/feed.js'
+import { arrivedKeys, relativeAge, rowKey, WINDOW_LABEL, type FeedRow } from '../lib/feed.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
 import { HEADING } from './ui/prose'
@@ -28,6 +28,29 @@ export default function Feed({
     const t = setInterval(() => { if (!document.hidden) tick((n) => n + 1) }, 10_000)
     return () => clearInterval(t)
   }, [])
+
+  /**
+   * Rows that turned up since the last poll, so an arrival can announce itself.
+   *
+   * design-system.md §12, widened 2026-09-14: motion may be caused by the
+   * reader **or the chain**, and by nothing else. A payment landing is the
+   * second kind. If the account is idle nothing here moves, which is the
+   * property that keeps this from being decoration.
+   *
+   * Refs rather than state: the answer is wanted during the render that mounts
+   * the row, and `.motion-reveal` is a CSS animation, so it plays on mount and
+   * needs nothing after. Storing it in state would re-render every poll to say
+   * "nothing arrived".
+   */
+  const seen = useRef<ReadonlySet<string>>(new Set())
+  const primed = useRef(false)
+  const arrived = arrivedKeys(seen.current, primed.current, rows)
+  useEffect(() => {
+    const next = new Set(seen.current)
+    for (const r of rows) next.add(rowKey(r))
+    seen.current = next
+    primed.current = true
+  }, [rows])
 
   /**
    * One frame for every branch.
@@ -122,7 +145,8 @@ export default function Feed({
       {rows.map((r, index) => (
         <div
           key={rowKey(r)}
-          className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-1 py-3 text-sm sm:grid-cols-[auto_1fr_auto_auto_auto]"
+          className={`grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-1 py-3 text-sm sm:grid-cols-[auto_1fr_auto_auto_auto]${
+            arrived.has(rowKey(r)) ? ' motion-reveal' : ''}`}
           style={{ borderBottom: index === rows.length - 1 ? 'none' : '1px solid var(--line)' }}
         >
           <span

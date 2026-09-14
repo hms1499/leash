@@ -950,14 +950,34 @@ since the meter was built. This gives it numbers.
   wallet confirmation can take seconds, and until it opens this is the only
   thing that answered the finger. `test/surface.test.ts` fails on a file with
   a raw `<button>` or `<summary>` that does not take one.
-- **No ambient motion.** Nothing moves that the reader did not cause. No
-  entrance on scroll, no pulse on a live value, and no transition on hover
-  **except a control's own colour**, at `--m-fast`. This is a screen someone
-  watches while an agent spends real money; a page that moves on its own makes
-  the one movement that matters — the meter — stop being a signal. A control
-  answering the pointer that is on it is not that: it moves only where the
-  reader is already looking, only while they are there, and only in colour —
-  nothing reflows, and §4 defines what may change.
+- **No ambient motion.** Nothing moves that the reader **or the chain** did not
+  cause. No entrance on scroll, no pulse on a live value, and no transition on
+  hover **except a control's own colour**, at `--m-fast`. This is a screen
+  someone watches while an agent spends real money; a page that moves on its
+  own makes the one movement that matters — the meter — stop being a signal. A
+  control answering the pointer that is on it is not that: it moves only where
+  the reader is already looking, only while they are there, and only in colour
+  — nothing reflows, and §4 defines what may change.
+
+  **"or the chain" was added 2026-09-14, and it is a widening.** The rule was
+  written as though the reader were the only actor, which is the one assumption
+  this product does not get to make: its whole subject is a second actor
+  spending money while nobody watches. A row appearing in the feed because an
+  agent just paid someone is not the page moving on its own — it is the page
+  reporting, which is the same category as the meter's fill, and the sentence
+  above already protects that.
+
+  What the widening does **not** admit is everything it was written to refuse.
+  Decoration has no cause: a section fading in on scroll was caused by
+  scrolling, a parallax by a scrollbar, a hover flourish by a pointer passing
+  through. None of those is an event. The test is not "did something happen" —
+  it is **"would this have moved if the chain had been idle?"** If yes, it is
+  ambient and it is still banned.
+
+  Spent by: `Feed`, on a row whose transaction was not in the previous poll,
+  at `--m-fast` through the existing `.motion-reveal`. A first render is not an
+  arrival — the rule two bullets up already says so, and `feed.ts`'s
+  `arrivedKeys` returns nothing until it has seen one poll.
 - **`--m-slow` has exactly one user.** A second thing at 400ms competes with
   the meter for the eye, and the meter is the instrument.
 - **`prefers-reduced-motion` is handled once, globally.** A blanket rule at
