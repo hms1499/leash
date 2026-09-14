@@ -17,6 +17,14 @@ export default function Landing() {
       <main>
         <Hero />
         <Section
+          id="live-proof"
+          eyebrow="Live product proof"
+          title="A real account, not a mockup"
+          description="This dashboard reads policy, balance and recent activity directly from a deployed account on Celo mainnet. No wallet connection is required."
+        >
+          <LiveProof />
+        </Section>
+        <Section
           id="use-cases"
           eyebrow="Use cases"
           title="Built for agents that need to spend, not hold unlimited funds"
@@ -31,14 +39,6 @@ export default function Landing() {
           description="Most funds stay in a contract you own. The agent gets permission to request bounded spends plus only a small operating balance."
         >
           <ProtectionModel />
-        </Section>
-        <Section
-          id="live-proof"
-          eyebrow="Live product proof"
-          title="A real account, not a mockup"
-          description="This dashboard reads policy, balance and recent activity directly from a deployed account on Celo mainnet. No wallet connection is required."
-        >
-          <LiveProof />
         </Section>
         <Section
           id="capabilities"

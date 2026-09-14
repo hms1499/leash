@@ -58,8 +58,16 @@ test('the landing page explains itself and shows live mainnet numbers', async ({
   await expect(page.getByText('The contract has not been audited.', { exact: false })).toBeVisible()
   await expect(page.getByText(/mcpServers/)).toHaveCount(0)
   await expect(page.getByRole('link', { name: /create protected account/i }).first()).toBeVisible()
+  /**
+   * One, not two. The hero used to carry a "View live dashboard" jump link
+   * beside its primary CTA; with the live meter moved directly beneath the
+   * hero, that link scrolled the reader roughly one line to reach something
+   * already on their screen, and duplicated LiveProof's own "Open full
+   * dashboard" a section later. The one left is FinalCta's, at the foot of the
+   * page, where jumping back up is a real journey.
+   */
   const dashboardPreviews = page.getByRole('link', { name: 'View live dashboard' })
-  await expect(dashboardPreviews).toHaveCount(2)
+  await expect(dashboardPreviews).toHaveCount(1)
   await expect(dashboardPreviews.first()).toHaveAttribute('href', '#live-proof')
   await expect(page.getByRole('link', { name: 'Open full dashboard' })).toHaveAttribute(
     'href',
@@ -92,9 +100,19 @@ test('the primary journey links landing, setup and the account directory without
 
 /**
  * The order of the sections is the order a reader asks the questions, and it
- * is a product decision rather than an accident of when each was written:
- * what is it, when is it useful, where the money lives, is it real, what can
- * it do, how is it set up, and what remains outside the security boundary.
+ * is a product decision rather than an accident of when each was written.
+ *
+ * It used to run: what is it, when is it useful, where the money lives, is it
+ * real, what can it do, how is it set up, and what remains outside the
+ * security boundary. "Is it real" was fourth, which put three screens of prose
+ * between a claim and the only thing on the page that does not merely assert
+ * it -- a meter reading a live mainnet account, with its last transactions
+ * linked to Celoscan. A reader evaluating this in thirty seconds, or a judge
+ * in five minutes, left before reaching it.
+ *
+ * So "is it real" is now second, immediately under the claim it answers. The
+ * rest of the order is unchanged: once a reader believes the numbers, the old
+ * sequence of questions is still the sequence they ask.
  *
  * Asserted here because only a rendered page can carry it. The unit suite runs
  * in the node environment and cannot see document order -- the same reason the
@@ -106,9 +124,9 @@ test('the page tells its story in order as you scroll', async ({ page }) => {
   const headings = await page.locator('h1, h2').allTextContents()
   expect(headings.map((h) => h.trim())).toEqual([
     'Give an AI agent a wallet without trusting it.',
+    'A real account, not a mockup',
     'Built for agents that need to spend, not hold unlimited funds',
     'Keep the budget and the hot key separate',
-    'A real account, not a mockup',
     'The controls a production agent wallet actually needs',
     'From owner wallet to ready agent in four stages',
     'Know exactly what is—and is not—protected',

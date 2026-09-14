@@ -43,9 +43,14 @@ export default function Hero() {
         prompt. Most funds stay protected; the agent receives only permission
         to spend within policy and a small operating balance for gas or x402.
       </p>
+      {/* One CTA, not two. The second was a "View live dashboard" jump to
+          #live-proof, which earned its place while that section was fourth and
+          three screens of prose away. It now sits directly below this one, so
+          the link scrolled a reader about a line to reach what was already in
+          front of them -- and LiveProof carries its own "Open full dashboard"
+          to the real account anyway. */}
       <div className="mt-6 flex flex-wrap gap-3">
         <ActionLink href="/setup" variant="primary">Create protected account</ActionLink>
-        <ActionLink href="#live-proof">View live dashboard</ActionLink>
       </div>
       {/* Said here because it used to be said only in docs/quickstart.md,
           which a reader reaches AFTER the wizard -- that is, after deploying a
