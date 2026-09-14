@@ -10,14 +10,21 @@ not in the agent's wallet; the agent can only ask the contract to spend, and the
 contract reverts past its limits. The limits are code on Celo, not a sentence in
 a prompt, so a leaked agent key does not become an unbounded one.
 
-- **Submission is PUBLISHED**, 2026-09-06 03:10 UTC. Read back from
-  `GET /submissions/me` as `status: published`, not inferred from the POST.
-  It stays editable until the deadline, so a video or a fix still lands.
-- **Primary track:** `judges-favorite` · **Bounties:** `judges-favorite`,
-  `best-stablecoin-adoption`. `askbots-growth` was never entered.
-- **Deadline:** 2026-09-14 09:00 GMT (16:00 ICT, Monday). **No countdown is
-  written here.** The one that was here said "8 days left" and was still saying
-  it on 2026-09-12, when two remained. Subtract from the date.
+- **Submission is PUBLISHED**, 2026-09-06 03:10 UTC, and was **updated for v2
+  on 2026-09-14**. Both read back from `GET /submissions/me` as
+  `status: published`, not inferred from the PUT. It stays editable until the
+  deadline, so a video or a fix still lands.
+- **Primary track:** `judges-favorite` · **Tracks:** also `value-moved` and
+  `real-world-adoption` · **Bounties:** `judges-favorite`,
+  `best-stablecoin-adoption`, `value-moved-1st`, `value-moved-2nd`,
+  `best-real-world-adoption`. `askbots-growth` was never entered.
+  `docs/registration.md` is the record; this line has been wrong before.
+- **Deadline:** 2026-09-21 09:00 GMT (16:00 ICT, Monday). **Extended from
+  14 Sep**, which is what this line said until 2026-09-14 — a date written here
+  from the spec and never re-read against `GET /hackathons/agents-at-work`.
+  **No countdown is written here.** The one that was here said "8 days left"
+  and was still saying it on 2026-09-12, when two remained. Subtract from the
+  date, and re-read the date from the API.
 - **Repo:** https://github.com/hms1499/leash (public)
 
 ## Read these, in order

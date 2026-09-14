@@ -4,7 +4,7 @@ Registered with celobuilders on 2026-09-02. This file is the record of the
 values the rest of the plan depends on; the authoritative copies live on
 celobuilders (`GET /submissions/me`) and on Celo mainnet.
 
-- Hackathon: `agents-at-work` (28 Aug 2026 00:00 → 14 Sep 2026 09:00 GMT)
+- Hackathon: `agents-at-work` (28 Aug 2026 00:00 → 21 Sep 2026 09:00 GMT, extended from 14 Sep)
 - Primary track: `judges-favorite`
 - **Tracks entered, as read back from `GET /submissions/me` 2026-09-08T08:28Z:**
   `judges-favorite`, `value-moved`, `real-world-adoption`
@@ -46,7 +46,42 @@ or more and clustering in the bottom two grades. What the board actually showed:
 
 The 500-character cap on `additionalTrackRationale` forced the two truncated tx
 hashes out of the Best Stablecoin Adoption line. The full hashes are in
-`docs/deployments.md`.
+`docs/deployments.md`. **Both are back in as of the 2026-09-14 update below**,
+which got under the cap by cutting words rather than evidence; the field now
+reads 497 of 500.
+
+## Updated for v2, 2026-09-14
+
+`PUT /submissions/me` returned `200`, and a separate `GET` read the change back
+rather than trusting the PUT's own response body. `status` is still `published`
+— an update to a published submission stays published, so there was nothing to
+re-publish. `updatedAt` 2026-09-14T02:14:49Z.
+
+What changed, and why:
+
+- `contractAddresses` was `0x7aDa926B…E43fd2`, the **superseded v1**. A judge
+  opening the submission's one contract link landed on the contract v2 exists to
+  replace — `owner` immutable, `topUpOperator` with no off switch. It is now
+  `0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d` alone.
+- `ownContracts` declared three addresses, all superseded, and neither v2 nor
+  `0x7757035d…`. This is the gap `docs/deployments.md` flagged as open. It now
+  declares all six: v2, v1, `0x895B773E…`, the `0x7156af4f…` deploy that shipped
+  v1 bytecode, and the two accounts strangers deployed through the wizard. Those
+  last two are owned by somebody else but share this project's operator EOA, so
+  they look project-controlled at audit; both are paused and hold 0 USDC, so
+  declaring them excludes no volume.
+- The description's five proofs were all v1 transactions. They are now the v2
+  re-proofs of 2026-09-12, plus the two outcomes only v2 has: the account
+  changing hands and coming back, and `topUpOperator` refused while the switch
+  was off.
+- Test counts were `32 contract, 253 TypeScript, 7 Playwright`. Every suite was
+  run before the PUT rather than counted from a file: **66** forge, **506**
+  TypeScript (83 sdk + 35 mcp + 388 app), **41** Playwright against the deployed
+  URL. `CLAUDE.md` said 362 for the app suite and was corrected to 388 in the
+  same pass.
+
+Unchanged: `attributionTag`, `agentWalletAddress`, `socialLink`, tracks and
+bounties. **`videoUrl` is still null.**
 
 ## The attribution tag is not retroactive
 

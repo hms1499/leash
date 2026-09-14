@@ -299,12 +299,14 @@ the project's own account. That is the same reuse `docs/deployments.md` already
 flags as a limit on the stranger-walk measurement — a stranger would have had to
 generate an operator, and did not.
 
-**Submission gap, open at the time of writing.** `ownContracts` on the
-celobuilders submission declares `0x7aDa926B…`, `0xA73DB76f…` and `0x895B773E…`.
-It declares neither `0x7757035d…` nor the v2 account `0xBE380aa7…` that
-superseded `0x7aDa926B…` and is what every live surface now points at. The skill warns that undeclared wallets
-which look project-controlled are read as farming signals at audit, so this is
-worth closing.
+**Submission gap, CLOSED 2026-09-14.** `ownContracts` declared `0x7aDa926B…`,
+`0xA73DB76f…` and `0x895B773E…`, and declared neither `0x7757035d…` nor the v2
+account `0xBE380aa7…` that superseded `0x7aDa926B…` and is what every live
+surface now points at. The skill warns that undeclared wallets which look
+project-controlled are read as farming signals at audit. It now declares all
+six — v2, v1, `0x895B773E…`, `0x7156af4f…`, `0xA73DB76f…`, `0x7757035d…` —
+read back from `GET /submissions/me`, not inferred from the PUT. The same
+update moved `contractAddresses` off v1 and onto v2; see `docs/registration.md`.
 
 ## Celo Sepolia
 
