@@ -47,6 +47,19 @@ export default function Hero() {
         <ActionLink href="/setup" variant="primary">Create protected account</ActionLink>
         <ActionLink href="#live-proof">View live dashboard</ActionLink>
       </div>
+      {/* Said here because it used to be said only in docs/quickstart.md,
+          which a reader reaches AFTER the wizard -- that is, after deploying a
+          contract, setting a policy, authorising an agent and funding two
+          balances, all with real money. Finding out what you need to finish,
+          five mainnet transactions in, is the drop-off this line exists to
+          prevent. Deliberately NOT "requires Claude Code": mcp/src/index.ts
+          speaks stdio MCP and nothing else, so any MCP client works, and
+          naming one would turn away the others for no reason. */}
+      <p className="mt-6" style={{ ...PROSE, maxWidth: '68ch', color: 'var(--dim)' }}>
+        Connecting an agent afterwards needs Node 20 or newer and an MCP client
+        — Claude Code, Cursor and Codex all work. The protected account itself
+        needs none of that and is complete without it.
+      </p>
       <ul
         className="mt-6 flex flex-wrap gap-x-6 gap-y-2"
         aria-label="Product facts"
@@ -55,6 +68,7 @@ export default function Hero() {
         <li>Celo mainnet</li>
         <li>· Open source</li>
         <li>· No custody</li>
+        <li>· Any MCP agent</li>
       </ul>
     </section>
   )

@@ -897,6 +897,20 @@ export default function Onboard() {
               </div>
             ))}
           </div>
+          {/* Outside the <details> below, which is shut by default -- so the
+              one thing a reader cannot discover later without cost is the one
+              thing they see without clicking. Everything after this point on
+              this page spends real money: a deploy, a setPolicy, an
+              addOperator and two transfers. Until 2026-09-14 the runtime
+              requirement was written down only in docs/quickstart.md, which is
+              reached after all five. */}
+          <p className="mt-6" style={{ ...PROSE, color: 'var(--dim)' }}>
+            Creating the account needs only the wallet you are about to connect.
+            Handing it to an agent afterwards needs Node 20 or newer and an MCP
+            client — <strong>Claude Code, Cursor and Codex all work</strong>.
+            The step-by-step guide uses Claude Code, which needs a paid Claude
+            plan; the others do not.
+          </p>
           <details className="mt-5 text-sm" style={{ color: 'var(--dim)' }}>
             <summary className="motion-press control-text tap-tall cursor-pointer focus-ring"
               style={{ borderRadius: 'var(--r-mark)', color: 'var(--text)', outlineColor: 'var(--text)' }}>

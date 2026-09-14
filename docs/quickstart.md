@@ -8,8 +8,17 @@ repository.
 **You will edit exactly one value**: `OPERATOR_PK`, the private key of the agent
 wallet the wizard shows you. Everything else in the block is already filled in.
 
-You also need a Claude account on a paid plan — Pro, Max, Team, Enterprise, or
-Console. Claude Code is not included in the free plan.
+## Before you start
+
+| | |
+|---|---|
+| **Node 20 or newer** | Only the Leash server needs it, and `npx` fetches the server itself. Step 1 checks. |
+| **An MCP client** | This guide uses **Claude Code**. Cursor and Codex read the same `.mcp.json` — the server speaks plain stdio MCP and does not care which one starts it. |
+| **A paid Claude plan** | Pro, Max, Team, Enterprise or Console. **Claude Code only** — it is not in the free plan. If you are using Cursor or Codex, skip this and skip step 3. |
+
+None of this is needed to *create* a protected account. The wizard finishes
+without it and the account is already protected; this guide is the optional
+step that hands the account to an agent.
 
 ---
 
