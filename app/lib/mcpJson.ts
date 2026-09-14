@@ -6,8 +6,17 @@ export type McpHandoff = {
 }
 
 /**
- * The one value this app must never learn. The operator key is pasted by the
- * user, locally, into the file this block becomes.
+ * The one value this block must never carry.
+ *
+ * This used to read "the one value this app must never learn", which stopped
+ * being true when /setup grew a Generate agent wallet button -- it makes a
+ * keypair in the tab, so the app does learn one. What survives, narrower and
+ * still load-bearing, is stated here: the key never reaches this block. The
+ * user pastes it into the file themselves, and that paste is the moment they
+ * find out the file is now a secret.
+ *
+ * agentKey.test.ts asserts a generated key cannot reach the output of
+ * buildMcpJson.
  */
 export const OPERATOR_PK_PLACEHOLDER = '0xYourAgentOperatorPrivateKey'
 

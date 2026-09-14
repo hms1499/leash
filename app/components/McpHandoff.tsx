@@ -161,8 +161,8 @@ export default function McpHandoff({
           {operator
             ? <><code className="num">{operator}</code>, the wallet this account has authorised.</>
             : <>your agent wallet.</>}{' '}
-          This site never asks for it and never sees it. It is a hot key:
-          whoever holds it can spend up to your limits.
+          This block never carries it and nothing is sent anywhere. It is a hot
+          key: whoever holds it can spend up to your limits.
         </p>
         <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
           This runs the published <code>leash-agentpay</code> package through{' '}

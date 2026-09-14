@@ -37,19 +37,25 @@ which `npx` needs to run it.
 
 ## 0. Make the agent's wallet first
 
-Both paths — this document and the browser wizard — ask for the agent's
-**address** when you set it up, and then section 2 below asks for its
-**private key**. Generate it now, in one place, so you are not exporting a key
-out of a browser extension halfway through:
+**Taking the wizard? Skip this section.** Step 3 has a *Generate agent wallet*
+button: it makes the keypair in your browser, fills in the address, and shows
+you the private key once. Nothing to install.
+
+This document's path asks for the agent's **address** when you call
+`setOperator`, and then section 2 below asks for its **private key**. Generate
+it now, in one place, so you are not exporting a key out of a browser extension
+halfway through:
 
 ```bash
 cast wallet new
-# Address:     0x…   <- paste this into setOperator, or into the wizard
+# Address:     0x…   <- paste this into setOperator
 # Private key: 0x…   <- this becomes OPERATOR_PK in section 2
 ```
 
 No `cast`? Any keypair generator works; the wallet is an ordinary EOA. What
-matters is that you can read the private key back out.
+matters is that you can read the private key back out. The wizard's button is
+not a way out of this section — step 3 unlocks only after you have deployed an
+account and set its limits, so it helps the wizard's path and not this one.
 
 **This wallet needs no CELO, ever.** It pays gas in USDC through Celo's fee
 abstraction, which is the whole reason it can be a throwaway key. Around

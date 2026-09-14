@@ -10,13 +10,14 @@ import ActionLink from '../../components/ui/ActionLink'
 import AppHeader from '../../components/ui/AppHeader'
 import Panel from '../../components/ui/Panel'
 import Label, { LABEL_STYLE } from '../../components/ui/Label'
-import { PROSE, SUBHEAD, TITLE } from '../../components/ui/prose'
+import { DATA, PROSE, SUBHEAD, TITLE } from '../../components/ui/prose'
 import Button from '../../components/ui/Button'
 import {
   publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS, ERC20_TRANSFER_GAS,
   SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS, SET_OPERATOR_GAS, SET_POLICY_GAS, SET_TOP_UP_ENABLED_GAS,
 } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
+import { generateAgentWallet } from '../../lib/agentKey.js'
 import { formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import {
@@ -107,6 +108,70 @@ function noteColor(note: string | null, ...successes: string[]): string {
   return note !== null && successes.includes(note) ? 'var(--ok)' : 'var(--bad)'
 }
 
+/**
+ * The private key of a wallet this tab generated, shown for as long as the tab
+ * is open.
+ *
+ * Rendered in step 3, where it is made, and again in step 4, where the reader
+ * copies the .mcp.json it belongs in. Sending them back a step to fetch a
+ * secret they were shown once is how a secret gets written somewhere worse.
+ *
+ * It is NOT passed to McpHandoff: the dashboard renders that same component
+ * for accounts whose keys this app has never held, and a prop would invite a
+ * caller to fill it.
+ */
+function GeneratedKeyPanel({ privateKey }: { privateKey: `0x${string}` }) {
+  const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
+  return (
+    <div className="p-6 mt-6" style={{ ...STATUS_BOX, borderColor: 'var(--bad)' }}>
+      <Label className="block">Agent private key — shown once</Label>
+      {/* .num for the same reason every other key-shaped value on this page
+          carries it: tabular-nums, and a 66-character token that must not
+          reflow. break-all because it has nowhere legal to break. */}
+      <p className="num mt-3 break-all" style={{ ...DATA, color: 'var(--text)' }}>{privateKey}</p>
+      <Button
+        variant="ghost"
+        className="mt-3"
+        onClick={() => {
+          void (async () => {
+            try {
+              // Awaited for the same reason McpHandoff awaits its copy: a
+              // denied permission or an insecure context rejects silently, and
+              // "Copied" would be a lie about a value the reader cannot get back.
+              await navigator.clipboard.writeText(privateKey)
+              setCopyFailed(false)
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
+            } catch {
+              setCopied(false)
+              setCopyFailed(true)
+            }
+          })()
+        }}
+      >
+        {copied ? 'Copied' : 'Copy key'}
+      </Button>
+      {copyFailed && (
+        <p className="mt-2" style={{ ...PROSE, color: 'var(--bad)' }}>
+          Copy failed — select the key above and copy it manually.
+        </p>
+      )}
+      <p className="mt-6" style={{ ...PROSE, color: 'var(--dim)' }}>
+        Generated in this browser and sent nowhere. It is not saved — close or
+        reload this tab and it is gone, and no one can recover it for you. Save
+        it now, then paste it into <code>OPERATOR_PK</code> when you set up your
+        agent runtime.
+      </p>
+      <p className="mt-2" style={{ ...PROSE, color: 'var(--bad)' }}>
+        This is a hot key: whoever holds it can spend up to your limits. It
+        cannot change those limits, pause the account, or take the protected
+        balance.
+      </p>
+    </div>
+  )
+}
+
 export default function Onboard() {
   const { address: connected, isConnected, chainId } = useAccount()
   const { deployContractAsync } = useDeployContract()
@@ -172,6 +237,16 @@ export default function Onboard() {
   const [agentPhase, setAgentPhase] = useState<WritePhase>('idle')
   const agentBusy = isBusy(agentPhase)
   const [agentNote, setAgentNote] = useState<string | null>(null)
+  /**
+   * The key for a wallet this tab generated, held for as long as the tab is
+   * open and no longer.
+   *
+   * Deliberately NOT in localStorage beside the agent address, which IS
+   * persisted a few lines below. The panel tells the reader this is shown once
+   * and that a reload loses it; agentKey.test.ts greps this file to keep that
+   * sentence true when somebody later adds a storage write nearby.
+   */
+  const [generatedKey, setGeneratedKey] = useState<`0x${string}` | null>(null)
 
   const [protectedBalance, setProtectedBalance] = useState<BalanceRead>({ status: 'reading' })
   const [agentBalance, setAgentBalance] = useState<BalanceRead>({ status: 'reading' })
@@ -838,11 +913,11 @@ export default function Onboard() {
                 wallet needs <strong>no CELO at all</strong> — it pays gas in USDC.
               </li>
               <li>
-                A separate wallet for your agent. You will paste its{' '}
-                <strong>address</strong> here, and later you will need its{' '}
-                <strong>private key</strong> to connect an agent runtime — so
-                generate one you can export, for example with{' '}
-                <code>cast wallet new</code>. Do not use your owner wallet.
+                A separate wallet for your agent — <strong>nothing to prepare</strong>.
+                Step 3 can generate one in this browser, and shows you the{' '}
+                <strong>private key</strong> you will need to connect an agent
+                runtime. Bring your own instead if you prefer, so long as you can
+                export its key. Never your owner wallet.
               </li>
             </ul>
           </details>
@@ -1043,10 +1118,20 @@ export default function Onboard() {
                     before discovering that connecting a runtime needs the key,
                     not the address. */}
                 <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-                  Paste the address. Connecting an agent runtime later needs this
-                  wallet&apos;s <strong>private key</strong>, so use one you can
-                  export — <code>cast wallet new</code> prints both.
+                  Connecting an agent runtime later needs this wallet&apos;s{' '}
+                  <strong>private key</strong>, not just its address. Generate one
+                  here and you are shown both; bring your own and it has to be a
+                  wallet you can export the key from.
                 </p>
+                <Button variant="ghost" className="mt-3" disabled={agentBusy}
+                  onClick={() => {
+                    const wallet = generateAgentWallet()
+                    setGeneratedKey(wallet.privateKey)
+                    setAgent(wallet.address)
+                    setAgentNote(null)
+                  }}>
+                  {generatedKey ? 'Generate a different wallet' : 'Generate agent wallet'}
+                </Button>
                 <Label className="block mt-4">Agent wallet address</Label>
                 <input className="num field w-full mt-2 p-3" aria-label="Agent wallet address"
                   placeholder="0x…" value={agent}
@@ -1072,6 +1157,10 @@ export default function Onboard() {
             {agentNote && <p role="status" className="text-sm mt-2"
               style={{ color: noteColor(agentNote, 'Agent wallet authorized.',
                 'That wallet is already an authorised agent on this account. Nothing was sent.') }}>{agentNote}</p>}
+            {/* Outside the !agentAuthorized branch above: the key is what the
+                reader leaves with, and authorising the wallet must not take it
+                off the screen. */}
+            {generatedKey && <GeneratedKeyPanel privateKey={generatedKey} />}
           </div>
 
           {agentAuthorized && (
@@ -1214,6 +1303,11 @@ export default function Onboard() {
               operator={isValidAddress(agent) ? agent as `0x${string}` : null}
               defaultOpen
             />
+            {/* Repeated from step 3 rather than linked back to it. The block
+                above is copied here, and OPERATOR_PK is the one field the
+                reader has to fill by hand -- so the value it wants belongs on
+                the same screen, not one step behind. */}
+            {generatedKey && <GeneratedKeyPanel privateKey={generatedKey} />}
           </div>
 
           <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
