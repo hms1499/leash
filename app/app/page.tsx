@@ -3,7 +3,6 @@ import SiteHeader from '../components/landing/SiteHeader'
 import UseCaseGrid from '../components/landing/UseCaseGrid'
 import ProtectionModel from '../components/landing/ProtectionModel'
 import HowItWorks from '../components/landing/HowItWorks'
-import LiveProof from '../components/landing/LiveProof'
 import CoreCapabilities from '../components/landing/CoreCapabilities'
 import SecurityBoundary from '../components/landing/SecurityBoundary'
 import FinalCta from '../components/landing/FinalCta'
@@ -16,14 +15,6 @@ export default function Landing() {
       <SiteHeader />
       <main>
         <Hero />
-        <Section
-          id="live-proof"
-          eyebrow="Live product proof"
-          title="A real account, not a mockup"
-          description="This dashboard reads policy, balance and recent activity directly from a deployed account on Celo mainnet. No wallet connection is required."
-        >
-          <LiveProof />
-        </Section>
         <Section
           id="use-cases"
           eyebrow="Use cases"
