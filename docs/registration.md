@@ -131,3 +131,41 @@ a stablecoin. It cannot be swept to exactly zero by a CELO-paid transaction,
 because the node reserves `21000 * maxFeePerGas` regardless; the sweep must
 itself pay gas via `feeCurrency`, which requires the operator to hold the
 stablecoin first. Do this as part of the SDK work, not before.
+
+## Why Leash is missing from Best Stablecoin Adoption, and the first fix, 2026-09-15
+
+Read out of the Dune SQL rather than inferred from the board. Query 8405664 (the
+bounty) counts a leg only if it moves a named stablecoin (USAT, cNGN, Ripio
+wFIAT — **not USDC or USDT**) inside a tagged transaction, or is an x402
+settlement. Its source, query 8565204, defines an x402 settlement as a transfer
+touching a registered wallet whose transaction was sent by
+`0x0d74D5Cefd2e7F24E623330ebE3d8D4cB45fFB48` — the one signer
+`api.x402.celo.org/supported` lists.
+
+Every earlier Leash settlement was sent by `0xf8d2cc13…6ce3e`, the usebuy.ai
+gateway's own facilitator, so none of them count. The 2026-09-07 agent402
+purchase did go through `0x0d74…`, but was paid by `0xc5edb509…`, a wallet not
+registered to this project.
+tx: 0x028467861e056fd7e565f5766a1c1d9f5ba82c188443b9b529e89bfbc3ff9ff4
+
+**No endpoint on Celo accepts USAT over x402.** All 15,565 resources in the CDP
+x402 Bazaar were scanned: 603 are on Celo, all USDC, from `agent402.tools` and
+`walcert.globalscoreagent.com`. So the "both rails" half is not reachable by
+buying; only the x402 half is. agent402's Celo payTo is settled by `0x0d74…`
+(25 of 25 recent transfers).
+
+First qualifying settlement, bought by the registered operator through
+`leash_fetch` (`agent402.tools/api/random`, 0.001 USDC). Read back off the chain:
+status 1, block 77539081 (2026-09-15 02:37:19 UTC), sent by `0x0d74…`, Transfer
+of 1000 atomic USDC from `0xd44daF6D…850D6` to `0xabf4fabd…a9d0`, operator USDC
+41781 → 40781. `drawn_from_account` 0: the operator already held price plus
+float, so nothing left the contract.
+tx: 0x9b0098112708f78e1cf91c8f35e580dd72f5081790bfc61e9f675c5e6d6e529b
+
+The local `leash` MCP server is configured against account
+`0x7757035dd318eF1FC878bD83B06EE46eF3Ae0d9c`, not v2. Same operator key, and
+irrelevant to a purchase that draws nothing, but a purchase that does draw will
+draw from that account.
+
+"Returning" needs activity on two distinct days, so a second purchase belongs on
+2026-09-16 or later. The board refreshes every six hours.
