@@ -179,20 +179,24 @@ touches, so each was traced to its earliest incoming transfer on Blockscout:
 |---|---|---|
 | operator `0xd44daF6D…850D6` | owner, 2026-09-02 | project, registered |
 | owner `0x2B33cb68…7f57` | `0x64Ad6121…ae78`, 4 CELO, 2026-09-02 | project, registered |
-| `0x64Ad61211C1b0B7f20B3e04B49661f30f152ae78` | `0xcfab15c9…bcbc`, 2026-05-16 | **the maintainer's** |
+| `0x64Ad61211C1b0B7f20B3e04B49661f30f152ae78` | `0xcfab15c9…bcbc`, 2026-05-16 | not the maintainer's, per the maintainer |
 | `0x94f7268c…6459` | — | not the maintainer's, per the maintainer |
 | `0xc5edb509…414f` | `0x94f7268c…6459`, 2026-04-09 | not the maintainer's, per the maintainer |
 
 `0x64Ad…` funded the owner and on 2026-09-12 received 0.1 USDC from the v2
-account: money leaving the maintainer and coming back. It is the project's
-dominant funder, and an undeclared one reads as a farming signal, so it was
-added to `otherWallets`. A GET diffed against the pre-update copy showed only
-`customFields.otherWallets` and `updatedAt` (2026-09-15T03:12:48Z) changed.
+account. It was briefly added to `otherWallets` (03:12:48Z) on a mistaken
+answer that it was the maintainer's, then removed (03:15:07Z) when that was
+corrected; a GET diffed against the copy from before both edits shows only
+`updatedAt` changed. It stays undeclared, so whoever controls it is the
+project's first funder at audit and should be nameable if the organisers ask.
 That 0.1 USDC is never evidence of value moved.
 
 `0x94f7…` owns both "stranger" accounts (`0xA73D…`, `0x7757…`) and funded the
 wallet that paid the 2026-09-07 agent402 purchase. The maintainer says it is
-not theirs; it is recorded here so the answer exists if the organisers ask.
+not theirs. This file's own history says otherwise: `docs/deployments.md`
+records those accounts as this project's test account and wizard walk, both
+use the project's operator, and the local `leash` MCP server is configured
+against `0x7757…`. Unresolved; the contradiction is recorded, not settled.
 
 Rebuilding the 20 successful tagged transactions (all signed by the operator)
 with query 8565204's leg filter yields only two counterparties:
