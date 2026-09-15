@@ -169,3 +169,34 @@ draw from that account.
 
 "Returning" needs activity on two distinct days, so a second purchase belongs on
 2026-09-16 or later. The board refreshes every six hours.
+
+## Wallet provenance for the anti-farming audit, 2026-09-15
+
+The audit's first-funder test asks who first funded each wallet the project
+touches, so each was traced to its earliest incoming transfer on Blockscout:
+
+| Wallet | First funded by | Whose |
+|---|---|---|
+| operator `0xd44daF6D…850D6` | owner, 2026-09-02 | project, registered |
+| owner `0x2B33cb68…7f57` | `0x64Ad6121…ae78`, 4 CELO, 2026-09-02 | project, registered |
+| `0x64Ad61211C1b0B7f20B3e04B49661f30f152ae78` | `0xcfab15c9…bcbc`, 2026-05-16 | **the maintainer's** |
+| `0x94f7268c…6459` | — | not the maintainer's, per the maintainer |
+| `0xc5edb509…414f` | `0x94f7268c…6459`, 2026-04-09 | not the maintainer's, per the maintainer |
+
+`0x64Ad…` funded the owner and on 2026-09-12 received 0.1 USDC from the v2
+account: money leaving the maintainer and coming back. It is the project's
+dominant funder, and an undeclared one reads as a farming signal, so it was
+added to `otherWallets`. A GET diffed against the pre-update copy showed only
+`customFields.otherWallets` and `updatedAt` (2026-09-15T03:12:48Z) changed.
+That 0.1 USDC is never evidence of value moved.
+
+`0x94f7…` owns both "stranger" accounts (`0xA73D…`, `0x7757…`) and funded the
+wallet that paid the 2026-09-07 agent402 purchase. The maintainer says it is
+not theirs; it is recorded here so the answer exists if the organisers ask.
+
+Rebuilding the 20 successful tagged transactions (all signed by the operator)
+with query 8565204's leg filter yields only two counterparties:
+`0x4200000000000000000000000000000000000011` and `0xcD437749…8778`, the
+recipients of fee-currency gas. They are not users, and the Track 2 counts must
+not be presented as if they were. The board shows four; the other two could not
+be identified without Dune access.
