@@ -81,7 +81,20 @@ What changed, and why:
   same pass.
 
 Unchanged: `attributionTag`, `agentWalletAddress`, `socialLink`, tracks and
-bounties. **`videoUrl` is still null.**
+bounties. `videoUrl` was still null.
+
+## Demo video added, 2026-09-15
+
+`videoUrl` is now https://youtu.be/oKLYONKu4H8. The hackathon does not require
+one: none of its 16 submission fields, rules, FAQs or judging criteria mention
+a video. It was added because a judge watches faster than they read a repo.
+
+The PUT sent the whole submission back with only `videoUrl` added, rather than
+a one-field body, so nothing could be blanked by a PUT that replaces. A
+separate `GET` diffed against the one taken before it showed exactly two fields
+changed, `videoUrl` and `updatedAt` (2026-09-15T01:51:51Z); `status` is still
+`published`. YouTube's oEmbed resolved the link before the PUT, so it is
+public or unlisted, not private.
 
 ## The attribution tag is not retroactive
 
