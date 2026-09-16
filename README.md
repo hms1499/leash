@@ -96,21 +96,30 @@ and nothing is a claim about what the code *would* do.
 
 | What it proves | Evidence |
 |---|---|
-| **The policy gates a real spend.** `remainingToday` fell by exactly the amount spent, so the cap governed the transfer rather than merely coexisting with it. | tx: [`0x3fb0324f…a851f70`](https://celoscan.io/tx/0x3fb0324fb3937ca53b0e37f232618975d86e9d0064cfd907de1b28ea6a851f70) |
+| **The policy gates a real spend.** `remainingToday`, the account and the payee each moved by exactly `10000`, read at the block before against the block itself — so the cap governed the transfer rather than merely coexisting with it. | tx: [`0x11cc0100…c8246fc`](https://celoscan.io/tx/0x11cc0100809084880c68b401668dfa46b3eaf32d61bea43fa40ee897dc8246fc) |
 | **An agent wallet holding zero CELO still transacts,** paying gas in USDC through Celo's fee abstraction. The operator's CELO balance is `0` before and after every spend below. | [operator `0xd44daF6D…c850D6`](https://celoscan.io/address/0xd44daf6db6c8057c206e6acc27e6384b8ec850d6) |
 | **The attribution tag round-trips.** The ERC-8021 suffix decodes to `["celo_3dec652cd977"]` off-chain and again straight from raw chain data. | same tx as above |
-| **x402 paid with money drawn through the policy.** The agent rented a Google Cloud VM and the daily counter fell by exactly the draw — the caps apply to agent purchases, not only to plain transfers. | draw tx: [`0xec08a200…6f2f33db`](https://celoscan.io/tx/0xec08a20020983992d18d6faa7cccd91e0bba0f2432e6f22e534616b96f2f33db) · settlement tx: [`0xb5dd4d16…f7f2a91e25`](https://celoscan.io/tx/0xb5dd4d16a7e65453ddcdc70b235384a7bc20c8845a8ce5096084c7f7f2a91e25) |
-| **A real MCP agent spent through the policy.** `leash_pay` called by a Claude session with no human typing an amount or a payee. The allowance fell one step; the `Spent` event carries the operator. | tx: [`0x218d7f95…a244396`](https://celoscan.io/tx/0x218d7f9516481a3c5747226cf2f90e73beaa4fde86e68c363e9259a66a244396) |
+| **x402 paid with money drawn through the policy.** The agent paid `16753` for a metered resource and drew `17330` to afford it; `remainingToday` and the account both fell by exactly the draw — the caps apply to agent purchases, not only to plain transfers. | draw tx: [`0xd03c3b26…2baa807`](https://celoscan.io/tx/0xd03c3b264129ba303bc394f8cfbaedad545ca4813b6e0fc6c1a12447d2baa807) · settlement tx: [`0xedd104e3…15865ef`](https://celoscan.io/tx/0xedd104e390d32c0d96b0b1c5e07365e2688344ee4905c3d7f3092d21815865ef) |
+| **A real MCP agent spent through the policy.** `leash_pay` called by an agent in a separate session, handed the account and nothing else — no human typed an amount or a payee. `remainingToday`, the account and the payee each moved by exactly `100000`. | tx: [`0x3cb307a4…8148704`](https://celoscan.io/tx/0x3cb307a4fde990a3f9282348999127daf022f4caea264af16426595158148704) |
 | **The contract is deployed and source-verified.** 3766 bytes, solc 0.8.24, not a proxy and not upgradeable. The owner can set policy, pause and sweep, and is deliberately *not* an operator — it cannot spend through the agent's paths. Verification confirmed with `forge verify-check`, not inferred from the submission's `OK`. | deploy tx: [`0xad28ee0d…422e7449`](https://celoscan.io/tx/0xad28ee0dc8a25bc9e1896fed8bde1d3dd88804f3f4f93a5eb96c4f32422e7449) |
 | **The owner key can be rotated, and the drain path can be shut.** `transferOwnership` nominates, `acceptOwnership` completes, and both branches were exercised by a second real wallet on mainnet — including the old owner being refused afterwards. `topUpOperator` is off at construction until the owner opens it. | tx: [`0xc703cbcd…56499e47`](https://celoscan.io/tx/0xc703cbcd32d37cee69a3fd618cca0f7fc4da4ac11a3150c7fbce210456499e47) · handed back, tx: [`0xe025d7e6…a08dfb157e`](https://celoscan.io/tx/0xe025d7e66bf00c475c716934ab21e4d99714783466c3a8ef20a043a08dfb157e) |
 
-**The first four rows were earned on v1** — `0x7aDa926B…3fd2`, superseded on
-2026-09-12 when the owner became movable and `topUpOperator` gained an off
-switch. Every one of them was re-proved against the v2 account above rather than
-carried over, with new hashes read at their own blocks;
-[`docs/deployments.md`](docs/deployments.md) has both sets. Two outcomes,
-`spend_reverted` and `sent_unconfirmed`, are covered by unit tests only and have
-never been observed on-chain. They are not claimed here.
+**Every transaction in that table is on the v2 account** —
+`0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d` — except the x402 settlement,
+which is an EIP-3009 transfer the facilitator submits and so names the USDC
+token as its target. That is the claim being made about it, not a mismatch.
+Each hash was read back off mainnet on 2026-09-16 and returned status `1`.
+
+This paragraph used to say the first four rows were earned on v1 and had been
+re-proved elsewhere, which was both stale and wrong in its detail: the spend it
+pointed at was on `0x895B773E…`, superseded on 2026-09-03, and the MCP-agent row
+was on `0xA73DB76f…`, an account owned by somebody else. The v2 hashes had been
+sitting in [`docs/deployments.md`](docs/deployments.md) since v2 landed. They are
+in the table now, and `app/lib/proofs.ts` — which the landing page renders from —
+carries the same set.
+
+Two outcomes, `spend_reverted` and `sent_unconfirmed`, are covered by unit tests
+only and have never been observed on-chain. They are not claimed here.
 
 [`docs/deployments.md`](docs/deployments.md) has the full working: every value
 read back off the chain rather than taken from a test's own output, what each

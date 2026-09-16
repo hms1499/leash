@@ -128,6 +128,13 @@ by exactly 10000 read at that transaction's own block.
 is guarded by `LEASH_PROVE_SPEND_REAL_MONEY=yes` like the demo.
 tx: 0x0786b9796e73feee95e3ce5e19a1ad0b63559512bbbace3ee3e165be11628b21
 
+**That payment landed on v1**, read back off forno on 2026-09-16: status `1`,
+`Spent` of exactly 10000, `to` = `0x7aDa926B…3fd2`. The record stands — it is
+what proved the tool waits for the chain — but it is not evidence about the
+live account, and `app/test/proofs.test.ts` now refuses it by name. The v2
+equivalent, an agent given the account and nothing else, is
+tx: 0x3cb307a4fde990a3f9282348999127daf022f4caea264af16426595158148704
+
 Its other two outcomes, `spend_reverted` and `sent_unconfirmed`, are covered by
 unit tests and have **not** been observed on-chain. Both need a chain that
 misbehaves on cue. Do not claim them.
@@ -318,6 +325,19 @@ that date, not a recollection of it — and a row not dated today is a row nobod
 has checked today.
 
 ### Proven on mainnet, not asserted
+
+**Read this list as a dated log, not as the current evidence.** Every bullet
+below was earned before v2 existed, and several landed on deployments that are
+now superseded — the policy-gated spend on `0x895B773E…`, the `leash_pay`
+proof on v1 `0x7aDa926B…`, the MCP-agent spend on `0xA73DB76f…`, which is
+somebody else's account. They are true records of what happened on the day
+they say, and they are not what the product should cite.
+
+What the product cites lives in `app/lib/proofs.ts`, refreshed 2026-09-16 to
+the v2 set recorded under "What v2 was proved to do" in `docs/deployments.md`.
+`app/test/proofs.test.ts` now fails if any hash below reappears there. Nothing
+in this section was rewritten to match: a log that edits its own past stops
+being evidence of anything.
 
 - **Zero-CELO gas.** The operator holds exactly 0 CELO and still transacts,
   paying in USDC. `0x1d10d9cb…6595`.
