@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   arrivedKeys, belongsToToken, describeLog, rowKey, relativeAge, WINDOW_BLOCKS, WINDOW_LABEL, WINDOW_SECONDS,
   type FeedRow,
@@ -335,5 +338,39 @@ describe('arrivedKeys', () => {
     const seen = new Set([rowKey(row('0xa', 0))])
     expect([...arrivedKeys(seen, true, [row('0xa', 1), row('0xa', 0)])])
       .toEqual([rowKey(row('0xa', 1))])
+  })
+})
+
+/**
+ * The two renderings of one feed, asserted against each other.
+ *
+ * CLAUDE.md: "Two implementations of one operation must not behave
+ * differently; if you fix an error path in one, fix its sibling." The arrival
+ * reveal was added to `Feed` when design-system.md §12 was widened on
+ * 2026-09-14 and not to `LiveProof`, so the dashboard announced a payment
+ * landing and the landing page -- the panel a stranger sees without a wallet,
+ * where "the money is real" is the entire argument -- did not.
+ *
+ * Source-reading rather than rendering, the same way surface.test.ts and
+ * scaleUsage.test.ts work: the node environment has no DOM, and what must not
+ * drift is that both files reach for the same mechanism.
+ */
+describe('the feed renders the same way in both places', () => {
+  const read = (f: string) => readFileSync(join(fileURLToPath(new URL('..', import.meta.url)), f), 'utf8')
+
+  it.each([
+    ['components/Feed.tsx'],
+    ['components/landing/LiveProof.tsx'],
+  ])('%s announces an arrival with the declared vocabulary', (file) => {
+    const src = read(file)
+    // The shared pure function, not a second copy of the rule.
+    expect(src, `${file} does not use arrivedKeys`).toContain('arrivedKeys')
+    // §12's one sanctioned class, at --m-fast. A hand-rolled duration here
+    // would also fail surface.test.ts, which is the belt to this file's braces.
+    expect(src, `${file} does not apply motion-reveal`).toContain('motion-reveal')
+    // §12: "a transition does not run on first render." Without `primed` every
+    // row announces itself on mount, which is an entrance.
+    expect(src, `${file} does not prime, so every row would announce on mount`)
+      .toContain('primed')
   })
 })

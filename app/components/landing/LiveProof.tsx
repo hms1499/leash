@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import Meter from '../Meter'
 import ActionLink from '../ui/ActionLink'
 import Panel from '../ui/Panel'
@@ -8,7 +9,7 @@ import Address from '../ui/Address'
 import { useAccountState } from '../../lib/useAccountState.js'
 import { useFeed } from '../../lib/useFeed.js'
 import { explorerUrl } from '../../lib/proofs.js'
-import { WINDOW_LABEL } from '../../lib/feed.js'
+import { arrivedKeys, rowKey, WINDOW_LABEL } from '../../lib/feed.js'
 
 const ACCOUNT = '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d' as const
 const OPERATOR = '0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6' as const
@@ -21,6 +22,42 @@ export default function LiveProof() {
   // returns bigints. DECIMALS below is for formatting only.
   const state = useAccountState(ACCOUNT, TOKEN)
   const feed = useFeed(ACCOUNT, TOKEN)
+
+  /**
+   * The one thing on this page that is allowed to move on its own.
+   *
+   * design-system.md §12 bans motion the reader did not cause, widened
+   * 2026-09-14 to "the reader **or the chain**", and names the whole of what
+   * that admits: a row appearing because an agent just paid somebody is the
+   * page reporting an event. Its test is "would this have moved if the chain
+   * had been idle?" -- and if this account is quiet, nothing here moves.
+   *
+   * `Feed` on the dashboard has done this since the widening. This panel
+   * renders the same feed and did not, which CLAUDE.md names directly: two
+   * implementations of one operation must not behave differently. The
+   * difference mattered most here, because this is the panel a stranger sees
+   * without a wallet -- the page argues the money is real, and the moment it
+   * can show that is a payment landing while they watch.
+   *
+   * Identical mechanics to Feed.tsx, from the same pure functions rather than
+   * a second copy of the logic: refs because the answer is wanted during the
+   * render that mounts the row, and `primed` because §12 also says a
+   * transition does not run on first render. Without it every row would
+   * announce itself on mount, which is an entrance, which is the thing the
+   * rule refuses.
+   *
+   * Tracked against the whole poll, not the three rows drawn: a row can arrive
+   * and be pushed past the cut by another in the same poll.
+   */
+  const seen = useRef<ReadonlySet<string>>(new Set())
+  const primed = useRef(false)
+  const arrived = arrivedKeys(seen.current, primed.current, feed.rows)
+  useEffect(() => {
+    const next = new Set(seen.current)
+    for (const r of feed.rows) next.add(rowKey(r))
+    seen.current = next
+    primed.current = true
+  }, [feed.rows])
 
   return (
     <Panel>
@@ -91,8 +128,9 @@ export default function LiveProof() {
         ) : (
           feed.rows.slice(0, ROWS).map((r) => (
             <a
-              key={`${r.txHash}-${r.logIndex}`}
-              className="text-sm flex justify-between gap-3"
+              key={rowKey(r)}
+              className={`text-sm flex justify-between gap-3${
+                arrived.has(rowKey(r)) ? ' motion-reveal' : ''}`}
               style={{ color: 'var(--dim)' }}
               href={explorerUrl(r.txHash)}
               target="_blank"
