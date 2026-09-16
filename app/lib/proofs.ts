@@ -19,39 +19,64 @@ export function shortHash(url: string): string {
 }
 
 /**
- * The five things this project has proven rather than asserted. Mirrored in
- * README.md as prose; this is the source the app renders from.
+ * The six things this project has proven rather than asserted, every one of
+ * them against the live v2 account. Five transactions carry six claims.
  *
- * Every hash was read back off mainnet on 2026-09-04 and returned status 1.
- * One of them, the policy-gated spend, came back NOT_FOUND on a first receipt
- * request and null on one of four retries -- the load-balanced forno staleness
- * this repo documents. It is in block 76422123. Retry before concluding a
- * proof is wrong.
+ * **These were the pre-v2 hashes until 2026-09-16, and three of them pointed
+ * at deployments CLAUDE.md forbids.** The header here said the set was read
+ * off mainnet on 2026-09-04; v2 was deployed on 2026-09-12, and this file was
+ * never revisited. Read back from forno on 2026-09-16, the old set resolved
+ * like this:
+ *
+ *   policy-gated spend + attribution  ->  0x895B773E…  superseded 2026-09-03
+ *   deployed and source-verified      ->  created 0x7aDa926B…  v1, superseded
+ *
+ * So the landing page's evidence panel -- the part of the product that exists
+ * to say "not merely asserted" -- was asserting things about contracts that
+ * are no longer the live one, and linking a reader to them. docs/deployments.md
+ * had carried the v2 equivalents since 2026-09-12 under "What v2 was proved to
+ * do"; nothing had copied them here.
+ *
+ * Every hash below was read back off mainnet on 2026-09-16, returned status 1,
+ * and resolves to 0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d -- except the
+ * settlement, which is an EIP-3009 transfer submitted by the facilitator and
+ * so names the USDC token as its target. That is the claim, not a mismatch.
+ *
+ * Several came back null on a first request and answered on a retry -- the
+ * load-balanced forno staleness this repo documents. Retry before concluding
+ * a proof is wrong. The figures in each `detail` are read from
+ * docs/deployments.md, which took them at the transaction's own block rather
+ * than after its receipt.
  */
 export const PROOFS: readonly Proof[] = [
   {
     claim: 'The policy gates a real spend',
-    detail: 'remainingToday fell by exactly the amount spent, so the cap governed the transfer rather than merely coexisting with it.',
-    url: 'https://celoscan.io/tx/0x3fb0324fb3937ca53b0e37f232618975d86e9d0064cfd907de1b28ea6a851f70',
+    detail: 'remainingToday, the account and the payee each moved by exactly 10000 — one hundredth of a USDC — read at the block before against the block itself. The cap governed the transfer rather than merely coexisting with it.',
+    url: 'https://celoscan.io/tx/0x11cc0100809084880c68b401668dfa46b3eaf32d61bea43fa40ee897dc8246fc',
   },
   {
     claim: 'The attribution tag round-trips',
-    detail: 'The ERC-8021 suffix decodes to celo_3dec652cd977 off-chain and again straight from raw chain data.',
-    url: 'https://celoscan.io/tx/0x3fb0324fb3937ca53b0e37f232618975d86e9d0064cfd907de1b28ea6a851f70',
+    detail: 'That same spend decodes to celo_3dec652cd977 straight from raw chain data, matching the tag the server was configured with rather than the one it claims to have sent.',
+    url: 'https://celoscan.io/tx/0x11cc0100809084880c68b401668dfa46b3eaf32d61bea43fa40ee897dc8246fc',
+  },
+  {
+    claim: 'An agent spent through the policy, with no human naming the amount',
+    detail: 'An MCP agent in a separate session, handed the account and nothing else, called leash_pay. remainingToday, the account and the payee each moved by exactly 100000.',
+    url: 'https://celoscan.io/tx/0x3cb307a4fde990a3f9282348999127daf022f4caea264af16426595158148704',
   },
   {
     claim: 'x402 paid with money drawn through the policy',
-    detail: 'The agent rented a Google Cloud VM and the daily counter fell by exactly the draw. The caps apply to agent purchases, not only to plain transfers.',
-    url: 'https://celoscan.io/tx/0xec08a20020983992d18d6faa7cccd91e0bba0f2432e6f22e534616b96f2f33db',
+    detail: 'The agent paid 16753 for a metered resource and drew 17330 to afford it. remainingToday and the account both fell by exactly the draw, so an agent purchase is bounded like any other spend.',
+    url: 'https://celoscan.io/tx/0xd03c3b264129ba303bc394f8cfbaedad545ca4813b6e0fc6c1a12447d2baa807',
   },
   {
     claim: 'The facilitator settled it, and the agent held zero CELO throughout',
-    detail: 'Submitted by the facilitator, not by us. The operator paid its own gas in USDC and its CELO balance was 0 before and after.',
-    url: 'https://celoscan.io/tx/0xb5dd4d16a7e65453ddcdc70b235384a7bc20c8845a8ce5096084c7f7f2a91e25',
+    detail: 'Submitted by the facilitator, not by us. The operator held 0 native CELO for every transaction on this account and paid its own gas in USDC.',
+    url: 'https://celoscan.io/tx/0xedd104e390d32c0d96b0b1c5e07365e2688344ee4905c3d7f3092d21815865ef',
   },
   {
     claim: 'The contract is deployed and source-verified',
-    detail: '3406 bytes, solc 0.8.24, not a proxy and not upgradeable. The owner can set policy, pause and sweep, and is deliberately not an operator.',
-    url: 'https://celoscan.io/tx/0x8a6f4d8cfd9d49d22f3948af384f87ba169533d903e12885aa3296bc0a2fc779',
+    detail: 'solc 0.8.24, not a proxy and not upgradeable. Verification was confirmed with forge verify-check returning Pass - Verified, rather than inferred from the submission returning OK.',
+    url: 'https://celoscan.io/tx/0xad28ee0dc8a25bc9e1896fed8bde1d3dd88804f3f4f93a5eb96c4f32422e7449',
   },
 ]
