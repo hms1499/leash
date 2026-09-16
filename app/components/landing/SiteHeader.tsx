@@ -6,7 +6,10 @@ import { DATA } from '../ui/prose'
 const NAV_ITEMS = [
   { href: '#how-it-works', label: 'How it works', external: false },
   { href: '#security', label: 'Security', external: false },
-  { href: 'https://github.com/hms1499/leash/blob/main/docs/mcp-setup.md', label: 'Developers', external: true },
+  // In-page since the developer section exists again. It pointed at
+  // docs/mcp-setup.md on GitHub while the homepage carried no package name at
+  // all -- the one nav item that answered its own question by leaving the site.
+  { href: '#developers', label: 'Developers', external: false },
 ] as const
 
 /**

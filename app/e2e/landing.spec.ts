@@ -56,6 +56,26 @@ test('the landing page explains itself and shows live mainnet numbers', async ({
   await expect(page.getByRole('heading', { name: 'Keep the budget and the hot key separate' })).toBeVisible()
   await expect(page.getByText(/Anything already here is outside the contract/)).toBeVisible()
   await expect(page.getByText('The contract has not been audited.', { exact: false })).toBeVisible()
+
+  /**
+   * The package a reader has to install, and the three tools they get.
+   *
+   * None of these five strings appeared anywhere on this page between
+   * 2026-09-08 and this commit: the rebuild that removed the sample .mcp.json
+   * took the names with it, so the homepage described the protection model
+   * fully and never said what to run.
+   */
+  await expect(page.getByText('npx -y leash-agentpay')).toBeVisible()
+  for (const tool of ['leash_status', 'leash_pay', 'leash_fetch']) {
+    await expect(page.getByText(tool, { exact: true })).toBeVisible()
+  }
+
+  /**
+   * Still zero, and still on purpose. The 2026-09-08 rebuild's argument -- a
+   * wall of JSON is the first thing that stops a non-developer reading -- was
+   * never the reason the tool names had to go, so the names came back without
+   * it. The real block is emitted by /setup for the reader's own account.
+   */
   await expect(page.getByText(/mcpServers/)).toHaveCount(0)
   await expect(page.getByRole('link', { name: /create protected account/i }).first()).toBeVisible()
   /**
@@ -114,6 +134,11 @@ test('the primary journey links landing, setup and the account directory without
  * rest of the order is unchanged: once a reader believes the numbers, the old
  * sequence of questions is still the sequence they ask.
  *
+ * "What do I install" sits after the four stages and before the boundary. The
+ * stages section ends by saying the agent is connected *afterwards*, so that
+ * is where a reader asks the question; and a boundary is worth reading only
+ * once you know what you would be installing.
+ *
  * Asserted here because only a rendered page can carry it. The unit suite runs
  * in the node environment and cannot see document order -- the same reason the
  * meter's display figure needed this file when it moved on 2026-09-05.
@@ -129,6 +154,7 @@ test('the page tells its story in order as you scroll', async ({ page }) => {
     'Keep the budget and the hot key separate',
     'The controls a production agent wallet actually needs',
     'From owner wallet to ready agent in four stages',
+    'Three tools, and nothing else the agent can call',
     'Know exactly what is—and is not—protected',
     'Ready to give your agent a hard spending limit?',
   ])

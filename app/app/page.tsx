@@ -1,3 +1,4 @@
+import AgentTools from '../components/landing/AgentTools'
 import Hero from '../components/landing/Hero'
 import SiteHeader from '../components/landing/SiteHeader'
 import UseCaseGrid from '../components/landing/UseCaseGrid'
@@ -45,6 +46,20 @@ export default function Landing() {
           description="Provisioning stays focused on the on-chain account. Connect MCP or the SDK afterwards, when the protected agent is already ready."
         >
           <HowItWorks />
+        </Section>
+        {/* After the four stages, because that section's own description ends
+            "Connect MCP or the SDK afterwards, when the protected agent is
+            already ready" -- this is the answer to that "afterwards". Before
+            the security boundary, which stays second-to-last: "what breaks" is
+            the last question a reader asks, not the one before they know what
+            they would be installing. */}
+        <Section
+          id="developers"
+          eyebrow="Agent tools"
+          title="Three tools, and nothing else the agent can call"
+          description="The MCP server is published on npm. Point any MCP client at it and the agent gets these three — every one of them bounded by the policy on your account."
+        >
+          <AgentTools />
         </Section>
         <Section
           id="security"
