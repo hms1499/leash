@@ -16,8 +16,15 @@ const CAPABILITIES = [
   },
   {
     label: 'Owner controls',
-    title: 'Pause and recover',
-    body: 'Stop every operator path, then sweep funds as the owner without being blocked by the agent policy.',
+    /**
+     * "Pause and recover" was the v1 sentence, and it outlived v1 by a
+     * deployment. Making the owner movable is the reason
+     * 0xBE380aa7…11C3d exists at all -- v1's owner was `immutable`, which is
+     * why a fresh address was the only way to change it -- and the homepage
+     * described the account as if that were still true.
+     */
+    title: 'Pause, sweep, hand over',
+    body: 'Stop every operator path and sweep funds without the agent policy blocking you. Ownership moves in two steps — nominate, then accept — so it never lands on an address that cannot use it.',
   },
   {
     label: 'Operations',

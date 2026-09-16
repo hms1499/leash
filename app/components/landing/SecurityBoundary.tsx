@@ -7,12 +7,30 @@ const PROTECTED = [
   'Every operator draw is bounded by the per-payment and daily caps.',
   'Only the owner can change policy, authorize operators, pause or sweep.',
   'The deployed rules are not a proxy and cannot be upgraded behind you.',
+  /**
+   * The answer to the top-up line in the column beside this one, which had
+   * been standing on its own.
+   *
+   * `topUpEnabled` is a bare bool: false at construction, and only
+   * `setTopUpEnabled` (onlyOwner) can raise it -- `topUpOperator` reverts
+   * `TopUpDisabled` until it does. So the page was showing the risk of a path
+   * that is shut by default while never showing that it is shut, or that the
+   * owner holds the switch. A defence the reader cannot see does not reassure
+   * anybody.
+   */
+  'The top-up path is closed at deployment; only the owner can open it.',
 ] as const
 
 const NOT_PROTECTED = [
   'USDC already in the agent wallet is outside the contract.',
   'The payee allowlist cannot constrain top-ups used for x402.',
-  'A lost owner key cannot be replaced, and the contract has not been audited.',
+  /**
+   * Still true in v2, and now says why rather than leaving a reader to infer
+   * that ownership is frozen. `transferOwnership` is onlyOwner and
+   * `acceptOwnership` checks `pendingOwner`, so the account can be handed on
+   * -- but only by someone still holding the key. Losing it forecloses both.
+   */
+  'A lost owner key cannot be replaced — ownership only moves while you still hold it — and the contract has not been audited.',
 ] as const
 
 /**
