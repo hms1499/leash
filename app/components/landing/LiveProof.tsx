@@ -6,6 +6,7 @@ import ActionLink from '../ui/ActionLink'
 import Panel from '../ui/Panel'
 import Label from '../ui/Label'
 import Address from '../ui/Address'
+import { DATA } from '../ui/prose'
 import { useAccountState } from '../../lib/useAccountState.js'
 import { useFeed } from '../../lib/useFeed.js'
 import { explorerUrl } from '../../lib/proofs.js'
@@ -73,6 +74,33 @@ export default function LiveProof() {
         />
       </div>
 
+      {/**
+        * How fresh the figures below are, which the panel knew and never said.
+        *
+        * "Live on Celo mainnet" was an assertion a reader had no way to check;
+        * this is the same claim with a number behind it, and the number moves
+        * every poll because the chain moved. That is §12's sanctioned
+        * category -- the page reporting -- and it is why the block height is
+        * shown rather than a relative time. "Read 2 seconds ago" would have to
+        * recompute on a timer of its own, which is a clock ticking on the
+        * page, which is ambient and banned.
+        *
+        * Free: useFeed already calls getBlockNumber every tail tick to work
+        * out its range, and exposes the result as `head`. Nothing here adds a
+        * request.
+        *
+        * `.num` for the same reason money uses it -- tabular figures, so a
+        * height that gains a digit does not shift the row.
+        */}
+      {feed.head && (
+        <p
+          className="num px-4 mt-2"
+          style={{ ...DATA, color: 'var(--dim)' }}
+        >
+          Read at block {feed.head.block.toLocaleString('en-US')}
+        </p>
+      )}
+
       <div className="mt-3">
         {state.error && state.updatedAt === null ? (
           <p className="p-6 text-sm" style={{ color: 'var(--bad)' }}>
@@ -112,9 +140,25 @@ export default function LiveProof() {
             Reading recent activity from the chain…
           </span>
         ) : feed.rows.length === 0 ? (
+          /**
+           * An idle account stated as a fact, not as an absence.
+           *
+           * This read "Nothing has been spent in the last 24 hours" followed by
+           * a link off the site, which on 2026-09-16 was what every visitor
+           * saw: the window was scanned in full and held zero events, the last
+           * activity being about three and a half days back. The deadest
+           * sentence available, on the one panel whose job is to show the money
+           * is real -- and its only call to action sent the reader to Celoscan.
+           *
+           * The span scanned is still stated, because the claim has to stay
+           * exactly as narrow as the scan. What follows it is now what is true
+           * right now rather than what failed to happen: the allowance is live,
+           * read seconds ago, and it is what the agent could spend if it ran
+           * this second.
+           */
           <span className="text-sm" style={{ color: 'var(--dim)' }}>
-            {/* The span stated is the span that was scanned. */}
-            Nothing has been spent in the last {WINDOW_LABEL}.{' '}
+            Quiet for {WINDOW_LABEL} — the allowance above is live and unspent,
+            and resets at 00:00 UTC.{' '}
             <a
               href={`https://celoscan.io/address/${ACCOUNT}#events`}
               target="_blank"
@@ -122,7 +166,7 @@ export default function LiveProof() {
               className="focus-ring"
               style={{ borderRadius: 'var(--r-mark)', color: 'var(--celo)' }}
             >
-              See the full history on Celoscan
+              Full history on Celoscan
             </a>
           </span>
         ) : (
