@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRevealOnOpen } from '../lib/useReveal.js'
 import { useAccount, useWriteContract } from 'wagmi'
 import {
   publicClient, REQUIRED_CHAIN_ID, SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS,
@@ -53,6 +54,16 @@ export default function LimitsDrawer({
   onSaved: () => void
 }) {
   const [open, setOpen] = useState(false)
+  /**
+   * The recipient-protection disclosure nested inside this drawer.
+   *
+   * The drawer itself has had §12's reveal since it was built, because it opens
+   * by mounting a Panel. This <details> sits inside that Panel and had none:
+   * same interaction, same component, two behaviours. A shared hook rather than
+   * a second `open` ref -- see lib/useReveal.ts.
+   */
+  const [payeesOpen, setPayeesOpen] = useState(false)
+  const payeesReveal = useRevealOnOpen(payeesOpen)
   const [perTxInput, setPerTx] = useState('')
   const [dailyInput, setDaily] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -302,14 +313,19 @@ export default function LimitsDrawer({
                   {writeLabel(phase, { idle: 'Save limits', sending: 'Saving…' })}
                 </Button>
 
-                <details className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
+                <details
+                  className="mt-6 pt-6"
+                  style={{ borderTop: '1px solid var(--line)' }}
+                  open={payeesOpen}
+                  onToggle={(event) => setPayeesOpen(event.currentTarget.open)}
+                >
                   <summary className="motion-press control-text tap-tall cursor-pointer focus-ring" style={{ borderRadius: 'var(--r-mark)', outlineColor: 'var(--text)' }}>
                     <span className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold">Recipient protection</span>
                       <Label>{allowlistEnabled ? 'On' : 'Optional · Off'}</Label>
                     </span>
                   </summary>
-                  <div className="pt-6">
+                  <div className={`pt-6 ${payeesReveal}`.trimEnd()}>
                     <p className="text-sm" style={{ color: 'var(--dim)' }}>
                       {allowlistEnabled
                         ? 'Direct payments are limited to addresses approved on chain.'

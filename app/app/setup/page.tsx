@@ -28,6 +28,7 @@ import { pollUntil } from '../../lib/confirm.js'
 import { isBusy, writeLabel, type WritePhase } from '../../lib/writePhase.js'
 import { readLocal, writeLocal } from '../../lib/browserStorage.js'
 import { describeDeployReceipt } from '../../lib/deploy.js'
+import { useRevealOnOpen } from '../../lib/useReveal.js'
 import { PAGE, PANEL_GRID } from '../../components/ui/page'
 import {
   announceAccountRegistryChange, migrateLegacyAccount, savePolicyAccount, selectPolicyAccount,
@@ -212,6 +213,17 @@ export default function Onboard() {
   const deploying = isBusy(deployPhase)
   const [restoring, setRestoring] = useState(false)
   const [restoreNote, setRestoreNote] = useState<string | null>(null)
+
+  /**
+   * The "What you need before creating" disclosure, so it opens the way the
+   * dashboard's two drawers do.
+   *
+   * A <details> keeps its content mounted, so the class has to be toggled
+   * rather than arrive with the element -- see lib/useReveal.ts, which also
+   * holds the first-render guard §12 requires.
+   */
+  const [needsOpen, setNeedsOpen] = useState(false)
+  const needsReveal = useRevealOnOpen(needsOpen)
 
   const [perTx, setPerTx] = useState('0.50')
   const [daily, setDaily] = useState('5.00')
@@ -869,11 +881,21 @@ export default function Onboard() {
           §5's "Read failed" and its wallet-rejection line -- and both are
           worth hearing whole. `mt-6` because this is a block between blocks
           (§3); the two `mt-5` it replaces were off the scale. */}
+      {/* §12's 90ms for an outcome landing. Both of these are set by a write
+          the reader started, so each mounts once and the class fires once.
+
+          Deliberately NOT extended to a message that re-mounts on a poll:
+          9eb51b1 fixed a banner that appeared and vanished every four seconds
+          because useAccountState cleared `error` at the start of each read,
+          and a reveal on that would have animated the flicker rather than
+          reported anything. The rule is the cause, not the element -- a
+          reader-caused outcome may announce itself; a polling artifact may
+          not. */}
       {(error || restoreNote) && (
         <div role="alert" className="mt-6">
-          {error && <p className="text-sm" style={{ color: 'var(--bad)' }}>{error}</p>}
+          {error && <p className="motion-reveal text-sm" style={{ color: 'var(--bad)' }}>{error}</p>}
           {restoreNote && (
-            <p className="text-sm mt-3" style={{ color: 'var(--bad)' }}>{restoreNote}</p>
+            <p className="motion-reveal text-sm mt-3" style={{ color: 'var(--bad)' }}>{restoreNote}</p>
           )}
         </div>
       )}
@@ -911,12 +933,17 @@ export default function Onboard() {
             The step-by-step guide uses Claude Code, which needs a paid Claude
             plan; the others do not.
           </p>
-          <details className="mt-5 text-sm" style={{ color: 'var(--dim)' }}>
+          <details
+            className="mt-5 text-sm"
+            style={{ color: 'var(--dim)' }}
+            open={needsOpen}
+            onToggle={(event) => setNeedsOpen(event.currentTarget.open)}
+          >
             <summary className="motion-press control-text tap-tall cursor-pointer focus-ring"
               style={{ borderRadius: 'var(--r-mark)', color: 'var(--text)', outlineColor: 'var(--text)' }}>
               What you need before creating
             </summary>
-            <ul className="mt-3 ml-5 list-disc space-y-2" style={PROSE}>
+            <ul className={`mt-3 ml-5 list-disc space-y-2 ${needsReveal}`.trimEnd()} style={PROSE}>
               <li>
                 An owner wallet on Celo with a little CELO for transaction fees.
                 Roughly 0.25 CELO covers this whole setup. Use a wallet you will

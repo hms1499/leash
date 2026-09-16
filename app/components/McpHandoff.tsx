@@ -7,6 +7,7 @@ import {
 import Panel from './ui/Panel'
 import Label from './ui/Label'
 import Button from './ui/Button'
+import { useRevealOnOpen } from '../lib/useReveal.js'
 
 /**
  * The steps that follow this block, for a reader who came through the
@@ -48,6 +49,9 @@ export default function McpHandoff({
   // re-renders on every keystroke in the tag field, and a bare `open={prop}`
   // would slam the panel back to its default each time.
   const [open, setOpen] = useState(defaultOpen)
+  // Empty on the first render, so the already-open panel on /setup arrives
+  // rather than announcing itself. §12.
+  const reveal = useRevealOnOpen(open)
 
   const trimmed = tag.trim()
   /**
@@ -80,8 +84,12 @@ export default function McpHandoff({
           </span>
         </summary>
 
+        {/* The reveal a <details> cannot get by mounting. Applied to the block
+            rather than to the whole disclosure: this is the artifact the reader
+            opened the panel for, and §12's 90ms is there to say the shove the
+            page just took was theirs. */}
         <pre
-          className="num mt-4 p-3 overflow-x-auto"
+          className={`num mt-4 p-3 overflow-x-auto ${reveal}`.trimEnd()}
           style={{ background: 'var(--well)', borderRadius: 'var(--r-box)' }}
         >
           {block}
@@ -111,7 +119,10 @@ export default function McpHandoff({
           {copied ? 'Copied' : 'Copy'}
         </Button>
         {copyFailed && (
-          <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
+          // An outcome landing, which is §12's other use for the 90ms -- the
+          // same thing Address does when a copy resolves. This one mounts on
+          // failure, so the class fires without help.
+          <p className="motion-reveal text-sm mt-2" style={{ color: 'var(--bad)' }}>
             Copy failed — select the block and copy manually.
           </p>
         )}
