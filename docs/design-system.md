@@ -989,6 +989,47 @@ since the meter was built. This gives it numbers.
   element applies and achieves nothing, so `Meter.tsx` does not mount it. The
   global guard covers CSS transitions; SMIL is still a mount decision.
 
+### Challenged 2026-09-16, and it stood
+
+The question was whether to drop this section so the landing page could carry
+ordinary marketing motion. §9 asks for a measurement rather than a preference,
+so here is the one that decided it.
+
+The live account's feed window is 24 hours. Scanned in full on 2026-09-16 —
+86,400 blocks, eighteen `getLogs` calls because forno refuses a wider range —
+it held **zero events**, the last activity being 306,291 blocks back, about
+three and a half days. So a stranger opening `/` today reads "Nothing has been
+spent in the last 24 hours", the arrival reveal never fires, and the meter
+arrives at its figure without easing. **Moving elements on arrival: zero.**
+
+That number argues both ways and it is worth writing down which way it was
+taken. It says this section is spending the whole page's motion budget to keep
+legible a signal that, in practice, nobody sees — which is a real cost. It also
+says the cure is to make the account active rather than to decorate a quiet
+one: a page that moves because money moved is evidence, and a page that moves
+because it loaded is not. The second reading won.
+
+Two candidates were written out and both were refused on their own terms. An
+entrance on load, hero only, is the single most recognisable tell of a
+generated page and carries no information about the product. Revealing the live
+panel when its first read lands is better argued — the chain did cause it — but
+it contradicts a decision already made in prose at `Meter.tsx`: *"§12 allows
+movement the reader caused, and loading a page is not that."* Overturning that
+to buy half a second of fade is not a trade this page needs.
+
+What is not in the text, and mattered most: `test/surface.test.ts` holds
+ratchets at zero over shadows, `z-index`, hand-written durations and
+component-owned hovers, and it cites this section as their ground. Removing the
+ground removes the fence. That fence caught two real defects in the session
+that raised the question — a `<pre>` rendering at 16px mono 400, and a third
+`<details>` opening dead inside `LimitsDrawer` — so it is load-bearing rather
+than ceremonial.
+
+**Nothing in this section changed.** If it is challenged again, the cheap move
+is still the one taken here: spend what the rule already permits (that session
+found three unspent disclosures and a feed reveal missing from the landing),
+and measure before amending.
+
 ---
 
 ## 13. Elevation: there is no layer above the page
