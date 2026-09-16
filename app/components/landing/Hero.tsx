@@ -58,10 +58,18 @@ export default function Hero() {
           {/* The prose exception from design-system §1: sans, not mono, because
               this is read rather than looked at. 68ch is the measure rule from
               §2, and it no longer decides the column: the grid does. */}
+          {/* "gas or x402" until 2026-09-16, two undefined terms in the second
+              paragraph of the page. A reader who does not already know both
+              meets them before they know what the product is. "Transaction
+              fees" costs nothing to say plainly, and x402 -- the thing that
+              most distinguishes this -- earns its one clause of definition
+              here, at its first use on the page. */}
           <p className="mt-5" style={{ ...PROSE, color: 'var(--dim)' }}>
             Spend limits are enforced by a contract on Celo, not by a sentence in a
             prompt. Most funds stay protected; the agent receives only permission
-            to spend within policy and a small operating balance for gas or x402.
+            to spend within policy, plus a small balance of its own for
+            transaction fees and for x402 — the pay-per-request standard an agent
+            uses to buy an API call.
           </p>
           {/* One CTA, not two. The second was a "View live dashboard" jump to
               #live-proof, which earned its place while that section was fourth
@@ -80,24 +88,19 @@ export default function Hero() {
             <li>· No custody</li>
             <li>· Any MCP agent</li>
           </ul>
-          {/* Said here because it used to be said only in docs/quickstart.md,
-              which a reader reaches AFTER the wizard -- that is, after deploying
-              a contract, setting a policy, authorising an agent and funding two
-              balances, all with real money. Finding out what you need to finish,
-              five mainnet transactions in, is the drop-off this line exists to
-              prevent. Deliberately NOT "requires Claude Code": mcp/src/index.ts
-              speaks stdio MCP and nothing else, so any MCP client works, and
-              naming one would turn away the others for no reason.
+          {/* The runtime requirement used to be said here, because it used to be
+              said only in docs/quickstart.md -- which a reader reaches AFTER the
+              wizard, five mainnet transactions and real money in. That drop-off
+              is real and this line was a fair answer to it at the time.
 
-              BELOW the facts rather than directly under the button, where it
-              first landed. Three lines of dim prose in the gap between a CTA and
-              everything else is three lines the eye crosses on its way to the
-              one action this screen asks for. */}
-          <p className="mt-6" style={{ ...PROSE, color: 'var(--dim)' }}>
-            Connecting an agent afterwards needs Node 20 or newer and an MCP client
-            — Claude Code, Cursor and Codex all work. The protected account itself
-            needs none of that and is complete without it.
-          </p>
+              It is not the answer any more, and it was being paid for twice. The
+              guard now stands where the money is: app/setup/page.tsx:909 states
+              it on stage 1, outside the shut <details>, before the deploy and the
+              four writes that follow. `AgentTools` says it again for the reader
+              who wants to know before they start. A third copy here bought
+              nothing and cost the page its third paragraph -- a developer
+              prerequisite, above the fold, to a reader who has not yet been told
+              what the product is. */}
         </div>
 
         {/* Carries id="live-proof" because FinalCta still links to it from the

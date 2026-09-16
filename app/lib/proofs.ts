@@ -1,5 +1,19 @@
 export type Proof = {
   claim: string
+  /**
+   * Why the transaction proves the claim, consequence first.
+   *
+   * Every one of these used to open on an identifier -- `remainingToday`,
+   * `celo_3dec652cd977`, `solc 0.8.24` -- because that is the order the person
+   * who earned the proof thinks in. It is the wrong order for the person
+   * reading it. Rendering these on the landing page (1701ba1) put six of them
+   * in front of a reader who may not know what a proxy is, and the first
+   * clause of each was the most technical thing in the sentence.
+   *
+   * So each now leads with what a reader gains or is protected from, and the
+   * evidence follows the colon. The figures are unchanged: this is the order,
+   * not the content.
+   */
   detail: string
   /** The explorer URL, not a bare hash. The pre-commit secret guard exempts
    *  `/tx/0x…` but blocks a bare `0x`+64-hex behind a `txHash:` key, and
@@ -51,32 +65,32 @@ export function shortHash(url: string): string {
 export const PROOFS: readonly Proof[] = [
   {
     claim: 'The policy gates a real spend',
-    detail: 'remainingToday, the account and the payee each moved by exactly 10000 — one hundredth of a USDC — read at the block before against the block itself. The cap governed the transfer rather than merely coexisting with it.',
+    detail: 'The cap governed the transfer rather than merely coexisting with it: remainingToday, the account and the payee each moved by exactly 10000 — one hundredth of a USDC — read at the block before against the block itself.',
     url: 'https://celoscan.io/tx/0x11cc0100809084880c68b401668dfa46b3eaf32d61bea43fa40ee897dc8246fc',
   },
   {
     claim: 'The attribution tag round-trips',
-    detail: 'That same spend decodes to celo_3dec652cd977 straight from raw chain data, matching the tag the server was configured with rather than the one it claims to have sent.',
+    detail: 'The tag survives the trip to the chain and back, rather than being taken on trust from what the sender says it sent: that same spend decodes to celo_3dec652cd977 straight from raw chain data.',
     url: 'https://celoscan.io/tx/0x11cc0100809084880c68b401668dfa46b3eaf32d61bea43fa40ee897dc8246fc',
   },
   {
     claim: 'An agent spent through the policy, with no human naming the amount',
-    detail: 'An MCP agent in a separate session, handed the account and nothing else, called leash_pay. remainingToday, the account and the payee each moved by exactly 100000.',
+    detail: 'No human typed an amount or a payee: an agent in a separate session, handed the account and nothing else, called leash_pay. remainingToday, the account and the payee each moved by exactly 100000.',
     url: 'https://celoscan.io/tx/0x3cb307a4fde990a3f9282348999127daf022f4caea264af16426595158148704',
   },
   {
     claim: 'x402 paid with money drawn through the policy',
-    detail: 'The agent paid 16753 for a metered resource and drew 17330 to afford it. remainingToday and the account both fell by exactly the draw, so an agent purchase is bounded like any other spend.',
+    detail: 'A purchase is bounded like any other spend: the agent paid 16753 for a metered resource, drew 17330 to afford it, and remainingToday and the account both fell by exactly the draw.',
     url: 'https://celoscan.io/tx/0xd03c3b264129ba303bc394f8cfbaedad545ca4813b6e0fc6c1a12447d2baa807',
   },
   {
     claim: 'The facilitator settled it, and the agent held zero CELO throughout',
-    detail: 'Submitted by the facilitator, not by us. The operator held 0 native CELO for every transaction on this account and paid its own gas in USDC.',
+    detail: 'The agent never needed the chain’s own coin: it held 0 CELO throughout and paid its fees in USDC. This one was submitted by the facilitator rather than by us.',
     url: 'https://celoscan.io/tx/0xedd104e390d32c0d96b0b1c5e07365e2688344ee4905c3d7f3092d21815865ef',
   },
   {
     claim: 'The contract is deployed and source-verified',
-    detail: 'solc 0.8.24, not a proxy and not upgradeable. Verification was confirmed with forge verify-check returning Pass - Verified, rather than inferred from the submission returning OK.',
+    detail: 'The rules cannot be changed behind you: not a proxy, and not upgradeable. solc 0.8.24, with verification confirmed by forge verify-check rather than inferred from the submission returning OK.',
     url: 'https://celoscan.io/tx/0xad28ee0dc8a25bc9e1896fed8bde1d3dd88804f3f4f93a5eb96c4f32422e7449',
   },
 ]
