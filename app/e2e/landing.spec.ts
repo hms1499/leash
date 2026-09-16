@@ -53,6 +53,25 @@ test('the landing page explains itself and shows live mainnet numbers', async ({
   // The proof rows are links a reader can actually open.
   await expect(page.locator('a[href^="https://celoscan.io/tx/"]').first()).toBeVisible()
 
+  /**
+   * The sentence over the evidence panel counts the panel beneath it.
+   *
+   * It was written by hand as "Five claims over four transactions" and was
+   * wrong within the hour, when lib/proofs.ts was refreshed to the v2 set and
+   * became six over five. No unit test could see it: a hardcoded string agrees
+   * with itself, and the node environment cannot render a component. Only the
+   * rendered page carries this, which is why the assertion is here.
+   */
+  const proofRows = page.locator('#security a[href^="https://celoscan.io/tx/"]')
+  const rowCount = await proofRows.count()
+  const txCount = new Set(await proofRows.evaluateAll(
+    (nodes) => nodes.map((n) => n.getAttribute('href')),
+  )).size
+  const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
+  await expect(page.getByText(
+    `${WORDS[rowCount].replace(/^./, (c) => c.toUpperCase())} claims over ${WORDS[txCount]} transactions`,
+  )).toBeVisible()
+
   await expect(page.getByRole('heading', { name: 'Keep the budget and the hot key separate' })).toBeVisible()
   await expect(page.getByText(/Anything already here is outside the contract/)).toBeVisible()
   await expect(page.getByText('The contract has not been audited.', { exact: false })).toBeVisible()

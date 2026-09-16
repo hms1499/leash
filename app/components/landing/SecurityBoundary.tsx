@@ -58,6 +58,29 @@ const NOT_PROTECTED = [
  */
 const EVIDENCE = PROOFS
 
+/**
+ * Counted, never typed.
+ *
+ * The sentence above this panel was written by hand as "Five claims over four
+ * transactions" and was wrong within the hour: refreshing lib/proofs.ts to the
+ * v2 set made it six over five, and the prose carried on saying four. No test
+ * caught it, because a hardcoded string agrees with itself.
+ *
+ * This repo has paid for that mistake in three other places -- a suite count,
+ * a plan count, a countdown -- and the rule each time was the same: a figure
+ * written beside a thing that moves is wrong at the next edit. So the figure
+ * is derived from the list it describes.
+ */
+const CLAIM_COUNT = EVIDENCE.length
+const TX_COUNT = new Set(EVIDENCE.map((p) => p.url)).size
+
+const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
+/** Spelled out, because this is prose. Falls back to the digit past ten, where
+ *  a word stops being easier to read than a number. */
+function spell(n: number): string {
+  return WORDS[n] ?? String(n)
+}
+
 function BoundaryList({
   title, items, tone,
 }: {
@@ -100,9 +123,12 @@ export default function SecurityBoundary() {
         <div className="p-6" style={{ borderBottom: '1px solid var(--line)' }}>
           <Label>On-chain evidence</Label>
           <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
-            Five claims over four transactions, each one open to inspect. Two of
-            them name the same hash because that single spend proved two things
-            at once.
+            {/* Capitalised here rather than in `spell`, which is also used
+                mid-sentence below. */}
+            {`${spell(CLAIM_COUNT).replace(/^./, (c) => c.toUpperCase())} claims over ${spell(TX_COUNT)} transactions, each one open to inspect.`}
+            {/* Only said when it is true. A set with one claim per transaction
+                would otherwise explain a repetition the reader cannot see. */}
+            {TX_COUNT < CLAIM_COUNT && ' Some name the same hash, because one spend can prove more than one thing.'}
           </p>
         </div>
         {EVIDENCE.map((proof, index) => (
