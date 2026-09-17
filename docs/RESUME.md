@@ -107,9 +107,17 @@ local" cannot survive the act of recording it. Ask git instead, which is the
 only answer that is true when you read it rather than when it was typed:
 
 ```bash
-git rev-parse --short main origin/main   # two identical hashes = nothing pending
-git log --oneline origin/main..main      # empty = nothing pending
+git rev-parse main origin/main      # two identical hashes = nothing pending
+git log --oneline origin/main..main # empty = nothing pending
+git ls-remote --heads origin main   # what GitHub holds, not a local cache
 ```
+
+The first line carried `--short` until 2026-09-17 and could never have run:
+`--short` implies `--verify`, which takes exactly one revision, so the command
+this file offered as the way to check answered `fatal: Needed a single
+revision` every time. It reads like a broken remote ref and is not one. The
+third line is the only one of the three that asks GitHub rather than
+`refs/remotes/origin/main`, which is a cache updated by fetch and push.
 
 Gate tests are excluded from the ordinary runs. `pnpm -F @leash/sdk test:gate`
 and `pnpm -F leash-agentpay test:gate` **spend real money** — see Hazards.
