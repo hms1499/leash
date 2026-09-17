@@ -256,7 +256,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 onChanged={state.refetch}
               />
             )}
-            <ConnectButton />
+            <ConnectButton onDangerBand={state.paused} />
           </>
         }
       />
