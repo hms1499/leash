@@ -34,7 +34,7 @@
 **Interfaces:**
 - Produces: `export type HeldAgentKey = { privateKey: \`0x${string}\`; wallet: string } | null` and `export function keyToShow(held: HeldAgentKey, connected: string | null | undefined, agent: string): \`0x${string}\` | null`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add `keyToShow` to the existing import from `'../lib/agentKey.js'` at the top of `app/test/agentKey.test.ts`, so it reads `import { generateAgentWallet, keyToShow } from '../lib/agentKey.js'`. Then append:
 
@@ -101,12 +101,12 @@ describe('keyToShow', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `pnpm -F @leash/app test -- agentKey`
 Expected: FAIL. `keyToShow` is not exported, so the suite errors or the calls throw `keyToShow is not a function`.
 
-- [ ] **Step 3: Implement `keyToShow`**
+- [x] **Step 3: Implement `keyToShow`**
 
 Append to `app/lib/agentKey.ts`. `privateKeyToAccount` is already imported there.
 
@@ -139,7 +139,7 @@ export function keyToShow(
 }
 ```
 
-- [ ] **Step 4: Wire it into the wizard**
+- [x] **Step 4: Wire it into the wizard**
 
 In `app/app/setup/page.tsx`:
 
@@ -194,12 +194,12 @@ In `app/app/setup/page.tsx`:
    {shownKey && <GeneratedKeyPanel privateKey={shownKey} />}
    ```
 
-- [ ] **Step 5: Run the tests and typecheck**
+- [x] **Step 5: Run the tests and typecheck**
 
 Run: `pnpm -F @leash/app test -- agentKey && (cd app && npx tsc --noEmit)`
 Expected: all `agentKey` tests PASS, including the existing ratchet `is never written to browser storage by the wizard`. tsc prints nothing.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/lib/agentKey.ts app/app/setup/page.tsx app/test/agentKey.test.ts
@@ -221,7 +221,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: `canEdit(owner, connected): boolean` from `app/lib/policy.ts`
 - Produces: `export const NOT_OWNER_NOTE: string`, `export function restoredOwnerNote(owner: string, connected: string): string | null`, `export function afterDeployNote(account: string, owner: string, connectedNow: string | null | undefined): string | null`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add `NOT_OWNER_NOTE, afterDeployNote, restoredOwnerNote` to the import from `'../lib/setup.js'` at the top of `app/test/setup.test.ts`. Add these imports below it:
 
@@ -290,12 +290,12 @@ describe('the wizard checks ownership', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `pnpm -F @leash/app test -- setup.test`
 Expected: FAIL. The new functions are missing and the ratchets do not match.
 
-- [ ] **Step 3: Implement the helpers**
+- [x] **Step 3: Implement the helpers**
 
 In `app/lib/setup.ts`, change the first line to `import { canEdit, formatDisplayAmount } from './policy.js'`, then append:
 
@@ -334,7 +334,7 @@ export function afterDeployNote(
 }
 ```
 
-- [ ] **Step 4: Wire the owner check into the restore effect**
+- [x] **Step 4: Wire the owner check into the restore effect**
 
 In `app/app/setup/page.tsx`:
 
@@ -387,7 +387,7 @@ In `app/app/setup/page.tsx`:
      }, [account, connected])
    ```
 
-- [ ] **Step 5: Close the deploy race**
+- [x] **Step 5: Close the deploy race**
 
 1. Just below `const { writeContractAsync } = useWriteContract()` near the top of `Onboard`, add:
    ```ts
@@ -419,12 +419,12 @@ In `app/app/setup/page.tsx`:
            setActiveStage(2)
    ```
 
-- [ ] **Step 6: Run the tests and typecheck**
+- [x] **Step 6: Run the tests and typecheck**
 
 Run: `pnpm -F @leash/app test -- setup && (cd app && npx tsc --noEmit)`
 Expected: PASS. tsc prints nothing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/lib/setup.ts app/app/setup/page.tsx app/test/setup.test.ts
@@ -446,7 +446,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Interfaces:**
 - Produces: `shouldAutoConnect(input: { miniPay: boolean; status: string; attempted: boolean }): boolean`, `describeConnectError(error: unknown): string | null`, and the constants `NO_WALLET`, `CONNECT_CANCELLED`, `CONNECT_PENDING`, `CONNECT_FAILED`. `ConnectButton` gains the prop `onDangerBand?: boolean`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `app/test/connectWallet.test.ts`:
 
@@ -540,12 +540,12 @@ describe('ConnectButton wiring', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `pnpm -F @leash/app test -- connectWallet`
 Expected: FAIL with `Failed to resolve import "../lib/connectWallet.js"`.
 
-- [ ] **Step 3: Implement `app/lib/connectWallet.ts`**
+- [x] **Step 3: Implement `app/lib/connectWallet.ts`**
 
 ```ts
 /**
@@ -601,7 +601,7 @@ export function describeConnectError(error: unknown): string | null {
 }
 ```
 
-- [ ] **Step 4: Rewrite `app/components/ConnectButton.tsx`**
+- [x] **Step 4: Rewrite `app/components/ConnectButton.tsx`**
 
 ```tsx
 'use client'
@@ -676,7 +676,7 @@ export default function ConnectButton({ onDangerBand = false }: { onDangerBand?:
 }
 ```
 
-- [ ] **Step 5: Pass the band on the dashboard**
+- [x] **Step 5: Pass the band on the dashboard**
 
 In `app/app/a/[address]/page.tsx`, replace `<ConnectButton />` inside the `AppHeader` actions with:
 
@@ -684,12 +684,12 @@ In `app/app/a/[address]/page.tsx`, replace `<ConnectButton />` inside the `AppHe
             <ConnectButton onDangerBand={state.paused} />
 ```
 
-- [ ] **Step 6: Run the tests and typecheck**
+- [x] **Step 6: Run the tests and typecheck**
 
 Run: `pnpm -F @leash/app test -- connectWallet && (cd app && npx tsc --noEmit)`
 Expected: PASS. tsc prints nothing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/lib/connectWallet.ts app/test/connectWallet.test.ts app/components/ConnectButton.tsx "app/app/a/[address]/page.tsx"
@@ -709,7 +709,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Interfaces:**
 - Produces: `startDiscovery(owner: \`0x${string}\`): void`, local to `AccountsPage`. `discoverAccounts(owner, signal: AbortSignal)`, where `signal` is now required.
 
-- [ ] **Step 1: Write the failing ratchet**
+- [x] **Step 1: Write the failing ratchet**
 
 Append to `app/test/accountDiscovery.test.ts`. Add the `node:fs`, `node:path` and `node:url` imports at the top if they are not already there.
 
@@ -742,12 +742,12 @@ describe('AccountsPage discovery runs', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `pnpm -F @leash/app test -- accountDiscovery`
 Expected: FAIL. There are three `discoverAccounts(` matches and `signal?: AbortSignal` is present.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `app/components/AccountsPage.tsx`:
 
@@ -795,12 +795,12 @@ In `app/components/AccountsPage.tsx`:
    onClick={() => startDiscovery(connected!)}
    ```
 
-- [ ] **Step 4: Run the tests and typecheck**
+- [x] **Step 4: Run the tests and typecheck**
 
 Run: `pnpm -F @leash/app test -- accountDiscovery && (cd app && npx tsc --noEmit)`
 Expected: PASS. tsc prints nothing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/components/AccountsPage.tsx app/test/accountDiscovery.test.ts
@@ -824,7 +824,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: `isBusy`, `writeLabel`, `WritePhase` from `app/lib/writePhase.ts`; `truncateAddress` from `app/lib/address.ts`
 - Produces: `export type OwnerControlView = 'controls' | 'pending' | 'outcome' | 'hidden'`, `export function ownerControlView(isOwner: boolean, phases: readonly WritePhase[], note: string | null): OwnerControlView`, `export function outcomeForOtherWallet(note: string, sender: string | null): string`. `LimitsDrawer` gains the required prop `isOwner: boolean`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add `ownerControlView, outcomeForOtherWallet` to the import from `'../lib/writePhase.js'` in `app/test/writePhase.test.ts`. Ensure `readFileSync`, `join` and `fileURLToPath` are imported, adding them if missing. Append:
 
@@ -889,12 +889,12 @@ describe('owner controls are not unmounted by the page', () => {
 
 Check the expected string against `truncateAddress` in `app/lib/address.ts:12` before you run the tests. If its format differs from `0x2B33…4f57`, change the expected string to match that function's output. Do not change the function.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `pnpm -F @leash/app test -- writePhase`
 Expected: FAIL. The functions are missing and the page still has both guards.
 
-- [ ] **Step 3: Implement the helpers**
+- [x] **Step 3: Implement the helpers**
 
 Append to `app/lib/writePhase.ts`, and add `import { truncateAddress } from './address.js'` at the top:
 
@@ -928,7 +928,7 @@ export function outcomeForOtherWallet(note: string, sender: string | null): stri
 }
 ```
 
-- [ ] **Step 4: Update `StopButton`**
+- [x] **Step 4: Update `StopButton`**
 
 In `app/components/StopButton.tsx`:
 
@@ -968,7 +968,7 @@ In `app/components/StopButton.tsx`:
        sender.current = connected ?? null
    ```
 
-- [ ] **Step 5: Update `LimitsDrawer`**
+- [x] **Step 5: Update `LimitsDrawer`**
 
 In `app/components/LimitsDrawer.tsx`:
 
@@ -1005,7 +1005,7 @@ In `app/components/LimitsDrawer.tsx`:
      }
    ```
 
-- [ ] **Step 6: Remove the page guards**
+- [x] **Step 6: Remove the page guards**
 
 In `app/app/a/[address]/page.tsx`:
 
@@ -1035,12 +1035,12 @@ In `app/app/a/[address]/page.tsx`:
    ```
 2. Replace the `{isOwner && (\n                <LimitsDrawer` block with an unguarded `<LimitsDrawer ... />` that keeps every existing prop and adds `isOwner={isOwner}`. Put the same one-line comment above it.
 
-- [ ] **Step 7: Run the full app suite, typecheck and e2e**
+- [x] **Step 7: Run the full app suite, typecheck and e2e**
 
 Run: `pnpm -F @leash/app test && (cd app && npx tsc --noEmit) && pnpm -F @leash/app test:e2e`
 Expected: every vitest test PASSES, tsc prints nothing, and every Playwright spec PASSES. `e2e/dashboard.spec.ts` still finds `Connect wallet`. A visitor now also sees `Active` or `Paused` in the header; this is deliberate (spec §2.6).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add app/lib/writePhase.ts app/test/writePhase.test.ts app/components/StopButton.tsx app/components/LimitsDrawer.tsx "app/app/a/[address]/page.tsx"
