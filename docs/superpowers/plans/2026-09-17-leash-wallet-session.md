@@ -1063,7 +1063,7 @@ Run: `pnpm -F @leash/app dev`, then open `http://localhost:3000` in a browser th
 
 | Check | Steps | Expected |
 |---|---|---|
-| §2.2 | `/setup` as A → step 3 → Generate agent wallet → switch the extension to B | The key panel disappears. Switch back to A: it reappears. Press the address button to disconnect: the key does not come back after reconnecting A. |
+| §2.2 | `/setup` as A → step 3 → Generate agent wallet → switch the extension to B | The key panel disappears. Switch back to A: the wizard re-runs the restore effect, so it returns to the stage Celo says A is at, and the key is shown again **only if** the agent it controls is one `operators()` reports as authorised — an unauthorised generated agent must be generated again (spec §2.2, corrected in cb95ebf). Press the address button to disconnect: the key does not come back after reconnecting A. |
 | §2.3 | As B, open `/setup` after putting A's account address in `localStorage['leash.account']` and B in `localStorage['leash.accountOwner']` | Stage 1, with `The connected wallet does not own this protected account…` |
 | §2.4 | Disable the extension and reload `/accounts` → Connect wallet | `No browser wallet found…`. Re-enable it, press Connect and cancel in the wallet: `…The request was cancelled.` Press twice quickly: the button reads `Connecting…` and is disabled. |
 | §2.5 | `/accounts` as A → Refresh from Celo → switch to B at once | Only B's accounts, or B's empty state. A's addresses never appear. |
