@@ -1055,11 +1055,11 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 No automated test in this repo can drive an injected wallet. This task writes nothing to the repo unless something fails.
 
-- [ ] **Step 1: Start the app**
+- [x] **Step 1: Start the app**
 
 Run: `pnpm -F @leash/app dev`, then open `http://localhost:3000` in a browser that has a wallet extension holding two accounts, A and B. A owns a Leash account.
 
-- [ ] **Step 2: Check each item and record what was seen**
+- [x] **Step 2: Check each item and record what was seen**
 
 | Check | Steps | Expected |
 |---|---|---|
@@ -1069,6 +1069,6 @@ Run: `pnpm -F @leash/app dev`, then open `http://localhost:3000` in a browser th
 | §2.5 | `/accounts` as A → Refresh from Celo → switch to B at once | Only B's accounts, or B's empty state. A's addresses never appear. |
 | §2.6 | Read-only check: on A's dashboard, switch to B | The Stop button and Protection drawer disappear, and the header shows `Active`. The in-flight half is checked only if the maintainer chooses to send one real `setPaused`. |
 
-- [ ] **Step 3: Report**
+- [x] **Step 3: Report**
 
 For each row, report what was actually seen. If a row fails, go back to its task with superpowers:systematic-debugging, and do not mark it done.

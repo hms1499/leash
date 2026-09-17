@@ -42,12 +42,17 @@ a prompt, so a leaked agent key does not become an unbounded one.
    **Both gitignored, living only on this machine.** `git clean -fdx` would
    destroy them.
 
-All **six** plans in `docs/superpowers/plans/` are done; read them only for
-context on decisions already taken. Count the directory rather than trusting
-this sentence: it has now been wrong twice the same way. It said "three" while
-five files sat there, was corrected to five, and was still saying five once the
-npm plan made six. A number written beside a directory goes stale the next time
-somebody adds a file to it.
+The plans in `docs/superpowers/plans/` are context on decisions already taken,
+with one exception: **`2026-09-17-leash-setup-resume.md` is open.** Its Task 1
+landed (`065af30`); Tasks 2 and 3 are untouched.
+`2026-09-17-leash-wallet-session.md` closed on 2026-09-17, Task 6 included.
+
+**No count of that directory is written here any more.** This sentence carried
+one for three revisions and was wrong in two of them: it said "three" while five
+files sat there, was corrected to five, and was still saying five once the npm
+plan made six. A number written beside a directory goes stale the next time
+somebody adds a file to it. `ls docs/superpowers/plans/`, and read the
+checkboxes in the file rather than a summary of them.
 
 ## State: all six plans complete, and v2 is deployed and re-proved on mainnet.
 
@@ -67,12 +72,15 @@ times.
 | `cd sdk && pnpm run test` | 83/83 |
 | `cd mcp && pnpm run test` | 35/35 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 362/362 (including multi-account registry and explorer discovery tests) |
+| `cd app && pnpm run test` | 470/470, re-run 2026-09-17 (multi-account registry, explorer discovery, and the wallet-session decision functions) |
 | `cd app && pnpm run test:e2e` | 41/41 local **and** 41/41 against <https://leash-app-phi.vercel.app> with `LEASH_E2E_URL`. The deployed run was 40/41 until the redeploy: `landing.spec.ts` asserts the landing links to the v2 account and the build then serving that URL still carried v1's. That failure was the deploy signal, and it cleared the moment the deploy landed. |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
 Every row above except `test:bundle` was re-run on **2026-09-13** and is that
-run's output, not a recollection. These counts have rotted twice now. On
+run's output, not a recollection; the `app` unit row is its **2026-09-17** run,
+after the wallet-session work moved it from 362 to 470. The e2e row's 41/41 was
+re-run that day too, against a dev server on port 3000 rather than the build
+Playwright normally starts, because the port was in use. These counts have rotted twice now. On
 2026-09-12 sdk was written 66 against 75, app 232 against 338, and e2e 13
 against 41; the same evening v2 Tasks 1-9 moved contracts 32 to 66, sdk 75 to
 78, mcp 29 to 31 and app 338 to 353; and the three defects that mainnet found
@@ -552,6 +560,62 @@ write paths and the UI were both correct. The one defect was in the demo.
   Third time this project has shipped a correct write path with a wrong
   account of it. **When a path can refuse, read what the refusal says, not
   just whether it refused.**
+
+### What the third wallet session found (2026-09-17)
+
+The five manual checks of `docs/superpowers/plans/2026-09-17-leash-wallet-session.md`
+Task 6, driven with two accounts in a browser extension. All five pass now.
+Getting to them cost one defect and one wrong sentence in the plan itself.
+
+- **A v1 account could not be resumed, and `/setup` blamed the network**
+  (`cfef5cd`). The restore effect read `topUpEnabled()` inside its
+  `Promise.all`. That function does not exist on a v1 SpendPolicyAccount, so
+  the revert rejected every other read with it — limits, balance,
+  `allowlistEnabled`, `owner` — and landed in the catch, which says *"Could not
+  verify this account on Celo. Check your connection and try again."* and sets
+  stage 1. Nothing was wrong with the connection and no retry could move it: an
+  owner whose saved account was v1 was sent back to "Create protected account"
+  for ever and told to check their network.
+
+  Measured against `0x7757035d…AE0D9C` on forno, which is owned by the wallet
+  that hit this and already has limits set: without the `.catch` the batch
+  rejects with `ContractFunctionExecutionError: "topUpEnabled" reverted`; with
+  it every figure comes back and the account restores to stage 3.
+
+  **The dashboard had already met this exact revert on 2026-09-12** and caught
+  the read individually, inside the array so the batch stays one request
+  (`lib/useAccountState.ts`, ratcheted by `test/chain.test.ts`). The wizard is
+  its sibling and did not. `CLAUDE.md` already said two implementations of one
+  operation must not behave differently — that rule earned its line here for
+  the second time, after the `examples/` receipt lag on 2026-09-05.
+
+- **The plan told the checker to expect a key the spec says is hidden**
+  (`5294d61`). Task 6's §2.2 row said a switch from wallet B back to A makes
+  the generated agent key reappear, unconditionally. `cb95ebf` had corrected
+  the spec in the other direction two hours after the plan was written: the
+  restore effect re-runs on every wallet change and resets `agent` to `''`
+  until `operators()` answers, so an unauthorised generated agent is not shown
+  and must be generated again. A checker following the table would have filed
+  passing behaviour as a defect — which is exactly what happened before the
+  row was read against the spec.
+
+- **What the five rows actually showed.** §2.2: the key panel disappears on a
+  switch to B, does not return for an unauthorised agent on a switch back, and
+  is gone from memory after a disconnect and reconnect. §2.3: a forged
+  `leash.accountOwner` naming the connected wallet is overruled by `owner()`
+  from inside the restore batch — stage 1 and the not-owner sentence. §2.4:
+  all three connect failures say what happened, and a double press reads
+  `Connecting…` and is disabled. §2.5: a switch during `Discovering…` shows
+  only the new wallet's accounts, with none of the old wallet's addresses in
+  between. §2.6: on a switch away, Stop, Resume and the owner drawers all
+  vanish rather than being offered to a non-owner — `ownerControlView` runs
+  before the Stop/Resume branch, so the paused variant is gated by the same
+  line as the active one, and the label reads `Paused` in `--bg` on the danger
+  band.
+
+  The in-flight half of §2.6 was **not** checked: it needs a real `setPaused`
+  sent and a wallet switch mid-write, and the plan makes that the maintainer's
+  call. Task 6 is otherwise complete.
 
 ### The design system, and what writing it found (2026-09-05)
 
