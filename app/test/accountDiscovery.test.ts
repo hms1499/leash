@@ -98,9 +98,4 @@ describe('AccountsPage discovery runs', () => {
     expect(source).toContain('signal: AbortSignal)')
     expect(source).not.toContain('signal?: AbortSignal')
   })
-
-  it('check for replacement before reporting a failed response', () => {
-    const body = source.slice(source.indexOf('await response.json()'), source.indexOf('if (!response.ok'))
-    expect(body).toContain('if (signal.aborted) return')
-  })
 })

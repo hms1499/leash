@@ -2,11 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useAccount } from 'wagmi'
-import {
-  ContractFunctionRevertedError,
-  ContractFunctionZeroDataError,
-  type BaseError,
-} from 'viem'
 import ConnectButton from './ConnectButton'
 import NetworkBadge from './NetworkBadge'
 import Address from './ui/Address'
@@ -23,77 +18,10 @@ import {
   savePolicyAccount,
   type SavedPolicyAccount,
 } from '../lib/accountRegistry.js'
-import { publicClient } from '../lib/chain.js'
-import { describeDiscovery, type DiscoveredAccountCandidate } from '../lib/accountDiscovery.js'
+import { describeDiscovery } from '../lib/accountDiscovery.js'
+import { findOwnedAccounts } from '../lib/ownedAccounts.js'
 import { HEADING, TITLE } from './ui/prose'
 import { PROSE } from './ui/prose'
-
-const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
-const VERIFY_ABI = [
-  { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
-  { type: 'function', name: 'paused', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
-  { type: 'function', name: 'allowlistEnabled', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
-  { type: 'function', name: 'remainingToday', stateMutability: 'view',
-    inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'operators', stateMutability: 'view',
-    inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'bool' }] },
-  { type: 'function', name: 'limits', stateMutability: 'view',
-    inputs: [{ name: '', type: 'address' }],
-    outputs: [
-      { name: 'perTx', type: 'uint256' }, { name: 'daily', type: 'uint256' },
-      { name: 'spentToday', type: 'uint256' }, { name: 'day', type: 'uint64' },
-    ] },
-] as const
-
-/**
- * Whether a failed verification was the chain answering "no" or not answering.
- *
- * viem wraps BOTH in `ContractFunctionExecutionError`, so the error's own name
- * cannot tell them apart. Measured against viem in this package on 2026-09-09,
- * by cause chain:
- *
- *   no code at the address -> ContractFunctionZeroDataError
- *   a contract that reverts -> ContractFunctionRevertedError
- *   a node that did not answer -> HttpRequestError / TimeoutError
- *
- * Only the first two are the contract having answered. Everything else — an
- * unrecognised shape included — is treated as unread, deliberately: calling an
- * unread account "incompatible" hides somebody's money from them, while calling
- * a genuinely incompatible one "unread" only asks them to try again.
- */
-function answeredByTheContract(error: unknown): boolean {
-  const walk = (error as BaseError)?.walk
-  if (typeof walk !== 'function') return false
-  return (error as BaseError).walk(
-    (e) => e instanceof ContractFunctionZeroDataError || e instanceof ContractFunctionRevertedError,
-  ) !== null
-}
-
-async function verifyPolicyAccount(
-  address: `0x${string}`,
-  expectedOwner: `0x${string}`,
-): Promise<'verified' | 'wrong-owner' | 'incompatible' | 'unreadable'> {
-  try {
-    const [owner] = await Promise.all([
-      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'owner' }),
-      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'paused' }),
-      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'allowlistEnabled' }),
-      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'limits', args: [TOKEN] }),
-      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'remainingToday', args: [TOKEN] }),
-      publicClient.readContract({ address, abi: VERIFY_ABI, functionName: 'operators', args: [expectedOwner] }),
-    ])
-    return (owner as string).toLowerCase() === expectedOwner.toLowerCase()
-      ? 'verified'
-      : 'wrong-owner'
-  } catch (error) {
-    // A contract that answered "no" and a node that did not answer are
-    // different facts. Collapsing them is how "we could not check" became
-    // "you have no accounts": 40 candidates against a rate-limited forno all
-    // came back 'incompatible', and the page told an owner with three
-    // protected accounts that none existed.
-    return answeredByTheContract(error) ? 'incompatible' : 'unreadable'
-  }
-}
 
 export default function AccountsPage() {
   const { address: connected, isConnected } = useAccount()
@@ -140,55 +68,26 @@ export default function AccountsPage() {
     // run's honest "none were found".
     setUnreadableCount(0)
     try {
-      const response = await fetch(`/api/accounts/discover?owner=${encodeURIComponent(owner)}`, { signal })
-      const body = await response.json() as {
-        accounts?: DiscoveredAccountCandidate[]
-        historyTruncated?: boolean
-        code?: string
-      }
-      // Replaced while the body was read. Nothing below is about this owner.
-      if (signal.aborted) return
-      if (!response.ok || !Array.isArray(body.accounts)) {
-        setDiscoveryNote(body.code === 'DISCOVERY_NOT_CONFIGURED'
+      const result = await findOwnedAccounts(owner, signal)
+      if (result.status === 'aborted') return
+      if (result.status !== 'ok') {
+        setDiscoveryNote(result.status === 'not-configured'
           ? 'Automatic discovery is not configured. Add the explorer API key and refresh.'
           : 'Could not refresh account history. Showing the last saved list.')
         return
       }
-
-      let discovered = 0
-      // Counted, not collapsed into the miss count: a candidate the chain
-      // never answered for has not been rejected, and the sentence below must
-      // not imply it was.
-      let unreadable = 0
-      // Bound RPC concurrency: an active owner can have many unrelated
-      // deployments, and they are only candidates until each one passes all
-      // three Leash reads and owner verification.
-      for (let start = 0; start < body.accounts.length; start += 5) {
-        const batch = body.accounts.slice(start, start + 5)
-        const results = await Promise.all(batch.map(async (candidate) => ({
-          candidate,
-          result: await verifyPolicyAccount(candidate.address, owner),
-        })))
-        if (signal.aborted) return
-        for (const { candidate, result } of results) {
-          if (result === 'unreadable') { unreadable++; continue }
-          if (result !== 'verified') continue
-          savePolicyAccount(localStorage, owner, candidate)
-          discovered++
-        }
-      }
+      for (const candidate of result.verified) savePolicyAccount(localStorage, owner, candidate)
       setAccounts(listPolicyAccounts(localStorage, owner))
       announceAccountRegistryChange()
-      setUnreadableCount(unreadable)
+      setUnreadableCount(result.unreadable)
       setDiscoveryNote(describeDiscovery({
-        verified: discovered,
-        unreadable,
-        historyTruncated: Boolean(body.historyTruncated),
+        verified: result.verified.length,
+        unreadable: result.unreadable,
+        historyTruncated: result.historyTruncated,
       }))
-    } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        setDiscoveryNote('Could not refresh account history. Showing the last saved list.')
-      }
+    } catch {
+      // Only storage can throw here: findOwnedAccounts never does.
+      setDiscoveryNote('Could not refresh account history. Showing the last saved list.')
     } finally {
       if (!signal.aborted) setDiscovering(false)
     }

@@ -242,3 +242,28 @@ describe('the wizard restore survives a v1 account', () => {
     expect(batch).toContain("functionName: 'topUpEnabled'")
   })
 })
+
+/**
+ * A wallet this browser has never seen may own an account already: another
+ * device, cleared site data, a tab closed mid-deploy. /setup used to show step
+ * 1 regardless, and a second account is a second deployment fee.
+ */
+describe('the wizard looks for accounts it was not told about', () => {
+  const ROOT = fileURLToPath(new URL('..', import.meta.url))
+  const source = readFileSync(join(ROOT, 'app/setup/page.tsx'), 'utf8')
+  const start = source.indexOf('// A wallet this browser has never seen')
+  const effect = source.slice(start, source.indexOf('}, [connected])', start))
+
+  it('runs the shared lookup, cancellably, only when nothing is saved and no new account was asked for', () => {
+    expect(start).toBeGreaterThan(-1)
+    expect(effect).toContain('findOwnedAccounts(connected, controller.signal)')
+    expect(effect).toContain('return () => controller.abort()')
+    expect(effect).toContain("get('new') === '1'")
+    expect(effect).toContain('listPolicyAccounts(localStorage, connected)')
+  })
+
+  it('does not offer Create while it is looking', () => {
+    const at = source.indexOf('onClick={() => void deploy()}')
+    expect(source.slice(at - 300, at)).toContain("lookup === 'searching'")
+  })
+})

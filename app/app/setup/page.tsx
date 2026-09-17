@@ -36,8 +36,9 @@ import {
 import { useRevealOnOpen } from '../../lib/useReveal.js'
 import { PAGE, PANEL_GRID } from '../../components/ui/page'
 import {
-  announceAccountRegistryChange, migrateLegacyAccount, savePolicyAccount, selectPolicyAccount,
+  announceAccountRegistryChange, listPolicyAccounts, migrateLegacyAccount, savePolicyAccount, selectPolicyAccount,
 } from '../../lib/accountRegistry.js'
+import { accountLookupNote, findOwnedAccounts, newestAccount } from '../../lib/ownedAccounts.js'
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const DECIMALS = 6
@@ -223,6 +224,10 @@ export default function Onboard() {
   const [pendingDeploy, setPendingDeploy] =
     useState<{ record: PendingDeploy; check: PendingDeployCheck | 'checking' } | null>(null)
   const { armed: abandonArmed, arm: armAbandon, disarm: disarmAbandon } = useArming()
+
+  /** lib/ownedAccounts.ts: whether this wallet already owns an account nobody saved here. */
+  const [lookup, setLookup] = useState<'idle' | 'searching'>('idle')
+  const [lookupNote, setLookupNote] = useState<string | null>(null)
 
   /**
    * The "What you need before creating" disclosure, so it opens the way the
@@ -570,6 +575,41 @@ export default function Onboard() {
     if (!connected) return
     const record = parsePendingDeploy(readLocal(pendingDeployKey(connected)), connected)
     if (record) void resolvePendingDeploy(record)
+  }, [connected])
+
+  // A wallet this browser has never seen may still own an account -- another
+  // device, cleared site data, a deploy whose tab was closed. Looked up before
+  // step 1 offers to create one, because a second account is a second fee.
+  // Not when the owner asked for a new account (?new=1), and not when the
+  // registry already names one: the restore effect has that in hand.
+  useEffect(() => {
+    setLookup('idle')
+    setLookupNote(null)
+    if (!connected) return
+    if (new URLSearchParams(window.location.search).get('new') === '1') return
+    let known = 0
+    try { known = listPolicyAccounts(localStorage, connected).length } catch { /* look it up */ }
+    if (known > 0) return
+    const controller = new AbortController()
+    setLookup('searching')
+    void (async () => {
+      const result = await findOwnedAccounts(connected, controller.signal)
+      if (result.status === 'aborted') return
+      if (result.status === 'ok') {
+        const newest = newestAccount(result.verified)
+        try {
+          for (const candidate of result.verified) savePolicyAccount(localStorage, connected, candidate)
+          if (newest) selectPolicyAccount(localStorage, connected, newest.address)
+        } catch { /* the chain is the record; see lib/browserStorage.ts */ }
+        if (newest) {
+          announceAccountRegistryChange()
+          setAccount(newest.address)
+        }
+      }
+      setLookupNote(accountLookupNote(result))
+      setLookup('idle')
+    })()
+    return () => controller.abort()
   }, [connected])
 
   async function deploy() {
@@ -1035,6 +1075,10 @@ export default function Onboard() {
         </div>
       )}
 
+      {lookupNote && (
+        <p role="status" className="mt-6" style={{ ...PROSE, color: 'var(--dim)' }}>{lookupNote}</p>
+      )}
+
       {activeStage === 1 && (
         <Panel as="section" className="p-6 mt-6">
           <Label className="block">Step 1 of 4</Label>
@@ -1120,6 +1164,16 @@ export default function Onboard() {
                   Use a wallet you will keep secure; it must not be the agent wallet. Ownership can be handed
                   to another wallet later from the dashboard, in two steps.
                 </p>
+                {/* The plan wrote a margin off §3's four-step scale here.
+                    test/scaleUsage.test.ts ratchets that -- and counts the
+                    source text, comments included, so the rejected value is
+                    not named. This step matches the pending-deploy status
+                    directly below it. */}
+                {lookup === 'searching' && (
+                  <p role="status" className="mt-3" style={{ ...PROSE, color: 'var(--dim)' }}>
+                    Checking whether this wallet already owns a protected account…
+                  </p>
+                )}
                 {pendingDeploy && (
                   <div role="status" className="mt-3">
                     <p style={{ ...PROSE, color: 'var(--dim)' }}>
@@ -1146,7 +1200,7 @@ export default function Onboard() {
                 <Button
                   variant="primary"
                   className="mt-3"
-                  disabled={deploying || restoring
+                  disabled={deploying || restoring || lookup === 'searching'
                     || (pendingDeploy !== null && pendingDeployBlocksCreate(pendingDeploy.check))}
                   onClick={() => void deploy()}
                 >
