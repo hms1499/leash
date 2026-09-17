@@ -39,6 +39,7 @@ import {
   announceAccountRegistryChange, listPolicyAccounts, migrateLegacyAccount, savePolicyAccount, selectPolicyAccount,
 } from '../../lib/accountRegistry.js'
 import { accountLookupNote, findOwnedAccounts, newestAccount } from '../../lib/ownedAccounts.js'
+import { fetchOperatorCandidates, recoverAgent } from '../../lib/agentDiscovery.js'
 
 const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
 const DECIMALS = 6
@@ -465,27 +466,42 @@ export default function Onboard() {
 
         let authorized = false
         let operatorBalance: bigint | null = null
+        const isOperator = (candidate: `0x${string}`) => publicClient.readContract({
+          address: account, abi: SETUP_ABI, functionName: 'operators', args: [candidate],
+        }) as Promise<boolean>
+        let knownAgent: `0x${string}` | null = null
         const savedAgent = readLocal(`leash.agent.${account.toLowerCase()}`)
-        if (savedAgent && isValidAddress(savedAgent)) {
-          authorized = await publicClient.readContract({
-            address: account, abi: SETUP_ABI, functionName: 'operators', args: [savedAgent],
-          }) as boolean
-          if (authorized) {
-            if (!cancelled) {
-              setAgent(savedAgent)
-              setAgentAuthorized(true)
-            }
-            try {
-              operatorBalance = await readBalance(savedAgent)
-              if (!cancelled) setAgentBalance({ status: 'ok', value: operatorBalance })
-            } catch {
-              // The authorization was independently verified. A transient
-              // token-balance read must not send the user back to account creation.
-              // It says so on screen now instead of reading as "Checking…".
-              // Flatly 'failed', not afterFailedRead: this effect reset the
-              // balance a few lines above, so there is no earlier figure to keep.
-              if (!cancelled) setAgentBalance({ status: 'failed' })
-            }
+        if (savedAgent && isValidAddress(savedAgent) && await isOperator(savedAgent)) {
+          knownAgent = savedAgent
+        }
+        // This browser was never told, or was told about an agent since
+        // revoked. The explorer names candidates from OperatorChanged history
+        // and operators() decides. recoverAgent never throws: a failed lookup
+        // leaves step 3 as it was, where pasting the address still works.
+        if (!knownAgent && !cancelled) {
+          knownAgent = await recoverAgent({
+            owner: connected,
+            candidates: () => fetchOperatorCandidates(account),
+            isOperator,
+          })
+          if (knownAgent && !cancelled) writeLocal(`leash.agent.${account.toLowerCase()}`, knownAgent)
+        }
+        if (knownAgent) {
+          authorized = true
+          if (!cancelled) {
+            setAgent(knownAgent)
+            setAgentAuthorized(true)
+          }
+          try {
+            operatorBalance = await readBalance(knownAgent)
+            if (!cancelled) setAgentBalance({ status: 'ok', value: operatorBalance })
+          } catch {
+            // The authorization was independently verified. A transient
+            // token-balance read must not send the user back to account creation.
+            // It says so on screen now instead of reading as "Checking…".
+            // Flatly 'failed', not afterFailedRead: this effect reset the
+            // balance a few lines above, so there is no earlier figure to keep.
+            if (!cancelled) setAgentBalance({ status: 'failed' })
           }
         }
         if (cancelled) return
