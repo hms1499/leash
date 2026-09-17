@@ -18,7 +18,7 @@ import {
 } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
 import { generateAgentWallet, keyToShow, type HeldAgentKey } from '../../lib/agentKey.js'
-import { formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
+import { canEdit, formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import {
   afterDeployNote, afterFailedRead, balanceValue, describeBalance, describeTopUpMode, firstSetupStage,
@@ -26,8 +26,13 @@ import {
 } from '../../lib/setup.js'
 import { pollUntil } from '../../lib/confirm.js'
 import { isBusy, writeLabel, type WritePhase } from '../../lib/writePhase.js'
-import { readLocal, writeLocal } from '../../lib/browserStorage.js'
+import { readLocal, removeLocal, writeLocal } from '../../lib/browserStorage.js'
 import { describeDeployReceipt } from '../../lib/deploy.js'
+import { useArming } from '../../lib/arming.js'
+import {
+  checkPendingDeploy, parsePendingDeploy, pendingDeployBlocksCreate, pendingDeployKey, pendingDeployNote,
+  serializePendingDeploy, type PendingDeploy, type PendingDeployCheck,
+} from '../../lib/pendingDeploy.js'
 import { useRevealOnOpen } from '../../lib/useReveal.js'
 import { PAGE, PANEL_GRID } from '../../components/ui/page'
 import {
@@ -214,6 +219,10 @@ export default function Onboard() {
   const deploying = isBusy(deployPhase)
   const [restoring, setRestoring] = useState(false)
   const [restoreNote, setRestoreNote] = useState<string | null>(null)
+  /** A deployment this browser sent and has not seen judged. lib/pendingDeploy.ts. */
+  const [pendingDeploy, setPendingDeploy] =
+    useState<{ record: PendingDeploy; check: PendingDeployCheck | 'checking' } | null>(null)
+  const { armed: abandonArmed, arm: armAbandon, disarm: disarmAbandon } = useArming()
 
   /**
    * The "What you need before creating" disclosure, so it opens the way the
@@ -503,6 +512,52 @@ export default function Onboard() {
   const connectedRef = useRef(connected)
   useEffect(() => { connectedRef.current = connected }, [connected])
 
+  async function resolvePendingDeploy(record: PendingDeploy) {
+    setPendingDeploy({ record, check: 'checking' })
+    const check = await checkPendingDeploy(record.hash, {
+      getTransactionReceipt: (args) => publicClient.getTransactionReceipt(args),
+      getTransaction: (args) => publicClient.getTransaction(args),
+    })
+    // The wallet changed while Celo was being asked. This answer is about
+    // another owner's deployment, and that owner gets it on their own visit.
+    if (!canEdit(record.owner, connectedRef.current)) return
+    if (check.kind === 'landed') {
+      try {
+        savePolicyAccount(localStorage, record.owner, { address: check.address, deployBlock: check.deployBlock })
+        selectPolicyAccount(localStorage, record.owner, check.address)
+      } catch { /* the chain is the record; see lib/browserStorage.ts */ }
+      announceAccountRegistryChange()
+      removeLocal(pendingDeployKey(record.owner))
+      setPendingDeploy(null)
+      setAccount(check.address)
+      return
+    }
+    if (check.kind === 'failed') {
+      removeLocal(pendingDeployKey(record.owner))
+      setPendingDeploy(null)
+      setError(check.message)
+      return
+    }
+    setPendingDeploy({ record, check })
+  }
+
+  /** Only offered for `unknown`, and only after a second press. */
+  function abandonPendingDeploy(record: PendingDeploy) {
+    disarmAbandon()
+    removeLocal(pendingDeployKey(record.owner))
+    setPendingDeploy(null)
+    void deploy()
+  }
+
+  // Asked before step 1 offers anything: an unconfirmed deployment is a
+  // real contract, and a second press is a second fee.
+  useEffect(() => {
+    setPendingDeploy(null)
+    if (!connected) return
+    const record = parsePendingDeploy(readLocal(pendingDeployKey(connected)), connected)
+    if (record) void resolvePendingDeploy(record)
+  }, [connected])
+
   async function deploy() {
     setError(null)
     if (chainId !== REQUIRED_CHAIN_ID) { setError(WRONG_NETWORK); return }
@@ -521,6 +576,10 @@ export default function Onboard() {
         setError('The deployment was not sent.')
         return
       }
+      // Remembered before the wait, not after: the wait is where a closed
+      // tab used to lose a real contract, and the next press paid for another.
+      const record: PendingDeploy = { hash, owner, sentAt: Date.now() }
+      writeLocal(pendingDeployKey(owner), serializePendingDeploy(record))
       // The wallet returned a hash; the chain is what is left. This is the
       // longest wait in the app -- a contract creation -- and it was the one
       // giving the least sign of life. lib/writePhase.ts.
@@ -531,6 +590,8 @@ export default function Onboard() {
         // creation still carries a contractAddress, and saving it left a junk
         // account behind and then blamed the next failed read on the network.
         const outcome = describeDeployReceipt(receipt, hash)
+        // Judged, either way. Nothing is pending any more.
+        removeLocal(pendingDeployKey(owner))
         if (!outcome.ok) { setError(outcome.message); return }
         savePolicyAccount(localStorage, owner, {
           address: outcome.address, deployBlock: receipt.blockNumber.toString(),
@@ -543,7 +604,10 @@ export default function Onboard() {
         setAccount(outcome.address)
         setActiveStage(2)
       } catch {
-        setError(`Sent as ${hash}. The chain has not confirmed it yet. Check that transaction before deploying again.`)
+        // Still pending as far as anyone knows. The record stays, so a
+        // reload asks again; the same wallet sees the panel that says so now.
+        if (canEdit(owner, connectedRef.current)) setPendingDeploy({ record, check: { kind: 'waiting' } })
+        else setError(`Sent as ${hash}. The chain has not confirmed it yet. Check that transaction before deploying again.`)
       }
     } catch {
       setError('The deployment did not start. Reload and try again.')
@@ -1042,7 +1106,36 @@ export default function Onboard() {
                   Use a wallet you will keep secure; it must not be the agent wallet. Ownership can be handed
                   to another wallet later from the dashboard, in two steps.
                 </p>
-                <Button variant="primary" className="mt-3" disabled={deploying || restoring} onClick={() => void deploy()}>
+                {pendingDeploy && (
+                  <div role="status" className="mt-3">
+                    <p style={{ ...PROSE, color: 'var(--dim)' }}>
+                      {pendingDeployNote(pendingDeploy.check, pendingDeploy.record.hash)}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        disabled={pendingDeploy.check === 'checking'}
+                        onClick={() => void resolvePendingDeploy(pendingDeploy.record)}
+                      >
+                        Check again
+                      </Button>
+                      {pendingDeploy.check !== 'checking' && pendingDeploy.check.kind === 'unknown' && (
+                        <Button
+                          variant="stop"
+                          onClick={() => (abandonArmed ? abandonPendingDeploy(pendingDeploy.record) : armAbandon(true))}
+                        >
+                          {abandonArmed ? 'Confirm: deploy again' : 'It never landed — deploy again'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <Button
+                  variant="primary"
+                  className="mt-3"
+                  disabled={deploying || restoring
+                    || (pendingDeploy !== null && pendingDeployBlocksCreate(pendingDeploy.check))}
+                  onClick={() => void deploy()}
+                >
                   {writeLabel(deployPhase, {
                     idle: 'Create protected account',
                     sending: 'Creating…',
