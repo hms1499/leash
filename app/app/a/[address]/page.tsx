@@ -342,7 +342,8 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 />
               )}
               {/* Not gated here: an unmount mid-write lost the only message
-                  saying whether setPaused landed. StopButton gates itself. */}
+                  saying whether setPolicy or the allowlist change landed.
+                  LimitsDrawer gates itself. */}
               <LimitsDrawer
                 account={address}
                 token={TOKEN}

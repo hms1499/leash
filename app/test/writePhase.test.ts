@@ -189,4 +189,20 @@ describe('owner controls are not unmounted by the page', () => {
       expect(at).toBeGreaterThan(source.lastIndexOf('useWriteContract('))
     })
   }
+
+  /**
+   * LimitsDrawer's non-owner view used one `error ?? recipientNote` and one
+   * shared `sender` ref. A stale limits `error` (a validation failure, or an
+   * earlier "Sent, but…") hid the outcome of a later recipient write that was
+   * really sent, and would have labelled it with whichever wallet pressed
+   * Save last -- not whoever actually sent the recipient change. The spec's
+   * binding rule is that a fix must never hide the outcome of a transaction
+   * that was actually sent, so each note needs its own sender and its own
+   * line.
+   */
+  it('LimitsDrawer renders the limits outcome and the recipient outcome each with their own sender', () => {
+    const source = readFileSync(join(ROOT, 'components/LimitsDrawer.tsx'), 'utf8')
+    expect(source).toMatch(/outcomeForOtherWallet\(error[^,]*,\s*limitsSender\.current\)/)
+    expect(source).toMatch(/outcomeForOtherWallet\(recipientNote[^,]*,\s*recipientSender\.current\)/)
+  })
 })

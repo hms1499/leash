@@ -92,7 +92,12 @@ export default function LimitsDrawer({
   const { armed: removeArmed, arm: armRemove, disarm: disarmRemove } = useArming()
   const { writeContractAsync } = useWriteContract()
   const { address: connected, chainId } = useAccount()
-  const sender = useRef<string | null>(null)
+  // Two refs, not one: `error` and `recipientNote` are independent writes, and
+  // a shared ref would label whichever fired second with whoever pressed
+  // first -- or hide it behind a stale note from the other control. See the
+  // non-`controls` branch below.
+  const limitsSender = useRef<string | null>(null)
+  const recipientSender = useRef<string | null>(null)
 
   useEffect(() => {
     if (dirty) return
@@ -104,7 +109,7 @@ export default function LimitsDrawer({
 
   async function saveLimits() {
     setError(null)
-    sender.current = connected ?? null
+    limitsSender.current = connected ?? null
     if (chainId !== REQUIRED_CHAIN_ID) { setError(WRONG_NETWORK); return }
     const parsed = validateLimits(perTxInput, dailyInput, decimals, { perTx, daily })
     if (!parsed.ok) { setError(parsed.error); return }
@@ -139,7 +144,7 @@ export default function LimitsDrawer({
 
   async function setRecipientProtection(next: boolean) {
     setRecipientNote(null)
-    sender.current = connected ?? null
+    recipientSender.current = connected ?? null
     if (chainId !== REQUIRED_CHAIN_ID) { setRecipientNote(WRONG_NETWORK); return }
     setRecipientPending('protection')
     setRecipientPhase('sending')
@@ -189,7 +194,7 @@ export default function LimitsDrawer({
 
   async function setPayeeAccess(next: boolean) {
     setRecipientNote(null)
-    sender.current = connected ?? null
+    recipientSender.current = connected ?? null
     if (!isValidAddress(payee)) { setRecipientNote('Enter a valid Celo address.'); return }
     if (chainId !== REQUIRED_CHAIN_ID) { setRecipientNote(WRONG_NETWORK); return }
     setRecipientPending('payee')
@@ -266,17 +271,34 @@ export default function LimitsDrawer({
     // account; its outcome is still owed to whoever pressed. See
     // ownerControlView.
     const busyPhase = isBusy(phase) ? phase : recipientPhase
+    // Both notes render when both are set: `error` (saveLimits) and
+    // `recipientNote` (setRecipientProtection / setPayeeAccess) are
+    // independent writes, and a fix must never hide the outcome of a
+    // transaction that was actually sent -- so a stale limits error does not
+    // get to swallow a later recipient outcome, or vice versa. Each keeps its
+    // own sender: whoever pressed Save is not necessarily who pressed
+    // Approve.
+    // --t-body rather than a raw Tailwind size utility: docs/design-system.md
+    // §2 keeps those off the six-step scale, and test/scaleUsage.test.ts
+    // ratchets the count in this file -- it does not fall, so it must not
+    // rise either.
+    const noteStyle = { color: 'var(--dim)', fontSize: 'var(--t-body)', lineHeight: 'var(--t-body-line)' }
     return (
       <Panel className="p-6">
-        {/* --t-body rather than a raw Tailwind size utility: docs/design-system.md
-            §2 keeps those off the six-step scale, and test/scaleUsage.test.ts
-            ratchets the count in this file -- it does not fall, so it must
-            not rise either. */}
-        <p role="status" style={{ color: 'var(--dim)', fontSize: 'var(--t-body)', lineHeight: 'var(--t-body-line)' }}>
-          {view === 'pending'
-            ? writeLabel(busyPhase, { idle: '', sending: 'Waiting for the wallet…' })
-            : outcomeForOtherWallet(error ?? recipientNote ?? '', sender.current)}
-        </p>
+        {view === 'pending' ? (
+          <p role="status" style={noteStyle}>
+            {writeLabel(busyPhase, { idle: '', sending: 'Waiting for the wallet…' })}
+          </p>
+        ) : (
+          <>
+            {error && (
+              <p role="status" style={noteStyle}>{outcomeForOtherWallet(error, limitsSender.current)}</p>
+            )}
+            {recipientNote && (
+              <p role="status" style={noteStyle}>{outcomeForOtherWallet(recipientNote, recipientSender.current)}</p>
+            )}
+          </>
+        )}
       </Panel>
     )
   }
