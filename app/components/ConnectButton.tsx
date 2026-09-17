@@ -35,7 +35,17 @@ export default function ConnectButton({ onDangerBand = false }: { onDangerBand?:
   if (isConnected && address) {
     // MiniPay has no "other wallet" to go to, and its injected provider
     // cannot really be disconnected, so the address is a label there.
-    if (miniPay) return <Label className="num">{truncateAddress(address)}</Label>
+    //
+    // Label's default color is --dim; .on-bright in globals.css only
+    // recolors .control-*, so on the paused header's --bad ground this
+    // would otherwise sit at ~1.06:1 -- invisible. docs/design-system.md §4.
+    if (miniPay) {
+      return (
+        <Label className="num" style={{ color: onDangerBand ? 'var(--bg)' : undefined }}>
+          {truncateAddress(address)}
+        </Label>
+      )
+    }
     return (
       <Button
         variant="ghost"

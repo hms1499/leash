@@ -84,4 +84,16 @@ describe('ConnectButton wiring', () => {
   it('names the disconnect action, starting with the visible text', () => {
     expect(source).toContain('aria-label={`${truncateAddress(address)}, disconnect`}')
   })
+
+  // Label's default color is --dim, which on the paused header's --bad ground
+  // is ~1.06:1 -- invisible. .on-bright in globals.css only recolors
+  // .control-*, not Label, so every Label here must set its own color from
+  // onDangerBand, the way the error note already does.
+  it('recolors every Label from onDangerBand', () => {
+    const openTags = source.match(/<Label[^>]*>/g) ?? []
+    expect(openTags.length).toBeGreaterThan(0)
+    for (const tag of openTags) {
+      expect(tag).toContain('onDangerBand')
+    }
+  })
 })
