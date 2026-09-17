@@ -17,7 +17,7 @@ import {
   SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS, SET_OPERATOR_GAS, SET_POLICY_GAS, SET_TOP_UP_ENABLED_GAS,
 } from '../../lib/chain.js'
 import { isValidAddress } from '../../lib/address.js'
-import { generateAgentWallet } from '../../lib/agentKey.js'
+import { generateAgentWallet, keyToShow, type HeldAgentKey } from '../../lib/agentKey.js'
 import { formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import {
@@ -258,7 +258,7 @@ export default function Onboard() {
    * and that a reload loses it; agentKey.test.ts greps this file to keep that
    * sentence true when somebody later adds a storage write nearby.
    */
-  const [generatedKey, setGeneratedKey] = useState<`0x${string}` | null>(null)
+  const [generatedKey, setGeneratedKey] = useState<HeldAgentKey>(null)
 
   const [protectedBalance, setProtectedBalance] = useState<BalanceRead>({ status: 'reading' })
   const [agentBalance, setAgentBalance] = useState<BalanceRead>({ status: 'reading' })
@@ -297,6 +297,9 @@ export default function Onboard() {
   const agentBalanceRead = describeBalance(agentBalance, DECIMALS)
   const recipientReady = recipientMode === 'any' ? !recipientProtectionEnabled : recipientProtectionEnabled
 
+  // Scoped, not merely cleared: see keyToShow.
+  const shownKey = keyToShow(generatedKey, connected, agent)
+
   function stageUnlocked(stage: SetupStage): boolean {
     if (stage === 1) return true
     if (stage === 2) return readiness.accountCreated
@@ -319,6 +322,9 @@ export default function Onboard() {
 
   useEffect(() => {
     if (!connected) {
+      // Out of memory, not only off the screen: a disconnect is how someone
+      // at a shared browser says they are done.
+      setGeneratedKey(null)
       setAccount(null)
       setActiveStage(1)
       return
@@ -1167,11 +1173,11 @@ export default function Onboard() {
                 <Button variant="ghost" className="mt-3" disabled={agentBusy}
                   onClick={() => {
                     const wallet = generateAgentWallet()
-                    setGeneratedKey(wallet.privateKey)
+                    setGeneratedKey({ privateKey: wallet.privateKey, wallet: connected ?? '' })
                     setAgent(wallet.address)
                     setAgentNote(null)
                   }}>
-                  {generatedKey ? 'Generate a different wallet' : 'Generate agent wallet'}
+                  {shownKey ? 'Generate a different wallet' : 'Generate agent wallet'}
                 </Button>
                 <Label className="block mt-4">Agent wallet address</Label>
                 <input className="num field w-full mt-2 p-3" aria-label="Agent wallet address"
@@ -1201,7 +1207,7 @@ export default function Onboard() {
             {/* Outside the !agentAuthorized branch above: the key is what the
                 reader leaves with, and authorising the wallet must not take it
                 off the screen. */}
-            {generatedKey && <GeneratedKeyPanel privateKey={generatedKey} />}
+            {shownKey && <GeneratedKeyPanel privateKey={shownKey} />}
           </div>
 
           {agentAuthorized && (
@@ -1348,7 +1354,7 @@ export default function Onboard() {
                 above is copied here, and OPERATOR_PK is the one field the
                 reader has to fill by hand -- so the value it wants belongs on
                 the same screen, not one step behind. */}
-            {generatedKey && <GeneratedKeyPanel privateKey={generatedKey} />}
+            {shownKey && <GeneratedKeyPanel privateKey={shownKey} />}
           </div>
 
           <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { getAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { generateAgentWallet } from '../lib/agentKey.js'
+import { generateAgentWallet, keyToShow } from '../lib/agentKey.js'
 import { buildMcpJson, OPERATOR_PK_PLACEHOLDER, FEE_ADAPTER } from '../lib/mcpJson.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -80,5 +80,66 @@ describe('the generated key stays out of the artifacts', () => {
   it('is never handed to McpHandoff, which the dashboard also renders', () => {
     const source = readFileSync(join(ROOT, 'components/McpHandoff.tsx'), 'utf8')
     expect(source).not.toMatch(/privateKey|generatedKey/)
+  })
+})
+
+/**
+ * The key is scoped to the wallet that generated it and the agent it controls.
+ * React does not remount on a disconnect or an account switch, so a key held
+ * in state used to be shown to whoever connected next -- beside their agent,
+ * where it would be pasted into OPERATOR_PK and silently be the wrong key.
+ */
+describe('keyToShow', () => {
+  const OWNER_A = '0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57'
+  const OWNER_B = '0x64Ad61211C1b0B7f20B3e04B49661f30f152ae78'
+
+  it('shows the key to the wallet that generated it, for the agent it controls', () => {
+    const wallet = generateAgentWallet()
+    expect(keyToShow({ privateKey: wallet.privateKey, wallet: OWNER_A }, OWNER_A, wallet.address))
+      .toBe(wallet.privateKey)
+  })
+
+  it('hides it from another wallet', () => {
+    const wallet = generateAgentWallet()
+    expect(keyToShow({ privateKey: wallet.privateKey, wallet: OWNER_A }, OWNER_B, wallet.address))
+      .toBeNull()
+  })
+
+  it('hides it once the wallet disconnects', () => {
+    const wallet = generateAgentWallet()
+    expect(keyToShow({ privateKey: wallet.privateKey, wallet: OWNER_A }, undefined, wallet.address))
+      .toBeNull()
+  })
+
+  it('hides it beside an agent the key does not control', () => {
+    const wallet = generateAgentWallet()
+    const other = generateAgentWallet()
+    expect(keyToShow({ privateKey: wallet.privateKey, wallet: OWNER_A }, OWNER_A, other.address))
+      .toBeNull()
+    expect(keyToShow({ privateKey: wallet.privateKey, wallet: OWNER_A }, OWNER_A, '')).toBeNull()
+  })
+
+  it('ignores checksum casing on both comparisons', () => {
+    const wallet = generateAgentWallet()
+    expect(keyToShow(
+      { privateKey: wallet.privateKey, wallet: OWNER_A.toLowerCase() },
+      OWNER_A,
+      wallet.address.toLowerCase(),
+    )).toBe(wallet.privateKey)
+  })
+
+  it('has nothing to show when nothing was generated', () => {
+    expect(keyToShow(null, OWNER_A, OWNER_B)).toBeNull()
+  })
+
+  it('is what the wizard renders, and the wizard drops the key on disconnect', () => {
+    const source = readFileSync(join(ROOT, 'app/setup/page.tsx'), 'utf8')
+    expect(source).not.toMatch(/privateKey=\{generatedKey\}/)
+    expect(source).toMatch(/keyToShow\(generatedKey, connected, agent\)/)
+    // Located from its dependency list backwards, so Task 2 adding a line at
+    // the top of this effect does not break the ratchet.
+    const end = source.indexOf('}, [connected])')
+    const connectedEffect = source.slice(source.lastIndexOf('useEffect(', end), end)
+    expect(connectedEffect).toContain('setGeneratedKey(null)')
   })
 })

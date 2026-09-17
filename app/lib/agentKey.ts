@@ -38,3 +38,30 @@ export function generateAgentWallet(): GeneratedAgentWallet {
   const privateKey = generatePrivateKey()
   return { address: privateKeyToAccount(privateKey).address, privateKey }
 }
+
+/**
+ * A generated key, and the owner wallet that was connected when it was made.
+ *
+ * Held with its wallet for the reason lib/walletNote.ts gives: React does not
+ * remount on an account switch, so state outlives the wallet it was about.
+ */
+export type HeldAgentKey = { privateKey: `0x${string}`; wallet: string } | null
+
+/**
+ * The key to put on screen, or null.
+ *
+ * Both checks are needed. The wallet check keeps it from the next person at a
+ * shared browser. The agent check keeps it from sitting beside an agent it
+ * does not control -- the restore path replaces `agent` on a wallet switch,
+ * and a key shown beside the wrong address gets pasted into OPERATOR_PK.
+ */
+export function keyToShow(
+  held: HeldAgentKey,
+  connected: string | null | undefined,
+  agent: string,
+): `0x${string}` | null {
+  if (!held || !connected || !agent) return null
+  if (held.wallet.toLowerCase() !== connected.toLowerCase()) return null
+  const controls = privateKeyToAccount(held.privateKey).address
+  return controls.toLowerCase() === agent.toLowerCase() ? held.privateKey : null
+}
