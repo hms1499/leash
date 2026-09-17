@@ -406,9 +406,23 @@ export default function Onboard() {
           // Read rather than defaulted: a resumed setup that showed "Off" for
           // an account whose switch is on would put a false sentence on the
           // review screen, about the one setting that lets money leave.
-          publicClient.readContract({
+          //
+          // Caught individually, and inside the array so the batch stays one
+          // request: this is the only read here a v1 account does not answer.
+          // SpendPolicyAccount is not upgradeable, so v1 accounts exist for
+          // ever and `topUpEnabled()` reverts on them. Inside the Promise.all
+          // that revert rejected every other read with it, landing in the
+          // catch below -- which blamed the connection and sent the wizard to
+          // stage 1, so an owner whose saved account was v1 could not resume
+          // it at all and was told to check their network. Measured against
+          // 0x7757035d…AE0D9C on forno, 2026-09-17. Same fix and same
+          // reasoning as lib/useAccountState.ts, which this must not diverge
+          // from: the fallback can only ever hide the affordance, never offer
+          // one, so a transient failure costs a reader the top-up line on the
+          // review screen and cannot show anybody a control they may not use.
+          (publicClient.readContract({
             address: account, abi: SETUP_ABI, functionName: 'topUpEnabled',
-          }) as Promise<boolean>,
+          }) as Promise<boolean>).catch(() => false),
           // In the batch, not after it: localStorage only names a candidate,
           // and the chain is what says whose it is.
           publicClient.readContract({

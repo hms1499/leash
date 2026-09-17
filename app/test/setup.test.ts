@@ -206,3 +206,39 @@ describe('the wizard header', () => {
     expect(body).toContain('{!isConnected ? <ConnectButton /> :')
   })
 })
+
+/**
+ * The sibling of `the dashboard read survives a v1 account` in chain.test.ts.
+ *
+ * SpendPolicyAccount is not upgradeable, so every v1 account ever deployed
+ * stays v1 and `topUpEnabled()` reverts on one for ever. The dashboard caught
+ * that read on 2026-09-12; the wizard's restore batch did not, so the revert
+ * rejected the whole Promise.all and landed in its catch -- which says
+ * "Could not verify this account on Celo. Check your connection and try
+ * again." and sends the wizard to stage 1. Nothing was wrong with the
+ * connection, and no amount of retrying could move it: an owner whose saved
+ * account was v1 could not resume it at all, and was told to check their
+ * network. Measured against 0x7757035d…AE0D9C on forno, 2026-09-17, where
+ * owner() and allowlistEnabled() answer normally and topUpEnabled() reverts.
+ *
+ * Asserted against the source for the reason chain.test.ts gives: deleting the
+ * `.catch` costs no test and no type error, it just breaks resume for v1.
+ */
+describe('the wizard restore survives a v1 account', () => {
+  const ROOT = fileURLToPath(new URL('..', import.meta.url))
+  const source = readFileSync(join(ROOT, 'app/setup/page.tsx'), 'utf8')
+  const restore = source.slice(
+    source.indexOf('// Local storage supplies candidates'),
+    source.indexOf('async function deploy()'),
+  )
+
+  it('catches topUpEnabled rather than failing the batch', () => {
+    const call = restore.slice(restore.indexOf("functionName: 'topUpEnabled'"))
+    expect(call.slice(0, call.indexOf('),') + 2)).toMatch(/\}\)[\s\S]*?\.catch\(/)
+  })
+
+  it('still reads it inside the array, so the batch is one request', () => {
+    const batch = restore.slice(restore.indexOf('await Promise.all(['), restore.indexOf('\n        ])'))
+    expect(batch).toContain("functionName: 'topUpEnabled'")
+  })
+})
