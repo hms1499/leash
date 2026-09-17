@@ -21,8 +21,8 @@ import { generateAgentWallet, keyToShow, type HeldAgentKey } from '../../lib/age
 import { formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import {
-  afterFailedRead, balanceValue, describeBalance, describeTopUpMode, firstSetupStage, setupReadiness,
-  type BalanceRead, type SetupStage,
+  afterDeployNote, afterFailedRead, balanceValue, describeBalance, describeTopUpMode, firstSetupStage,
+  restoredOwnerNote, setupReadiness, type BalanceRead, type SetupStage,
 } from '../../lib/setup.js'
 import { pollUntil } from '../../lib/confirm.js'
 import { isBusy, writeLabel, type WritePhase } from '../../lib/writePhase.js'
@@ -66,6 +66,7 @@ const SETUP_ABI = [
   { type: 'function', name: 'setTopUpEnabled', stateMutability: 'nonpayable',
     inputs: [{ name: 'enabled', type: 'bool' }], outputs: [] },
   { type: 'function', name: 'topUpEnabled', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
+  { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
 ] as const
 
 /**
@@ -321,6 +322,8 @@ export default function Onboard() {
   }
 
   useEffect(() => {
+    // A note about the previous wallet's account is not about this one.
+    setRestoreNote(null)
     if (!connected) {
       // Out of memory, not only off the screen: a disconnect is how someone
       // at a shared browser says they are done.
@@ -379,7 +382,7 @@ export default function Onboard() {
       try {
         // One Promise.all so viem can multicall these. An awaited read added
         // after the array breaks the batch into separate round trips.
-        const [limits, policyBalance, listEnabled, topUp] = await Promise.all([
+        const [limits, policyBalance, listEnabled, topUp, owner] = await Promise.all([
           publicClient.readContract({
             address: account, abi: SETUP_ABI, functionName: 'limits', args: [TOKEN],
           }) as Promise<readonly [bigint, bigint, bigint, bigint]>,
@@ -393,8 +396,20 @@ export default function Onboard() {
           publicClient.readContract({
             address: account, abi: SETUP_ABI, functionName: 'topUpEnabled',
           }) as Promise<boolean>,
+          // In the batch, not after it: localStorage only names a candidate,
+          // and the chain is what says whose it is.
+          publicClient.readContract({
+            address: account, abi: SETUP_ABI, functionName: 'owner',
+          }) as Promise<`0x${string}`>,
         ])
         if (cancelled) return
+        const notOwner = connected ? restoredOwnerNote(owner, connected) : null
+        if (!connected || notOwner) {
+          setAccount(null)
+          setRestoreNote(notOwner)
+          setActiveStage(1)
+          return
+        }
         const nextLimits = limits[0] > 0n && limits[1] > 0n
           ? { perTx: limits[0], daily: limits[1] }
           : null
@@ -459,18 +474,35 @@ export default function Onboard() {
       }
     })()
     return () => { cancelled = true }
-  }, [account])
+  // `connected` as well: after a transfer both wallets' registries can name
+  // the same address, and a switch between them must be re-checked.
+  }, [account, connected])
+
+  /**
+   * The wallet connected right now, for code that resumes after a long
+   * await. A closure keeps the value from when the function started.
+   *
+   * Declared here, not near the top of Onboard: its dependency array is
+   * textually identical to the connected-effect's above, and agentKey.test.ts
+   * locates that effect by the first `}, [connected])` in the file. Placed
+   * after it, this cannot shadow that match.
+   */
+  const connectedRef = useRef(connected)
+  useEffect(() => { connectedRef.current = connected }, [connected])
 
   async function deploy() {
     setError(null)
     if (chainId !== REQUIRED_CHAIN_ID) { setError(WRONG_NETWORK); return }
+    if (!connected) return
+    // Recorded once. The receipt can arrive after a switch in the wallet.
+    const owner = connected
     setDeployPhase('sending')
     try {
       const { abi, bytecode } = await import('../../lib/contract.js')
       let hash: `0x${string}`
       try {
         hash = await deployContractAsync({
-          abi, bytecode, args: [connected!], chainId: REQUIRED_CHAIN_ID, gas: DEPLOY_GAS,
+          abi, bytecode, args: [owner], chainId: REQUIRED_CHAIN_ID, gas: DEPLOY_GAS,
         })
       } catch {
         setError('The deployment was not sent.')
@@ -487,13 +519,15 @@ export default function Onboard() {
         // account behind and then blamed the next failed read on the network.
         const outcome = describeDeployReceipt(receipt, hash)
         if (!outcome.ok) { setError(outcome.message); return }
-        setAccount(outcome.address)
-        savePolicyAccount(localStorage, connected!, {
+        savePolicyAccount(localStorage, owner, {
           address: outcome.address, deployBlock: receipt.blockNumber.toString(),
         })
-        selectPolicyAccount(localStorage, connected!, outcome.address)
+        selectPolicyAccount(localStorage, owner, outcome.address)
         announceAccountRegistryChange()
         window.history.replaceState(null, '', '/setup')
+        const switched = afterDeployNote(outcome.address, owner, connectedRef.current)
+        if (switched) { setError(switched); return }
+        setAccount(outcome.address)
         setActiveStage(2)
       } catch {
         setError(`Sent as ${hash}. The chain has not confirmed it yet. Check that transaction before deploying again.`)

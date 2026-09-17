@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
-  afterFailedRead, balanceValue, describeBalance, describeTopUpMode, firstSetupStage, setupReadiness,
+  afterFailedRead, afterDeployNote, balanceValue, describeBalance, describeTopUpMode, firstSetupStage,
+  NOT_OWNER_NOTE, restoredOwnerNote, setupReadiness,
 } from '../lib/setup.js'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 describe('setupReadiness', () => {
   const complete = {
@@ -105,5 +109,60 @@ describe('describeTopUpMode', () => {
   it('summarises the top-up switch for the review screen', () => {
     expect(describeTopUpMode(true)).toBe('On — the agent may draw funds into its own wallet')
     expect(describeTopUpMode(false)).toBe('Off — the agent cannot draw funds into its own wallet')
+  })
+})
+
+const OWNER_A = '0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57'
+const OWNER_B = '0x64Ad61211C1b0B7f20B3e04B49661f30f152ae78'
+const ACCOUNT = '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d'
+
+/**
+ * localStorage names candidates; owner() decides. Every write the wizard sends
+ * carries an explicit gas, so a wallet has no estimate to fail on -- a
+ * non-owner's setPolicy is broadcast, reverts, and is paid for.
+ */
+describe('restoredOwnerNote', () => {
+  it('resumes an account the connected wallet owns, whatever the casing', () => {
+    expect(restoredOwnerNote(OWNER_A.toLowerCase(), OWNER_A)).toBeNull()
+  })
+
+  it('refuses one it does not', () => {
+    expect(restoredOwnerNote(OWNER_B, OWNER_A)).toBe(NOT_OWNER_NOTE)
+  })
+})
+
+describe('afterDeployNote', () => {
+  it('says nothing when the deploying wallet is still connected', () => {
+    expect(afterDeployNote(ACCOUNT, OWNER_A, OWNER_A.toLowerCase())).toBeNull()
+  })
+
+  it('names the account and its owner when another wallet is connected now', () => {
+    expect(afterDeployNote(ACCOUNT, OWNER_A, OWNER_B)).toBe(
+      `Created ${ACCOUNT} for ${OWNER_A}. Connect that wallet again to continue setting it up.`,
+    )
+  })
+
+  it('says the same when no wallet is connected now', () => {
+    expect(afterDeployNote(ACCOUNT, OWNER_A, undefined)).toContain(`for ${OWNER_A}`)
+  })
+})
+
+describe('the wizard checks ownership', () => {
+  const ROOT = fileURLToPath(new URL('..', import.meta.url))
+  const source = readFileSync(join(ROOT, 'app/setup/page.tsx'), 'utf8')
+
+  it('reads owner() inside the restore batch and re-checks on a wallet switch', () => {
+    const restore = source.slice(source.indexOf('// Local storage supplies candidates'), source.indexOf('async function deploy()'))
+    const batch = restore.slice(restore.indexOf('await Promise.all(['), restore.indexOf('])'))
+    expect(batch).toContain("functionName: 'owner'")
+    expect(restore).toContain('restoredOwnerNote(')
+    expect(restore).toContain('}, [account, connected])')
+  })
+
+  it('does not attach a new account to a wallet that did not deploy it', () => {
+    const deploy = source.slice(source.indexOf('async function deploy()'), source.indexOf('async function setLimits()'))
+    expect(deploy.indexOf('afterDeployNote(')).toBeGreaterThan(-1)
+    expect(deploy.indexOf('afterDeployNote(')).toBeLessThan(deploy.indexOf('setAccount(outcome.address)'))
+    expect(deploy).not.toContain('connected!')
   })
 })

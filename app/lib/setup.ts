@@ -1,4 +1,4 @@
-import { formatDisplayAmount } from './policy.js'
+import { canEdit, formatDisplayAmount } from './policy.js'
 
 export type SetupStage = 1 | 2 | 3 | 4
 
@@ -116,4 +116,37 @@ export function describeTopUpMode(enabled: boolean): string {
   return enabled
     ? 'On — the agent may draw funds into its own wallet'
     : 'Off — the agent cannot draw funds into its own wallet'
+}
+
+export const NOT_OWNER_NOTE =
+  'The connected wallet does not own this protected account. Open My accounts to choose one it owns.'
+
+/**
+ * Whether the wizard may resume an account for this wallet.
+ *
+ * The candidate comes from localStorage, which knows nothing about a transfer
+ * of ownership made since. Deliberately not paired with forgetPolicyAccount:
+ * forno serves stale reads right after a transfer, and one stale owner() must
+ * not delete a real entry.
+ */
+export function restoredOwnerNote(owner: string, connected: string): string | null {
+  return canEdit(owner, connected) ? null : NOT_OWNER_NOTE
+}
+
+/**
+ * What to say when a deployment confirms, if the wallet that sent it is no
+ * longer the one connected.
+ *
+ * A contract creation is the longest wait in the app, which is plenty of time
+ * to switch accounts in the wallet. The account is still saved under the
+ * wallet that deployed it; this only stops the wizard carrying on with the
+ * wrong one.
+ */
+export function afterDeployNote(
+  account: string,
+  owner: string,
+  connectedNow: string | null | undefined,
+): string | null {
+  if (canEdit(owner, connectedNow)) return null
+  return `Created ${account} for ${owner}. Connect that wallet again to continue setting it up.`
 }
