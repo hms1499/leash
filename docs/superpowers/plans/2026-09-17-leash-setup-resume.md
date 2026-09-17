@@ -964,7 +964,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   - `recoverAgent(input): Promise<\`0x${string}\` | null>`
   - route `GET /api/accounts/operators?account=`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `app/test/agentDiscovery.test.ts`:
 
@@ -1160,12 +1160,12 @@ describe('the wizard recovers its agent', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `pnpm -F @leash/app test -- agentDiscovery`
 Expected: FAIL with `Failed to resolve import "../lib/agentDiscovery.js"`.
 
-- [ ] **Step 3: Implement `app/lib/agentDiscovery.ts`**
+- [x] **Step 3: Implement `app/lib/agentDiscovery.ts`**
 
 ```ts
 import { getAddress, toEventSelector } from 'viem'
@@ -1278,7 +1278,7 @@ export async function recoverAgent(input: {
 }
 ```
 
-- [ ] **Step 4: Implement `app/app/api/accounts/operators/route.ts`**
+- [x] **Step 4: Implement `app/app/api/accounts/operators/route.ts`**
 
 ```ts
 import { NextResponse } from 'next/server'
@@ -1343,12 +1343,12 @@ export async function GET(request: Request) {
 }
 ```
 
-- [ ] **Step 5: Run the lib and route tests**
+- [x] **Step 5: Run the lib and route tests**
 
 Run: `pnpm -F @leash/app test -- agentDiscovery`
 Expected: every test except the `the wizard recovers its agent` block PASSES. If `liveOperators` returns addresses in a different case from the input, adjust only the test's expected value to match `liveOperators` in `app/lib/feed.ts`, and say so in your report.
 
-- [ ] **Step 6: Wire recovery into the restore effect**
+- [x] **Step 6: Wire recovery into the restore effect**
 
 In `app/app/setup/page.tsx`:
 
@@ -1400,12 +1400,12 @@ In `app/app/setup/page.tsx`:
            }
    ```
 
-- [ ] **Step 7: Run the full suite, typecheck and e2e**
+- [x] **Step 7: Run the full suite, typecheck and e2e**
 
 Run: `pnpm -F @leash/app test && (cd app && npx tsc --noEmit) && pnpm -F @leash/app test:e2e`. If port 3000 is busy, use the `LEASH_E2E_URL` form from Global Constraints.
 Expected: every vitest test PASSES, tsc prints nothing, and every Playwright spec PASSES.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add app/lib/agentDiscovery.ts app/app/api/accounts/operators/route.ts app/test/agentDiscovery.test.ts app/app/setup/page.tsx
