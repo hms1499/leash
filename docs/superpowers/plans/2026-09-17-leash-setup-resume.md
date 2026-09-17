@@ -48,7 +48,7 @@
   - `pendingDeployBlocksCreate(check: PendingDeployCheck | 'checking'): boolean`
 - Produces in `setup/page.tsx` (Task 2 edits next to these): state `pendingDeploy`; the Create button's `disabled` expression containing `pendingDeployBlocksCreate(pendingDeploy.check)`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `app/test/pendingDeploy.test.ts`:
 
@@ -199,12 +199,12 @@ describe('the wizard remembers what it sent', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `pnpm -F @leash/app test -- pendingDeploy`
 Expected: FAIL with `Failed to resolve import "../lib/pendingDeploy.js"`.
 
-- [ ] **Step 3: Implement `app/lib/pendingDeploy.ts`**
+- [x] **Step 3: Implement `app/lib/pendingDeploy.ts`**
 
 ```ts
 import { describeDeployReceipt } from './deploy.js'
@@ -325,12 +325,12 @@ export function pendingDeployBlocksCreate(check: PendingDeployCheck | 'checking'
 }
 ```
 
-- [ ] **Step 4: Run the unit tests**
+- [x] **Step 4: Run the unit tests**
 
 Run: `pnpm -F @leash/app test -- pendingDeploy`
 Expected: every test in the first three `describe` blocks PASSES. The `the wizard remembers what it sent` block still FAILS; Step 5 fixes it.
 
-- [ ] **Step 5: Wire it into `/setup`**
+- [x] **Step 5: Wire it into `/setup`**
 
 In `app/app/setup/page.tsx`:
 
@@ -470,12 +470,12 @@ In `app/app/setup/page.tsx`:
    ```
    Leave the button's children (`writeLabel(deployPhase, …)`) and its closing tag unchanged.
 
-- [ ] **Step 6: Run the tests and typecheck**
+- [x] **Step 6: Run the tests and typecheck**
 
 Run: `pnpm -F @leash/app test && (cd app && npx tsc --noEmit)`
 Expected: every test PASSES, including the existing `agentKey`, `setup` and `scaleUsage` ratchets. tsc prints nothing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/lib/pendingDeploy.ts app/test/pendingDeploy.test.ts app/app/setup/page.tsx
@@ -511,7 +511,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   - `LOOKUP_UNCERTAIN`
   - `accountLookupNote(result): string | null`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `app/test/ownedAccounts.test.ts`:
 
@@ -680,12 +680,12 @@ describe('the wizard looks for accounts it was not told about', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `pnpm -F @leash/app test -- ownedAccounts setup.test`
 Expected: FAIL. `../lib/ownedAccounts.js` cannot be resolved, and the new setup ratchets do not match.
 
-- [ ] **Step 3: Implement `app/lib/ownedAccounts.ts`**
+- [x] **Step 3: Implement `app/lib/ownedAccounts.ts`**
 
 Move `TOKEN`, `VERIFY_ABI`, `answeredByTheContract` and `verifyPolicyAccount` out of `app/components/AccountsPage.tsx` into this file **unchanged, with their doc comments**, and export the two functions. Give `verifyPolicyAccount` the return type `Promise<Verification>`. Then add the rest, so the file reads:
 
@@ -811,7 +811,7 @@ export function accountLookupNote(result: OwnedAccountsResult): string | null {
 
 The two `// ---- moved verbatim …` lines mark where the moved code goes. Replace each marker with the code itself.
 
-- [ ] **Step 4: Point `AccountsPage` at it**
+- [x] **Step 4: Point `AccountsPage` at it**
 
 In `app/components/AccountsPage.tsx`:
 
@@ -852,7 +852,7 @@ In `app/components/AccountsPage.tsx`:
      }
    ```
 
-- [ ] **Step 5: Wire the lookup into `/setup`**
+- [x] **Step 5: Wire the lookup into `/setup`**
 
 In `app/app/setup/page.tsx`:
 
@@ -929,12 +929,12 @@ In `app/app/setup/page.tsx`:
                        || (pendingDeploy !== null && pendingDeployBlocksCreate(pendingDeploy.check))}
    ```
 
-- [ ] **Step 6: Run the tests and typecheck**
+- [x] **Step 6: Run the tests and typecheck**
 
 Run: `pnpm -F @leash/app test && (cd app && npx tsc --noEmit)`
 Expected: every test PASSES. tsc prints nothing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/lib/ownedAccounts.ts app/test/ownedAccounts.test.ts app/components/AccountsPage.tsx app/test/accountDiscovery.test.ts app/app/setup/page.tsx app/test/setup.test.ts
