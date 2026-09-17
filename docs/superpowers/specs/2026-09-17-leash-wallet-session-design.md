@@ -65,8 +65,12 @@ Otherwise it returns `null`. Both `<GeneratedKeyPanel>` renders use its result.
 On disconnect (`connected` becomes falsy), the wizard's connected-wallet
 effect also sets `generatedKey` to `null`, so the key is gone from memory and
 not only from the screen. A switch to wallet B and back to A without a
-disconnect keeps the key and shows it to A again. That is acceptable: it is
-the same person at the same browser, and the key was never shown to B.
+disconnect keeps the key in memory. It is shown to A again only if A's
+restored agent is the one the key controls — an authorised agent, restored
+from `operators()`. The restore effect (§2.3) re-runs on every wallet change
+and resets `agent` to `''` until that read returns, so an unauthorised
+generated agent is not shown; it must be generated again. That is acceptable:
+it is the same person at the same browser, and the key was never shown to B.
 
 ### 2.3 Item 1 — `/setup` resumes only an account the wallet owns
 
