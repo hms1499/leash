@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { writeLabel, isBusy, CONFIRMING_LABEL, type WritePhase } from '../lib/writePhase.js'
+import {
+  writeLabel, isBusy, CONFIRMING_LABEL, ownerControlView, outcomeForOtherWallet,
+  type WritePhase,
+} from '../lib/writePhase.js'
 
 const stop = { idle: '■ Stop', sending: 'Stopping…' }
 const nominate = { idle: 'Nominate new owner', sending: 'Nominating…' }
@@ -128,4 +132,61 @@ describe('every control that waits on the chain says so', () => {
         .toMatch(/role=\"(status|alert)\"/)
     }
   })
+})
+
+/**
+ * LimitsDrawer and StopButton were mounted only while isOwner held. A
+ * disconnect or an account switch during pollUntil unmounted them, and the
+ * one message that said whether a real transaction landed went with them.
+ */
+describe('ownerControlView', () => {
+  it('gives the owner the controls', () => {
+    expect(ownerControlView(true, ['idle'], null)).toBe('controls')
+    expect(ownerControlView(true, ['confirming'], 'x')).toBe('controls')
+  })
+
+  it('keeps a write in flight on screen after the owner has gone', () => {
+    expect(ownerControlView(false, ['idle', 'confirming'], null)).toBe('pending')
+    expect(ownerControlView(false, ['sending'], 'old note')).toBe('pending')
+  })
+
+  it('keeps its outcome on screen', () => {
+    expect(ownerControlView(false, ['idle'], 'Sent, but the chain has not confirmed it yet.')).toBe('outcome')
+  })
+
+  it('shows nothing to a non-owner otherwise', () => {
+    expect(ownerControlView(false, ['idle', 'idle'], null)).toBe('hidden')
+  })
+})
+
+describe('outcomeForOtherWallet', () => {
+  // The walletNote.ts rule: a message about one wallet says which.
+  it('names the wallet the outcome is about', () => {
+    expect(outcomeForOtherWallet('The transaction was not sent.', '0x2B33cb68c4D826a4Fc36264bcDB46081c99f4f57'))
+      .toBe('0x2B33…4f57: The transaction was not sent.')
+  })
+
+  it('falls back to the bare note when the sender is unknown', () => {
+    expect(outcomeForOtherWallet('x', null)).toBe('x')
+  })
+})
+
+describe('owner controls are not unmounted by the page', () => {
+  const ROOT = fileURLToPath(new URL('..', import.meta.url))
+  const page = readFileSync(join(ROOT, 'app/a/[address]/page.tsx'), 'utf8')
+
+  it('renders StopButton and LimitsDrawer without an isOwner guard', () => {
+    expect(page).not.toMatch(/isOwner && \(\s*<StopButton/)
+    expect(page).not.toMatch(/isOwner && \(\s*<LimitsDrawer/)
+  })
+
+  for (const file of ['components/StopButton.tsx', 'components/LimitsDrawer.tsx']) {
+    it(`${file} decides with ownerControlView, after its last hook`, () => {
+      const source = readFileSync(join(ROOT, file), 'utf8')
+      const at = source.indexOf('ownerControlView(')
+      expect(at).toBeGreaterThan(-1)
+      expect(at).toBeGreaterThan(source.lastIndexOf('useEffect('))
+      expect(at).toBeGreaterThan(source.lastIndexOf('useWriteContract('))
+    })
+  }
 })

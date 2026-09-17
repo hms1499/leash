@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRevealOnOpen } from '../lib/useReveal.js'
 import { useAccount, useWriteContract } from 'wagmi'
 import {
@@ -10,7 +10,7 @@ import {
 import { formatDisplayAmount, validateLimits } from '../lib/policy.js'
 import { isValidAddress } from '../lib/address.js'
 import { pollUntil } from '../lib/confirm.js'
-import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
+import { isBusy, outcomeForOtherWallet, ownerControlView, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import { useArming } from '../lib/arming.js'
 import Panel from './ui/Panel'
 import { PANEL_GRID } from './ui/page'
@@ -41,7 +41,7 @@ const POLICY_ABI = [
 ] as const
 
 export default function LimitsDrawer({
-  account, token, decimals, symbol, perTx, daily, allowlistEnabled, loading, onSaved,
+  account, token, decimals, symbol, perTx, daily, allowlistEnabled, loading, onSaved, isOwner,
 }: {
   account: `0x${string}`
   token: `0x${string}`
@@ -52,6 +52,7 @@ export default function LimitsDrawer({
   allowlistEnabled: boolean
   loading: boolean
   onSaved: () => void
+  isOwner: boolean
 }) {
   const [open, setOpen] = useState(false)
   /**
@@ -90,7 +91,8 @@ export default function LimitsDrawer({
   // side, and had no gate at all.
   const { armed: removeArmed, arm: armRemove, disarm: disarmRemove } = useArming()
   const { writeContractAsync } = useWriteContract()
-  const { chainId } = useAccount()
+  const { address: connected, chainId } = useAccount()
+  const sender = useRef<string | null>(null)
 
   useEffect(() => {
     if (dirty) return
@@ -102,6 +104,7 @@ export default function LimitsDrawer({
 
   async function saveLimits() {
     setError(null)
+    sender.current = connected ?? null
     if (chainId !== REQUIRED_CHAIN_ID) { setError(WRONG_NETWORK); return }
     const parsed = validateLimits(perTxInput, dailyInput, decimals, { perTx, daily })
     if (!parsed.ok) { setError(parsed.error); return }
@@ -136,6 +139,7 @@ export default function LimitsDrawer({
 
   async function setRecipientProtection(next: boolean) {
     setRecipientNote(null)
+    sender.current = connected ?? null
     if (chainId !== REQUIRED_CHAIN_ID) { setRecipientNote(WRONG_NETWORK); return }
     setRecipientPending('protection')
     setRecipientPhase('sending')
@@ -185,6 +189,7 @@ export default function LimitsDrawer({
 
   async function setPayeeAccess(next: boolean) {
     setRecipientNote(null)
+    sender.current = connected ?? null
     if (!isValidAddress(payee)) { setRecipientNote('Enter a valid Celo address.'); return }
     if (chainId !== REQUIRED_CHAIN_ID) { setRecipientNote(WRONG_NETWORK); return }
     setRecipientPending('payee')
@@ -253,6 +258,28 @@ export default function LimitsDrawer({
     // `close` is rebuilt every render, so it cannot be a dependency; these
     // three are everything it reads that changes.
   }, [open, removeArmed, dirty])
+
+  const view = ownerControlView(isOwner, [phase, recipientPhase], error ?? recipientNote)
+  if (view === 'hidden') return null
+  if (view !== 'controls') {
+    // The drawer's buttons are not safe for a wallet that does not own the
+    // account; its outcome is still owed to whoever pressed. See
+    // ownerControlView.
+    const busyPhase = isBusy(phase) ? phase : recipientPhase
+    return (
+      <Panel className="p-6">
+        {/* --t-body rather than a raw Tailwind size utility: docs/design-system.md
+            §2 keeps those off the six-step scale, and test/scaleUsage.test.ts
+            ratchets the count in this file -- it does not fall, so it must
+            not rise either. */}
+        <p role="status" style={{ color: 'var(--dim)', fontSize: 'var(--t-body)', lineHeight: 'var(--t-body-line)' }}>
+          {view === 'pending'
+            ? writeLabel(busyPhase, { idle: '', sending: 'Waiting for the wallet…' })
+            : outcomeForOtherWallet(error ?? recipientNote ?? '', sender.current)}
+        </p>
+      </Panel>
+    )
+  }
 
   return (
     <>

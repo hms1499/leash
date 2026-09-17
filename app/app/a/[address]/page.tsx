@@ -247,15 +247,15 @@ function Dashboard({ address }: { address: `0x${string}` }) {
           <>
             <AccountSwitcher current={address} />
             {connected && <NetworkBadge onDangerBand={state.paused} />}
-            {isOwner && (
-              <StopButton
-                account={address}
-                paused={state.paused}
-                isOwner={isOwner}
-                loading={state.isLoading}
-                onChanged={state.refetch}
-              />
-            )}
+            {/* Not gated here: an unmount mid-write lost the only message
+                saying whether setPaused landed. StopButton gates itself. */}
+            <StopButton
+              account={address}
+              paused={state.paused}
+              isOwner={isOwner}
+              loading={state.isLoading}
+              onChanged={state.refetch}
+            />
             <ConnectButton onDangerBand={state.paused} />
           </>
         }
@@ -341,19 +341,20 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                   symbol={SYMBOL}
                 />
               )}
-              {isOwner && (
-                <LimitsDrawer
-                  account={address}
-                  token={TOKEN}
-                  decimals={DECIMALS}
-                  symbol={SYMBOL}
-                  perTx={state.perTx}
-                  daily={state.daily}
-                  allowlistEnabled={state.allowlistEnabled}
-                  loading={state.isLoading}
-                  onSaved={state.refetch}
-                />
-              )}
+              {/* Not gated here: an unmount mid-write lost the only message
+                  saying whether setPaused landed. StopButton gates itself. */}
+              <LimitsDrawer
+                account={address}
+                token={TOKEN}
+                decimals={DECIMALS}
+                symbol={SYMBOL}
+                perTx={state.perTx}
+                daily={state.daily}
+                allowlistEnabled={state.allowlistEnabled}
+                loading={state.isLoading}
+                onSaved={state.refetch}
+                isOwner={isOwner}
+              />
             </div>
             <div id="agent-management" className="scroll-mt-6 space-y-3">
               <AgentAccessPanel

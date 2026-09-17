@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, SET_PAUSED_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { pollUntil } from '../lib/confirm.js'
 import { useArming } from '../lib/arming.js'
-import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
+import { isBusy, outcomeForOtherWallet, ownerControlView, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import Button from './ui/Button'
 import Label from './ui/Label'
 
@@ -31,9 +31,23 @@ export default function StopButton({
   const busy = isBusy(phase)
   const [note, setNote] = useState<string | null>(null)
   const { writeContractAsync } = useWriteContract()
-  const { chainId } = useAccount()
+  const { address: connected, chainId } = useAccount()
+  // Who pressed, for an outcome that arrives after they have gone.
+  const sender = useRef<string | null>(null)
 
-  if (!isOwner) {
+  const view = ownerControlView(isOwner, [phase], note)
+  if (view === 'pending' || view === 'outcome') {
+    // No button in either: the wallet connected now does not own this
+    // account, and a Stop it sent would revert and be paid for.
+    return (
+      <Label role="status" style={{ color: paused ? 'var(--bg)' : 'var(--bad)' }}>
+        {view === 'pending'
+          ? writeLabel(phase, { idle: '', sending: 'Waiting for the wallet…' })
+          : outcomeForOtherWallet(note ?? '', sender.current)}
+      </Label>
+    )
+  }
+  if (view === 'hidden') {
     // `paused` defaults to false before the first read; printing "Active"
     // then states something nobody has checked.
     //
@@ -51,6 +65,7 @@ export default function StopButton({
 
   async function send(next: boolean) {
     setNote(null)
+    sender.current = connected ?? null
     if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
     setPhase('sending')
     try {

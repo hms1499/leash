@@ -1,3 +1,5 @@
+import { truncateAddress } from './address.js'
+
 /**
  * What a write control is waiting for, so it can say which.
  *
@@ -60,4 +62,32 @@ export function writeLabel(
  */
 export function isBusy(phase: WritePhase): boolean {
   return phase !== 'idle'
+}
+
+export type OwnerControlView = 'controls' | 'pending' | 'outcome' | 'hidden'
+
+/**
+ * What an owner-only control shows, given who is connected now.
+ *
+ * Ownership can end mid-write: a disconnect, or an account switch in the
+ * wallet, while pollUntil is still waiting. The control must not offer its
+ * buttons to a non-owner -- the write would revert and be paid for -- and it
+ * must not vanish either, because it holds the only account of a transaction
+ * that was really sent. So a non-owner sees the wait and then the outcome,
+ * and never a button.
+ */
+export function ownerControlView(
+  isOwner: boolean,
+  phases: readonly WritePhase[],
+  note: string | null,
+): OwnerControlView {
+  if (isOwner) return 'controls'
+  if (phases.some(isBusy)) return 'pending'
+  if (note !== null) return 'outcome'
+  return 'hidden'
+}
+
+/** An outcome shown after its wallet has gone says which wallet it is about. */
+export function outcomeForOtherWallet(note: string, sender: string | null): string {
+  return sender ? `${truncateAddress(sender)}: ${note}` : note
 }
