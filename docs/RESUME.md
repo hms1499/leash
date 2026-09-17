@@ -42,10 +42,9 @@ a prompt, so a leaked agent key does not become an unbounded one.
    **Both gitignored, living only on this machine.** `git clean -fdx` would
    destroy them.
 
-The plans in `docs/superpowers/plans/` are context on decisions already taken,
-with one exception: **`2026-09-17-leash-setup-resume.md` is open.** Its Task 1
-landed (`065af30`); Tasks 2 and 3 are untouched.
-`2026-09-17-leash-wallet-session.md` closed on 2026-09-17, Task 6 included.
+The plans in `docs/superpowers/plans/` are context on decisions already taken.
+Both 2026-09-17 plans closed that day, manual browser passes included:
+`leash-wallet-session.md` and `leash-setup-resume.md`.
 
 **No count of that directory is written here any more.** This sentence carried
 one for three revisions and was wrong in two of them: it said "three" while five
@@ -72,15 +71,14 @@ times.
 | `cd sdk && pnpm run test` | 83/83 |
 | `cd mcp && pnpm run test` | 35/35 |
 | `cd mcp && pnpm run test:bundle` | 3/3 (packs the tarball, installs it, starts the bin) |
-| `cd app && pnpm run test` | 470/470, re-run 2026-09-17 (multi-account registry, explorer discovery, and the wallet-session decision functions) |
+| `cd app && pnpm run test` | 500/500, re-run 2026-09-17 (multi-account registry, explorer discovery, the wallet-session decision functions, and shared owned-account and agent recovery) |
 | `cd app && pnpm run test:e2e` | 41/41 local **and** 41/41 against <https://leash-app-phi.vercel.app> with `LEASH_E2E_URL`. The deployed run was 40/41 until the redeploy: `landing.spec.ts` asserts the landing links to the v2 account and the build then serving that URL still carried v1's. That failure was the deploy signal, and it cleared the moment the deploy landed. |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
 Every row above except `test:bundle` was re-run on **2026-09-13** and is that
 run's output, not a recollection; the `app` unit row is its **2026-09-17** run,
-after the wallet-session work moved it from 362 to 470. The e2e row's 41/41 was
-re-run that day too, against a dev server on port 3000 rather than the build
-Playwright normally starts, because the port was in use. These counts have rotted twice now. On
+after the wallet-session and setup-resume work moved it from 362 to 500. The
+e2e row's 41/41 was re-run that day too, on the build Playwright starts itself. These counts have rotted twice now. On
 2026-09-12 sdk was written 66 against 75, app 232 against 338, and e2e 13
 against 41; the same evening v2 Tasks 1-9 moved contracts 32 to 66, sdk 75 to
 78, mcp 29 to 31 and app 338 to 353; and the three defects that mainnet found
@@ -616,6 +614,51 @@ Getting to them cost one defect and one wrong sentence in the plan itself.
   The in-flight half of §2.6 was **not** checked: it needs a real `setPaused`
   sent and a wallet switch mid-write, and the plan makes that the maintainer's
   call. Task 6 is otherwise complete.
+
+### What the fourth wallet session found (2026-09-17)
+
+The six manual checks of `docs/superpowers/plans/2026-09-17-leash-setup-resume.md`
+Task 4, driven straight after the third session with the same two wallets and a
+third, empty one. All six pass. No defect in the app this time; the two things
+that looked like defects were both in the checking itself.
+
+- **What the six rows showed.** §2.3 found: with the registry deleted, /setup
+  says it is checking, keeps Create shut while it looks, then resumes the
+  newest of the wallet's three accounts and says how many it found. §2.3 none:
+  an empty wallet gets Create enabled and no sentence at all. §2.3 new:
+  `?new=1` runs no lookup, which is what an owner asking for another account
+  means. §2.4: with `leash.agent.<account>` deleted, the wizard recovered the
+  authorised agent from OperatorChanged history and wrote it back. §2.2
+  unknown: a fabricated pending deploy holds Create shut behind two presses.
+  §2.2 landed: a real deployment hash resumes its account and clears the key.
+
+  §2.2 real was **not** checked: it needs a deployment interrupted on mainnet,
+  and the plan leaves that to the maintainer.
+
+- **§2.4 was proved against real history, not a fixture.** Account
+  `0x7757035d…AE0D9C` has two OperatorChanged entries, both still enabled:
+  `0xd44daF6D…` at block 76843460 and `0xC4165fDa…` at 77749918. `operators()`
+  says true for both. The wizard recovered `0xC4165fDa…`, the newer -- which is
+  what `liveOperators` orders and what the route returned when asked directly.
+
+- **A transient that cannot be seen is not a transient that did not happen.**
+  The "Checking whether this wallet already owns a protected account…" line
+  never appeared for the empty wallet, and looked like a defect. It had run in
+  **28ms**: one explorer call and no verification reads, against a wallet with
+  no deployments. `performance.getEntriesByType('resource')` after the load
+  settled it without guessing. Throttling to Slow 3G is what makes that line
+  and the disabled Create observable at all.
+
+  In dev the same lookup fires **twice** -- React StrictMode double-invokes the
+  effect, the cleanup aborts the first, and `findOwnedAccounts` returns
+  `{status: 'aborted'}` for it and writes nothing. Production runs it once.
+
+- **Two diagnostics lied before the app did.** A snippet reported the wizard's
+  stage as "not found" because it matched `Step 3 of 4` while the page renders
+  `STEP 3 OF 4`, and reported the agent field as empty because an authorised
+  agent replaces that input with a panel. Both were read as app defects for a
+  moment. A probe that has not been checked against the rendered page is
+  evidence about the probe.
 
 ### The design system, and what writing it found (2026-09-05)
 

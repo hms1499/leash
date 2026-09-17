@@ -1420,11 +1420,11 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 No automated test here can drive an injected wallet. This task writes nothing to the repo unless something fails.
 
-- [ ] **Step 1: Start the app**
+- [x] **Step 1: Start the app**
 
 Run: `pnpm -F @leash/app dev`, then open `http://localhost:3000` in a browser whose wallet extension holds wallet A (owns a Leash account with an authorised agent) and wallet B (owns none).
 
-- [ ] **Step 2: Check each item and record what was seen**
+- [x] **Step 2: Check each item and record what was seen**
 
 | Check | Steps | Expected |
 |---|---|---|
@@ -1436,6 +1436,6 @@ Run: `pnpm -F @leash/app dev`, then open `http://localhost:3000` in a browser wh
 | §2.2 landed | As A, set the same key for A with the hash of A's real deployment transaction, then reload `/setup?new=1` | Resumes A's account; the key is removed. |
 | §2.2 real (optional, one mainnet deployment) | As B, press Create, sign, then close the tab while it shows `Waiting for Celo…`. Reopen `/setup` | Either resumes the new account, or shows the waiting panel with Create disabled until it lands. |
 
-- [ ] **Step 3: Report**
+- [x] **Step 3: Report**
 
 For each row, report what was actually seen. If a row fails, go back to its task with superpowers:systematic-debugging, and do not mark it done.
