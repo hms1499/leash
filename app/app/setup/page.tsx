@@ -885,6 +885,10 @@ export default function Onboard() {
           <>
             <ActionLink href="/accounts">My accounts</ActionLink>
             <NetworkBadge />
+            {/* The only way out for an owner whose account was resumed: step 1
+                shows no ConnectButton once an account exists. Same slot and
+                same condition as /accounts. */}
+            {isConnected && <ConnectButton />}
           </>
         }
       />
@@ -1029,7 +1033,9 @@ export default function Onboard() {
             ) : (
               <div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <ConnectButton />
+                  {/* The address, not a second disconnect button: the header
+                      already carries that. */}
+                  <Address address={connected!} className="num" />
                   <span className="text-sm" style={{ color: 'var(--dim)' }}>Owner wallet connected</span>
                 </div>
                 <p className="text-sm mt-4" style={{ color: 'var(--bad)' }}>

@@ -182,3 +182,27 @@ describe('the wizard checks ownership', () => {
     expect(cleanup).toContain('setRestoring(false)')
   })
 })
+
+/**
+ * An owner whose account the wizard had resumed had no way to disconnect on
+ * /setup: the header carried only My accounts and the network badge, and step
+ * 1 rendered ConnectButton only for a wallet with no account yet. /accounts
+ * and the dashboard both put it in the header; the wizard now does the same.
+ */
+describe('the wizard header', () => {
+  const ROOT = fileURLToPath(new URL('..', import.meta.url))
+  const source = readFileSync(join(ROOT, 'app/setup/page.tsx'), 'utf8')
+  const header = source.slice(source.indexOf('<AppHeader'), source.indexOf('<main'))
+
+  it('offers the connected wallet a way to disconnect', () => {
+    expect(header).toContain('{isConnected && <ConnectButton />}')
+  })
+
+  // One disconnect control per screen. The body keeps its Connect wallet call
+  // to action for a visitor, and states the owner in words once connected.
+  it('does not repeat the address button in step 1', () => {
+    const body = source.slice(source.indexOf('<main'))
+    expect(body.match(/<ConnectButton \/>/g) ?? []).toHaveLength(1)
+    expect(body).toContain('{!isConnected ? <ConnectButton /> :')
+  })
+})
