@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { deploymentCandidates, describeDiscovery, etherscanTransactionsUrl } from '../lib/accountDiscovery.js'
 
 const OWNER = '0x1111111111111111111111111111111111111111'
@@ -72,5 +75,32 @@ describe('describeDiscovery', () => {
       .toContain('Some older deployments may not be shown.')
     expect(describeDiscovery({ verified: 1, unreadable: 2, historyTruncated: true }))
       .toContain('Some older deployments may not be shown.')
+  })
+})
+
+/**
+ * "Refresh from Celo" used to call discoverAccounts with no signal. A switch
+ * of wallet mid-run left it running, and its last act was to write the
+ * previous owner's list onto the new owner's screen.
+ */
+describe('AccountsPage discovery runs', () => {
+  const ROOT = fileURLToPath(new URL('..', import.meta.url))
+  const source = readFileSync(join(ROOT, 'components/AccountsPage.tsx'), 'utf8')
+
+  it('are started in one place', () => {
+    const calls = source.match(/discoverAccounts\(/g) ?? []
+    // The definition, and the single call inside startDiscovery.
+    expect(calls).toHaveLength(2)
+    expect(source).toMatch(/function startDiscovery\([^)]*\) \{[\s\S]*?\.abort\(\)[\s\S]*?discoverAccounts\(/)
+  })
+
+  it('always carry a signal', () => {
+    expect(source).toContain('signal: AbortSignal)')
+    expect(source).not.toContain('signal?: AbortSignal')
+  })
+
+  it('check for replacement before reporting a failed response', () => {
+    const body = source.slice(source.indexOf('await response.json()'), source.indexOf('if (!response.ok'))
+    expect(body).toContain('if (signal.aborted) return')
   })
 })

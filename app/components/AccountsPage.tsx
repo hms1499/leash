@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAccount } from 'wagmi'
 import {
   ContractFunctionRevertedError,
@@ -104,8 +104,23 @@ export default function AccountsPage() {
   // note so the empty state can refuse to claim absence as well.
   const [unreadableCount, setUnreadableCount] = useState(0)
 
+  /**
+   * The run in flight, whoever started it. The effect and the Refresh
+   * button both go through startDiscovery, so a wallet switch aborts a
+   * manual run too -- it used to finish and write the previous owner's
+   * list onto this owner's screen.
+   */
+  const run = useRef<AbortController | null>(null)
+  function startDiscovery(owner: `0x${string}`) {
+    run.current?.abort()
+    const controller = new AbortController()
+    run.current = controller
+    void discoverAccounts(owner, controller.signal)
+  }
+
   useEffect(() => {
     if (!connected) {
+      run.current?.abort()
       setAccounts([])
       setDiscoveryNote(null)
       setUnreadableCount(0)
@@ -113,12 +128,12 @@ export default function AccountsPage() {
       return
     }
     setAccounts(migrateLegacyAccount(localStorage, connected))
-    const controller = new AbortController()
-    void discoverAccounts(connected, controller.signal)
-    return () => controller.abort()
+    startDiscovery(connected)
+    return () => run.current?.abort()
+    // startDiscovery is rebuilt every render and reads only refs and setters.
   }, [connected])
 
-  async function discoverAccounts(owner: `0x${string}`, signal?: AbortSignal) {
+  async function discoverAccounts(owner: `0x${string}`, signal: AbortSignal) {
     setDiscovering(true)
     setDiscoveryNote(null)
     // A stale count would let the previous run's outage keep suppressing this
@@ -131,6 +146,8 @@ export default function AccountsPage() {
         historyTruncated?: boolean
         code?: string
       }
+      // Replaced while the body was read. Nothing below is about this owner.
+      if (signal.aborted) return
       if (!response.ok || !Array.isArray(body.accounts)) {
         setDiscoveryNote(body.code === 'DISCOVERY_NOT_CONFIGURED'
           ? 'Automatic discovery is not configured. Add the explorer API key and refresh.'
@@ -152,7 +169,7 @@ export default function AccountsPage() {
           candidate,
           result: await verifyPolicyAccount(candidate.address, owner),
         })))
-        if (signal?.aborted) return
+        if (signal.aborted) return
         for (const { candidate, result } of results) {
           if (result === 'unreadable') { unreadable++; continue }
           if (result !== 'verified') continue
@@ -173,7 +190,7 @@ export default function AccountsPage() {
         setDiscoveryNote('Could not refresh account history. Showing the last saved list.')
       }
     } finally {
-      if (!signal?.aborted) setDiscovering(false)
+      if (!signal.aborted) setDiscovering(false)
     }
   }
 
@@ -226,7 +243,7 @@ export default function AccountsPage() {
               )}
             </span>
             <span className="flex flex-wrap gap-2">
-              <Button disabled={discovering} onClick={() => void discoverAccounts(connected!)}>
+              <Button disabled={discovering} onClick={() => startDiscovery(connected!)}>
                 {discovering ? 'Discovering…' : 'Refresh from Celo'}
               </Button>
             <ActionLink href="/setup?new=1" variant="primary">
