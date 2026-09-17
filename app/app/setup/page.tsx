@@ -303,6 +303,10 @@ export default function Onboard() {
 
   function stageUnlocked(stage: SetupStage): boolean {
     if (stage === 1) return true
+    // While a resumed account is still being verified against Celo, none of
+    // its figures (limits, agent, balances) are trustworthy yet -- a reader
+    // must not be let into a step whose readiness could still flip under them.
+    if (restoring) return false
     if (stage === 2) return readiness.accountCreated
     if (stage === 3) return readiness.accountCreated && readiness.limitsConfirmed && recipientReady
     return readiness.ready
@@ -362,7 +366,7 @@ export default function Onboard() {
 
   // Local storage supplies candidates; Celo state decides every completion tick.
   useEffect(() => {
-    if (!account) return
+    if (!account || !connected) return
     let cancelled = false
     setRestoring(true)
     setRestoreNote(null)
@@ -403,8 +407,8 @@ export default function Onboard() {
           }) as Promise<`0x${string}`>,
         ])
         if (cancelled) return
-        const notOwner = connected ? restoredOwnerNote(owner, connected) : null
-        if (!connected || notOwner) {
+        const notOwner = restoredOwnerNote(owner, connected)
+        if (notOwner) {
           setAccount(null)
           setRestoreNote(notOwner)
           setActiveStage(1)
@@ -473,7 +477,16 @@ export default function Onboard() {
         if (!cancelled) setRestoring(false)
       }
     })()
-    return () => { cancelled = true }
+    // Also resets `restoring`, not only `cancelled`: a disconnect or a switch
+    // to a wallet with no saved account starts a run for the OLD account in
+    // the same commit the connected effect schedules setAccount(null), and
+    // the next commit cancels it here. That cancelled run's own `finally`
+    // above skips setRestoring(false) because `cancelled` is already true --
+    // so without this, "restoring" stuck at true, and "Create protected
+    // account" (disabled={deploying || restoring}) stayed disabled with
+    // nothing said. A replacement run's setRestoring(true) runs after this
+    // cleanup in the same commit, so clearing it here cannot clobber it.
+    return () => { cancelled = true; setRestoring(false) }
   // `connected` as well: after a transfer both wallets' registries can name
   // the same address, and a switch between them must be re-checked.
   }, [account, connected])
@@ -1009,7 +1022,7 @@ export default function Onboard() {
                 <div className="mt-2 max-w-full overflow-x-auto">
                   <Address address={account} copy explorer full className="num" />
                 </div>
-                <Button variant="primary" className="mt-4" onClick={() => setActiveStage(2)}>
+                <Button variant="primary" className="mt-4" disabled={restoring} onClick={() => setActiveStage(2)}>
                   Continue to protection
                 </Button>
               </div>

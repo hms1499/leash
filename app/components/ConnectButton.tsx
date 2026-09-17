@@ -1,12 +1,17 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { isMiniPay } from '../lib/chain.js'
 import { truncateAddress } from '../lib/address.js'
 import { describeConnectError, shouldAutoConnect } from '../lib/connectWallet.js'
 import Button from './ui/Button'
 import Label from './ui/Label'
+
+// Module-level, not a ref: spec §2.4 says the auto-connect happens once for
+// the page's life, and several ConnectButton instances mount across routes
+// and wizard steps -- a per-instance ref let each new mount try again.
+let autoConnectAttempted = false
 
 /**
  * `onDangerBand` for the same reason StopButton reads `paused`: on the paused
@@ -24,11 +29,10 @@ export default function ConnectButton({ onDangerBand = false }: { onDangerBand?:
 
   // MiniPay users have already chosen their wallet by opening the app there.
   // Once per page -- see shouldAutoConnect.
-  const attempted = useRef(false)
   useEffect(() => {
     if (!connectors[0]) return
-    if (!shouldAutoConnect({ miniPay, status, attempted: attempted.current })) return
-    attempted.current = true
+    if (!shouldAutoConnect({ miniPay, status, attempted: autoConnectAttempted })) return
+    autoConnectAttempted = true
     connect({ connector: connectors[0] })
   }, [miniPay, status, connect, connectors])
 

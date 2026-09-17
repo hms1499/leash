@@ -165,4 +165,20 @@ describe('the wizard checks ownership', () => {
     expect(deploy.indexOf('afterDeployNote(')).toBeLessThan(deploy.indexOf('setAccount(outcome.address)'))
     expect(deploy).not.toContain('connected!')
   })
+
+  /**
+   * A disconnect, or a switch to a wallet with no saved account, starts a
+   * restore run for the OLD account in the same commit the connected effect
+   * schedules setAccount(null); the next commit cancels that run. Without an
+   * early guard and a cleanup that also resets `restoring`, the cancelled
+   * run's `finally` skips setRestoring(false) and "Create protected account"
+   * (disabled={deploying || restoring}) stays disabled with nothing said.
+   */
+  it('does not leave "restoring" stuck true when a later commit cancels this run', () => {
+    const restore = source.slice(source.indexOf('// Local storage supplies candidates'), source.indexOf('async function deploy()'))
+    expect(restore).toContain('if (!account || !connected) return')
+    const cleanup = restore.slice(restore.indexOf('return () => {'))
+    expect(cleanup).toContain('cancelled = true')
+    expect(cleanup).toContain('setRestoring(false)')
+  })
 })
