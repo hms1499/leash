@@ -18,9 +18,16 @@
  * every card grid in the app -- and measured at 1440px on 2026-09-11, the
  * landing's three-up cards ran their body text at 21 characters a line.
  *
- * `Meter` carries `max-w-[--meter-max]` itself now, so the page is free.
- * 1024px, from lib/layout.ts: measured again at that width on 2026-09-11, the
- * same card is 315px and its body runs at 31 characters a line.
+ * So the page went to 1024px, from lib/layout.ts: measured again at that width
+ * on 2026-09-11, the same card is 315px and its body runs at 31 characters a
+ * line.
+ *
+ * `Meter` carried a `--meter-max` of its own for a while, and **that was the
+ * same mistake one scope down** -- it capped its whole content block rather
+ * than the drawing inside it, so the meter's heading, figure and stats sat on
+ * a 736px column while every panel beside them sat on 1024px, 119px of inset
+ * on each side at 1440px. Removed 2026-09-18. This cap is the only one, which
+ * is what the paragraph below has always asked for.
  *
  * `px-4` is the page gutter and stays 16px on purpose: it is the edge of the
  * viewport rather than a relationship between two elements, and 24px gutters

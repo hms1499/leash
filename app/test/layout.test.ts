@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { COLUMNS, GUTTER, CONTAINER, PAGE_GUTTER, METER_MAX, columnWidth } from '../lib/layout.js'
+import { COLUMNS, GUTTER, CONTAINER, PAGE_GUTTER, columnWidth } from '../lib/layout.js'
 import { PAGE, GRID, PANEL_GRID } from '../components/ui/page.js'
 
 const css = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8')
@@ -15,7 +15,6 @@ describe('globals.css does not drift from layout.ts', () => {
     ['--gutter', GUTTER],
     ['--container', CONTAINER],
     ['--page-gutter', PAGE_GUTTER],
-    ['--meter-max', METER_MAX],
   ])('%s is %s', (name, value) => {
     expect(css).toContain(`${name}: ${value};`)
   })
@@ -90,14 +89,43 @@ describe('the grid', () => {
  * it. That is a fact about one component; enforcing it at the page also
  * decided the width of every card grid in the app.
  */
-describe('the meter carries its own width', () => {
+describe('the meter sits on the page column like everything else', () => {
   const meter = readFileSync(new URL('../components/Meter.tsx', import.meta.url), 'utf8')
 
-  it('caps itself rather than relying on the page', () => {
-    expect(meter).toContain("maxWidth: 'var(--meter-max)'")
+  /**
+   * This asserted the opposite until 2026-09-18: that `Meter` carried
+   * `maxWidth: 'var(--meter-max)'`, 736px, inline. It did, and inline beat
+   * PAGE's own `max-w-5xl`, so the meter's heading, figure, sentence and three
+   * stats sat on a 736px column while every other panel sat on a 1024px one.
+   * Measured at a 1440px viewport: panels ran 249→1191 and the meter ran
+   * 368→1072, inset 119px on each side.
+   *
+   * The cap was applied one scope too wide -- it belonged to the drawing, not
+   * to the block around it -- and nothing replaced it, because `CONTAINER`
+   * already caps the page at 1024. This is the ratchet on that.
+   */
+  // Matched as a style declaration, not as the word anywhere: the comment in
+  // Meter.tsx names the property it used to set, and a test that could not
+  // tell a rule from a record of one would forbid writing the history down.
+  it('sets no max-width of its own', () => {
+    expect(meter).not.toMatch(/style=\{\{[^}]*maxWidth/)
+    expect(meter).not.toMatch(/max-w-\[/)
   })
 
-  it('is narrower than the container, or the cap does nothing', () => {
-    expect(parseInt(METER_MAX, 10)).toBeLessThan(parseInt(CONTAINER, 10))
+  /**
+   * What the removed cap was protecting, kept as an assertion rather than as a
+   * number: the track is an SVG with `preserveAspectRatio="none"`, so `CAP_W`
+   * and the 2px gap are viewBox units and magnify with the container. At
+   * `CONTAINER` less both page gutters that magnification is 1.65x, against
+   * the 3.1x of the unconstrained 1888px dashboard that made the marks
+   * unreadable. If either the container or the viewBox moves, this is where a
+   * reader finds out whether the marks still have room.
+   */
+  it('magnifies the track well under the ratio that made its marks unreadable', () => {
+    const viewBox = meter.match(/viewBox=\{`0 0 \$\{TRACK\} 14`\}/)
+    expect(viewBox, 'the viewBox this ratio is computed against has moved').not.toBeNull()
+    const track = Number(meter.match(/const TRACK = (\d+)/)![1])
+    const widest = parseInt(CONTAINER, 10) - 2 * parseInt(PAGE_GUTTER, 10)
+    expect(widest / track).toBeLessThan(2)
   })
 })

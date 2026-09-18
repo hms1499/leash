@@ -113,16 +113,39 @@ export default function Meter({
       {/* The meter fills the surface its parent gives it while its contents
           retain the shared page gutter. Landing and dashboard both contain
           that surface inside a panel.
-          
-          --meter-max is what holds the geometry, and it is here rather than on
-          PAGE because it is a fact about this component. The track is an SVG
-          with viewBox="0 0 600 14", so it magnifies rather than reflows: at the
-          1888px this measured on an unconstrained dashboard, the 2px gap §3.1
-          spends a rule on magnified with it and the lock indicator stopped
-          reading. §3 used to enforce that by holding every screen at 768px,
-          which let one component's geometry decide the width of every card
-          grid in the app. */}
-      <div className={`${PAGE} py-3`} style={{ maxWidth: 'var(--meter-max)' }}>
+
+          PAGE and nothing else. This carried `maxWidth: var(--meter-max)` --
+          736px, inline, so it beat PAGE's own `max-w-5xl` -- and the result
+          was that the meter's whole block sat on a 736px column while every
+          other panel on the page sat on a 1024px one. Measured at a 1440px
+          viewport: the panels' content ran 249→1191 and this ran 368→1072,
+          inset 119px on each side, which is what a reader sees as the meter
+          not lining up with anything.
+
+          The variable was introduced for a real reason and applied one scope
+          too wide, which is the same mistake it was introduced to fix. §3 had
+          held every SCREEN at 768px because Meter is an SVG with
+          viewBox="0 0 600 14" and magnifies rather than reflows -- at the
+          1888px it measured on an unconstrained dashboard, the 2px gap §3.1
+          spends a rule on magnified with it. Moving that to the component was
+          right; putting it on the block rather than on the drawing was not.
+          The heading, the figure, the sentence and the three stats do not
+          magnify, and they were pulled in with the bar.
+
+          Nothing replaces it, because PAGE already caps the page at 1024px:
+          the unconstrained case that motivated a cap cannot happen any more.
+          At 1440px the track is now 958px, a magnification of 1.6x against the
+          3.1x that made the marks unreadable, and the cap wall reads at 6.4px.
+          Measured in a browser, not reasoned about.
+
+          The deeper fault is still here and is deliberately left for after the
+          deadline: CAP_W and the 2px gap are viewBox units, so they scale with
+          the container at all. A track drawn as two divs with the wall
+          absolutely positioned at a fixed 4px would not, and would need no cap
+          at any level. Changing it means rewriting e2e/dashboard.spec.ts's
+          reduced-motion guard, which asserts the SMIL <animate> element -- one
+          of the two guards spec §3 calls non-negotiable. */}
+      <div className={`${PAGE} py-3`}>
       {/* One --t-display per screen, and on the dashboard this is it.
           The allowance alone says what is permitted and the balance alone
           says what is there; 50778cd was opened because the meter showed the

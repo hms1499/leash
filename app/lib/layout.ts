@@ -19,8 +19,19 @@
  * component, enforced three levels up at the page, where it also decided the
  * width of every card grid and every panel in the app.
  *
- * `METER_MAX` puts it back where it belongs. With the meter immune, the page
- * is free to be as wide as its content wants.
+ * A `METER_MAX` of 736px put it back where it belongs, and the page was freed
+ * to be as wide as its content wants. **That variable is gone as of
+ * 2026-09-18**, and the paragraph above is why it existed rather than why it
+ * survived: `Meter` applied it to its whole content block, inline, so it beat
+ * PAGE's own cap and put the meter's heading, figure, sentence and three stats
+ * on a 736px column while every other panel sat on a 1024px one -- 119px of
+ * inset on each side at a 1440px viewport, measured. One scope too wide, which
+ * is the same mistake the paragraph above describes.
+ *
+ * Nothing replaced it. `CONTAINER` already caps the page at 1024, so the
+ * unconstrained dashboard that motivated a cap cannot recur: the track is
+ * 958px at 1440px, a 1.6x magnification against the 3.1x that made the marks
+ * unreadable.
  *
  * ## Why 1024 and not 1280
  *
@@ -59,15 +70,6 @@ export const CONTAINER = '1024px'
  * width on the phone MiniPay runs on.
  */
 export const PAGE_GUTTER = '16px'
-
-/**
- * What `Meter` was drawn for. The track measured 702px inside `LiveProof`
- * when the page was 768, and that is the width its 600-unit viewBox was
- * proportioned against. 736 here because the cap sits on the element that
- * carries the 16px page gutter on each side: 736 - 32 = 704 of track.
- * It does not grow with the container.
- */
-export const METER_MAX = '736px'
 
 /**
  * A column's width at the container's maximum, for the record and for the

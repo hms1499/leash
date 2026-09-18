@@ -350,9 +350,28 @@ place.** `Meter` is an SVG with `viewBox="0 0 600 14"`: it magnifies rather
 than reflows, so the constraint was never "the page is 768px" but "the meter
 is about 700px". Enforced at the page, one component's geometry also decided
 the width of every card grid in the app — and the landing's three-up cards ran
-their body text at **21 characters a line**. `Meter` carries `--meter-max`
-itself now and the page is 1024. §16 has the measurements and the grid that
-replaced the guesswork.
+their body text at **21 characters a line**. The page is 1024 now. §16 has the
+measurements and the grid that replaced the guesswork.
+
+**`Meter` carried a `--meter-max` of its own from that day until 2026-09-18,
+and it was the same mistake one scope down.** The constraint belonged to the
+drawing — an SVG that magnifies — and it was put on the whole content block, so
+the meter's heading, figure, sentence and three stats sat on a 736px column
+while every panel beside them sat on 1024. Measured at a 1440px viewport:
+panels ran 249→1191 and the meter ran 368→1072, **inset 119px on each side**,
+which is what a reader sees as the meter not lining up with anything.
+
+Nothing replaced it. The page's own 1024 cap already prevents the unconstrained
+dashboard that made a cap necessary: the track is 958px at 1440px, magnifying
+1.6× against the 3.1× that made its marks unreadable.
+
+The fault underneath is still there and is named here so it is not rediscovered
+as a surprise: `CAP_W` and the 2px gap §3.1 spends a rule on are **viewBox
+units**, so they scale with the container at all. A track drawn as two divs,
+with the cap wall absolutely positioned at a fixed 4px, would not — and would
+need no cap at any level. That change rewrites `e2e/dashboard.spec.ts`'s
+reduced-motion guard, which asserts the SMIL `<animate>` element, so it waits
+for a session with room for it.
 
 The gutter stays 16px: it is the edge of the viewport rather than a
 relationship between two elements, and 24px gutters waste width on the phone
@@ -1193,9 +1212,10 @@ palette and the type scale already keep (§9).
   one step above the gap between its children, and a `Panel` at `p-6` holds
   rows at `gap-3`. A panel's padding already breaks alignment with the page's
   columns, so what carries across is the division, not the gutter.
-- `Meter` carries `max-width: var(--meter-max)` — 736px, the width its viewBox
-  was proportioned against — so the page no longer enforces one component's
-  geometry on everything else.
+- `Meter` sets **no width of its own**. It carried `max-width: var(--meter-max)`
+  — 736px — until 2026-09-18, which put its whole block on a narrower column
+  than every panel around it; §3 has the measurement and why nothing replaced
+  it. One cap, at the page, is the rule.
 
 ### Where a span may widen, measured
 
