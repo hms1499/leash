@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAccount, useDeployContract, useWriteContract } from 'wagmi'
 import ConnectButton from '../../components/ConnectButton'
-import McpHandoff from '../../components/McpHandoff'
 import NetworkBadge from '../../components/NetworkBadge'
 import Address from '../../components/ui/Address'
 import ActionLink from '../../components/ui/ActionLink'
@@ -21,7 +20,7 @@ import { generateAgentWallet, keyToShow, type HeldAgentKey } from '../../lib/age
 import { canEdit, formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
 import { transactionsLeft } from '../../lib/gasFloat.js'
 import {
-  afterDeployNote, afterFailedRead, balanceValue, describeBalance, describeTopUpMode, firstSetupStage,
+  afterDeployNote, afterFailedRead, balanceValue, describeBalance, firstSetupStage,
   restoredOwnerNote, setupReadiness, type BalanceRead, type SetupStage,
 } from '../../lib/setup.js'
 import { pollUntil } from '../../lib/confirm.js'
@@ -42,6 +41,7 @@ import { accountLookupNote, findOwnedAccounts, newestAccount } from '../../lib/o
 import { fetchOperatorCandidates, recoverAgent } from '../../lib/agentDiscovery.js'
 import GeneratedKeyPanel from '../../components/setup/GeneratedKeyPanel'
 import StageStepper from '../../components/setup/StageStepper'
+import ReviewStage, { ReviewUnavailable } from '../../components/setup/ReviewStage'
 import {
   HEADING, noteColor, STAGE_HEADING_ID, STATUS_BOX, STEPS,
   type ConfirmedLimits, type FundingTarget, type RecipientMode,
@@ -1376,79 +1376,22 @@ export default function Onboard() {
           stageUnlocked, which is a dead end with no way forward. A truncating
           pre-fill caused exactly that for a sub-cent cap. The cause is fixed
           above; this makes the shape non-fatal. */}
-      {activeStage === 4 && !(account && readiness.ready && confirmedLimits) && (
-        <Panel as="section" className="p-6 mt-6">
-          <p id={STAGE_HEADING_ID} tabIndex={-1} className="text-sm" style={{ color: 'var(--bad)' }}>
-            This account&apos;s setup could not be summarised. Go back a step to
-            check its limits, agent and balances.
-          </p>
-          <Button variant="ghost" className="mt-3" onClick={() => setActiveStage(3)}>
-            Back to step 3
-          </Button>
-        </Panel>
-      )}
-
-      {activeStage === 4 && account && readiness.ready && confirmedLimits && (
-        <Panel as="section" className="p-6 mt-6">
-          <Label className="block">Step 4 of 4</Label>
-          <h2 id={STAGE_HEADING_ID} tabIndex={-1} className="mt-2" style={HEADING}>Your agent account is ready</h2>
-          <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-            The on-chain protections, agent permission and both operating balances have been verified.
-          </p>
-          <div className="p-6 mt-5" style={{ ...STATUS_BOX, borderColor: 'var(--ok)' }}>
-            <p style={{ ...SUBHEAD, color: 'var(--ok)' }}>Ready on Celo</p>
-            <p className="text-sm mt-1" style={{ color: 'var(--dim)' }}>
-              Hand the account address to your agent when you are ready to connect its runtime.
-            </p>
-          </div>
-          <dl className={`${PANEL_GRID} mt-6 text-sm`}>
-            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Protected account</dt>
-              <dd className="mt-2"><Address address={account} copy explorer className="num" /></dd></div>
-            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Agent wallet</dt>
-              <dd className="mt-2"><Address address={agent} copy explorer className="num" /></dd></div>
-            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Maximum per payment</dt>
-              <dd className="num mt-2">{formatDisplayAmount(confirmedLimits.perTx, DECIMALS, 2)} USDC</dd></div>
-            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Maximum per day</dt>
-              <dd className="num mt-2">{formatDisplayAmount(confirmedLimits.daily, DECIMALS, 2)} USDC</dd></div>
-            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Protected balance</dt>
-              <dd className="num mt-2">{protectedBalanceRead.text}</dd></div>
-            <div className="col-span-12 md:col-span-6"><dt style={{ color: 'var(--dim)' }}>Agent gas</dt>
-              <dd className="num mt-2">{agentTransactionsLeft} {agentTransactionsLeft === 1 ? 'transaction' : 'transactions'} available</dd></div>
-            <div className="col-span-12"><dt style={{ color: 'var(--dim)' }}>Direct-payment recipients</dt>
-              <dd className="mt-2">{recipientProtectionEnabled ? 'Approved addresses only' : 'Any address — recipient protection is not enabled'}</dd></div>
-            <div className="col-span-12"><dt style={{ color: 'var(--dim)' }}>Agent-funded payments</dt>
-              <dd className="mt-2">{describeTopUpMode(topUpEnabled)}</dd></div>
-          </dl>
-          <div className="mt-6">
-            {/* agent is a verified operator by this point: readiness.ready
-                gates this whole stage on addAgent's operators() check. */}
-            <McpHandoff
-              account={account}
-              operator={isValidAddress(agent) ? agent as `0x${string}` : null}
-              defaultOpen
-            />
-            {/* Repeated from step 3 rather than linked back to it. The block
-                above is copied here, and OPERATOR_PK is the one field the
-                reader has to fill by hand -- so the value it wants belongs on
-                the same screen, not one step behind. */}
-            {shownKey && <GeneratedKeyPanel privateKey={shownKey} />}
-          </div>
-
-          <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
-            <h3 style={SUBHEAD}>What happens next</h3>
-            {/* Was "a separate integration journey", which stopped being true
-                when the block above moved onto this step. Still not REQUIRED
-                -- readiness deliberately ignores it (lib/setup.ts) -- but it
-                is no longer somewhere else. */}
-            <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-              Open the dashboard to monitor spending or change protection. The account is complete either way: connecting a runtime is optional and is not part of what this setup verifies.
-            </p>
-            <div className="flex flex-wrap gap-3 mt-4">
-              <ActionLink href={`/a/${account}?operator=${agent}`} variant="primary">Open dashboard</ActionLink>
-              <Button variant="ghost" onClick={() => setActiveStage(3)}>Review funding</Button>
-            </div>
-          </div>
-        </Panel>
+      {activeStage === 4 && (
+        account && readiness.ready && confirmedLimits ? (
+          <ReviewStage
+            account={account}
+            agent={agent}
+            limits={confirmedLimits}
+            protectedBalanceText={protectedBalanceRead.text}
+            agentTransactionsLeft={agentTransactionsLeft}
+            recipientProtectionEnabled={recipientProtectionEnabled}
+            topUpEnabled={topUpEnabled}
+            shownKey={shownKey}
+            onBack={() => setActiveStage(3)}
+          />
+        ) : (
+          <ReviewUnavailable onBack={() => setActiveStage(3)} />
+        )
       )}
       </main>
     </>
