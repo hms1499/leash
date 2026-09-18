@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { formatDisplayAmount } from '../lib/policy.js'
 import { bandFigure, bandSentence, meterState, spendBand } from '../lib/meter.js'
 import Stat from './ui/Stat'
+import Label from './ui/Label'
 import { PROSE } from './ui/prose'
 import { PAGE, PANEL_GRID } from './ui/page'
 
@@ -43,6 +44,24 @@ const CAP_W = 4
  *  vanish at the moment it matters most. Spec §3.1. */
 const FILL_MAX = CAP_X - 2
 
+/**
+ * The rule that marks the one stat currently holding the figure down.
+ *
+ * `--text`, not `--celo`. --celo is spoken for in exactly two roles -- the
+ * brand mark and the meter's cap wall -- and Feed.tsx:168 says in so many
+ * words that it cannot be the third. This is not a good or a bad state either,
+ * so --ok and --bad are both wrong: one of the three always binds, and which
+ * one is information rather than a verdict.
+ *
+ * Padding only when the rule is drawn, so the two unmarked stats keep the grid
+ * alignment they had. 12px is §3's `3`.
+ */
+function bindingRule(isBinding: boolean): React.CSSProperties {
+  return isBinding
+    ? { borderLeft: '2px solid var(--text)', paddingLeft: 12 }
+    : {}
+}
+
 export default function Meter({
   daily, remaining, perTx, decimals, symbol, balance, allowlistEnabled, paused, loading,
   dominant = false,
@@ -76,6 +95,18 @@ export default function Meter({
   const band = spendBand({ remaining, perTx, balance, allowlistEnabled, paused, loading })
   const figure = bandFigure(band)
   const width = Math.max(0, Math.min(FILL_MAX, (fillPercent / 100) * FILL_MAX))
+
+  /**
+   * Which of the three stats below produced the figure above it.
+   *
+   * `spendBand` has decided this since it was written -- the sentence under
+   * the figure reads it out -- and the row it names sat unmarked, so a reader
+   * matched "limited by the per-transaction cap" to a column by reading three
+   * labels. `null` outside the `ceiling` band: in `paused`, `unfunded` and
+   * `exhausted` the figure is zero for a reason no single stat explains, and
+   * pointing at one of them would be a claim the band does not make.
+   */
+  const binding = band.kind === 'ceiling' ? band.limitedBy : null
 
   return (
     <div style={{ background: 'var(--panel)', borderBottom: '1px solid var(--line)' }}>
@@ -137,6 +168,29 @@ export default function Meter({
         </p>
       </div>
 
+      {/* The bar measures the daily allowance, and the figure above it is the
+          minimum of THREE constraints -- a different quantity. Stacked with
+          nothing between them, a reader takes the bar for that figure's gauge.
+          Naming it is the whole fix; the two are both worth showing and only
+          the silence was wrong.
+
+          The percentage is also what tells an empty track from a full bar.
+          At 0% used the fill has width 0, so the whole shape is `--well` --
+          darker than the panel behind it, and a solid dark rectangle reads as
+          full. §7 met the same ambiguity in the zero-balance state and
+          answered it the same way: "the empty state needed a number, not an
+          illustration."
+
+          `role="status"` is deliberately NOT repeated here. The block above
+          already announces the figure that moves when the agent spends, and a
+          second live region on the same panel interrupts the first. */}
+      <div className="flex items-baseline justify-between gap-3 mt-6">
+        <Label>Daily allowance used</Label>
+        <span className="num" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: 'var(--dim)' }}>
+          {loading ? '—' : `${Math.round(fillPercent)}%`}
+        </span>
+      </div>
+
       <svg
         className="meter block w-full mt-2"
         height={12}
@@ -192,7 +246,8 @@ export default function Meter({
           wrapped onto two lines -- measured at 375px on 2026-09-11. gap-5 and
           mt-4 were both off §3's scale. */}
       <div className={`${PANEL_GRID} mt-6`}>
-        <div data-testid="meter-stat" className="col-span-12 md:col-span-4">
+        <div data-testid="meter-stat" className="col-span-12 md:col-span-4"
+          style={bindingRule(binding === 'daily allowance')}>
         <Stat
           label="Remaining today"
           value={loading
@@ -203,14 +258,16 @@ export default function Meter({
         </div>
         {/* The allowance is what policy permits; this is whether the money is
             there. They are different numbers and only the first was shown. */}
-        <div data-testid="meter-stat" className="col-span-12 md:col-span-4">
+        <div data-testid="meter-stat" className="col-span-12 md:col-span-4"
+          style={bindingRule(binding === 'balance')}>
         <Stat
           label="Account holds"
           value={loading ? `— ${symbol}` : `${formatDisplayAmount(balance, decimals)} ${symbol}`}
           tone={band.kind === 'unfunded' ? 'bad' : 'normal'}
         />
         </div>
-        <div data-testid="meter-stat" className="col-span-12 md:col-span-4">
+        <div data-testid="meter-stat" className="col-span-12 md:col-span-4"
+          style={bindingRule(binding === 'per-transaction cap')}>
         <Stat
           label="Per-transaction cap"
           value={loading ? `— ${symbol}` : `${formatDisplayAmount(perTx, decimals)} ${symbol}`}
