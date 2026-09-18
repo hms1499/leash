@@ -233,9 +233,13 @@ float can spend. That float is the real x402 exposure, so keep it thin.
   reserves the *block* gas limit — measured at 0.465 USDC against 0.0022 actually
   spent — which made the top-up path unreachable until `LeashClient` began
   sending an explicit limit.
-- **ERC-8021 attribution.** Every transaction carries the attribution tag in its
+- **ERC-8021 attribution.** Every transaction carries an attribution code in its
   data suffix, verified by decoding it back out of raw chain data rather than out
-  of the code that wrote it.
+  of the code that wrote it. The MCP server emits Leash's own code and asks the
+  user for nothing: the standard's rule is that a code is added by the entity it
+  represents, and the entity that built and signed the transaction is the server.
+  A builder shipping their own registered product on top of it sets
+  `ATTRIBUTION_TAG` and the suffix carries both.
 - **ERC-8004 identity.** The operator owns agentId
   [9804](https://8004scan.io/agents/celo/9804) in the on-chain agent registry.
 - **x402.** The agent buys a real metered resource, and the money it spends is
@@ -317,9 +321,9 @@ pnpm install
 | Command | Suite |
 |---|---|
 | `cd contracts && forge test` | 66 contract tests, six of them invariants |
-| `pnpm -F @leash/sdk test` | 90 SDK tests |
-| `pnpm -F leash-agentpay test` | 44 MCP tests |
-| `pnpm -F @leash/app test` | 499 app tests (vitest) |
+| `pnpm -F @leash/sdk test` | 101 SDK tests |
+| `pnpm -F leash-agentpay test` | 51 MCP tests |
+| `pnpm -F @leash/app test` | 481 app tests (vitest) |
 | `pnpm -F @leash/app test:e2e` | 41 end-to-end tests (playwright) |
 | `npx tsc --noEmit` | run inside `sdk`, `mcp`, `app`, `examples`, `spikes` |
 

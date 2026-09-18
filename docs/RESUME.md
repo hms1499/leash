@@ -68,10 +68,10 @@ times.
 | Suite | Status |
 |---|---|
 | `cd contracts && forge test` | 66/66 |
-| `cd sdk && pnpm run test` | 90/90, re-run 2026-09-18 (was 83; `constants.test.ts` pins the two Celo mainnet defaults) |
-| `cd mcp && pnpm run test` | 44/44, re-run 2026-09-18 (was 35; the `SPEND_TOKEN`/`FEE_ADAPTER` defaults and the note `leash_status` prints when the default token has no policy) |
-| `cd mcp && pnpm run test:bundle` | 3/3, re-run 2026-09-18 (packs the tarball, installs it, starts the bin — now on three env vars, which also proves the defaults were inlined) |
-| `cd app && pnpm run test` | 499/499, re-run 2026-09-18 (was 500 on 2026-09-17; the block stopped emitting two variables, so three assertions about them went and two about their absence arrived) |
+| `cd sdk && pnpm run test` | 101/101, re-run 2026-09-18 (was 83; `constants.test.ts` pins the Celo mainnet defaults and the project's attribution code, and `attribution.test.ts` covers a multi-code suffix) |
+| `cd mcp && pnpm run test` | 51/51, re-run 2026-09-18 (was 35; the `SPEND_TOKEN`/`FEE_ADAPTER`/`ATTRIBUTION_TAG` defaults, the two-code suffix, and the note `leash_status` prints when the default token has no policy) |
+| `cd mcp && pnpm run test:bundle` | 3/3, re-run 2026-09-18 (packs the tarball, installs it, starts the bin — now on **two** env vars, which also proves the defaults were inlined) |
+| `cd app && pnpm run test` | 481/481, re-run 2026-09-18 (was 500 on 2026-09-17; the emitted block went from five variables to two, taking `displayTag`/`isAttributionTag` and their 19 tests with it — the bug they guarded cannot occur in a block that carries no tag) |
 | `cd app && pnpm run test:e2e` | 41/41 local, re-run 2026-09-18 **and** 41/41 against <https://leash-app-phi.vercel.app> with `LEASH_E2E_URL`. The deployed run was 40/41 until the redeploy: `landing.spec.ts` asserts the landing links to the v2 account and the build then serving that URL still carried v1's. That failure was the deploy signal, and it cleared the moment the deploy landed. |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
@@ -296,12 +296,16 @@ what let the landing page and `/setup` disagree about one block (see the
 2026-09-05 entry below). `FEE_ADAPTER` is declared in `lib/mcpJson.ts` and
 pinned by a test -- it had vanished from `app/` entirely with the deletion.
 
-**Amended 2026-09-18:** that last sentence is no longer true. `FEE_ADAPTER` and
-the USDC token both live in `sdk/src/constants.ts` now, as `CELO_USDC_FEE_ADAPTER`
-and `CELO_USDC`, pinned by `sdk/test/constants.test.ts`. `leash-agentpay` 0.4.0
-defaults to them, so the emitted block carries three variables instead of five
-and `lib/mcpJson.ts` declares neither address. The same two constants replaced
-the four hand-copied USDC literals in `app/`.
+**Amended 2026-09-18:** neither of those sentences survives. `FEE_ADAPTER` and
+the USDC token live in `sdk/src/constants.ts` now, as `CELO_USDC_FEE_ADAPTER`
+and `CELO_USDC`, pinned by `sdk/test/constants.test.ts`; 0.4.0 defaults to them,
+and the same two constants replaced the four hand-copied USDC literals in
+`app/`. Then 0.5.0 took `ATTRIBUTION_TAG` too — the server emits
+`LEASH_ATTRIBUTION_CODE` because the code represents the app that built the
+transaction, which is the server and not its user. **The emitted block is down
+to two variables, `LEASH_ACCOUNT` and `OPERATOR_PK`,** and `McpHandoff`'s tag
+field went with it, along with `displayTag`, `isAttributionTag` and the 19 tests
+that guarded a bug a tagless block cannot have.
 
 It is on the dashboard too, since 2026-09-09: an owner who did not save the
 block had nowhere to read it again. `/a/[address]` renders it inside

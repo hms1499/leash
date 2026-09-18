@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  ATTRIBUTION_TAG_PLACEHOLDER, buildMcpJson, isAttributionTag,
-} from '../lib/mcpJson.js'
+import { buildMcpJson } from '../lib/mcpJson.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
 import Button from './ui/Button'
@@ -20,7 +18,12 @@ import { useRevealOnOpen } from '../lib/useReveal.js'
  * them. Sending them there was the handoff's weakest link.
  */
 const GUIDE = 'https://github.com/hms1499/leash/blob/main/docs/quickstart.md'
-/** Tag provenance stays in the full guide; quickstart only shows the shape. */
+/**
+ * Where a registered builder goes for the one variable this block no longer
+ * carries. Leaving the field on screen cost every other reader a decision they
+ * had no way to make: the code represents the app that built the transaction,
+ * which is the server, not them.
+ */
 const TAG_GUIDE =
   'https://github.com/hms1499/leash/blob/main/docs/mcp-setup.md#where-attribution_tag-comes-from'
 
@@ -41,35 +44,21 @@ export default function McpHandoff({
   /** Open on /setup, where this is the step; shut on the dashboard, where it is a reference. */
   defaultOpen?: boolean
 }) {
-  const [tag, setTag] = useState('')
   const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
-  // Held in state rather than passed straight to `open`: this component
-  // re-renders on every keystroke in the tag field, and a bare `open={prop}`
-  // would slam the panel back to its default each time.
+  // Held in state rather than passed straight to `open`. It was the tag field's
+  // keystrokes that made a bare `open={prop}` slam the panel shut; that field
+  // is gone, but a parent re-render for any other reason would do the same, and
+  // the disclosure's own state is where an open disclosure belongs regardless.
   const [open, setOpen] = useState(defaultOpen)
   // Empty on the first render, so the already-open panel on /setup arrives
   // rather than announcing itself. §12.
   const reveal = useRevealOnOpen(open)
 
-  const trimmed = tag.trim()
-  /**
-   * Derived here, never accepted as a prop.
-   *
-   * It WAS a prop, and that is precisely what let two callers disagree about
-   * one block: /setup substituted the placeholder, the landing page did not,
-   * and the component's own doc claimed the component did (a46fa52). Three
-   * accounts of one behaviour, two of them wrong. isAttributionTag is the
-   * single rule -- the same regex mcp/src/config.ts checks at startup -- and
-   * displayTag inside buildMcpJson decides what actually reaches the file, so
-   * this value only chooses which sentence to print.
-   */
-  const tagStatus = trimmed === '' ? 'missing'
-    : isAttributionTag(trimmed) ? 'ok' : 'invalid'
-
-  // No token and no fee adapter: leash-agentpay 0.4.0 defaults both to USDC on
-  // Celo mainnet, which is the only pair this app has ever emitted.
-  const block = buildMcpJson({ account, attributionTag: trimmed })
+  // Two variables. leash-agentpay defaults the token and the fee adapter to
+  // USDC on Celo mainnet (0.4.0) and emits its own attribution code (0.5.0),
+  // so the only values left are the ones nothing but this user can supply.
+  const block = buildMcpJson({ account })
 
   return (
     <Panel as="section" className="p-6">
@@ -126,49 +115,6 @@ export default function McpHandoff({
           </p>
         )}
 
-        <div className="mt-5 pt-6" style={{ borderTop: '1px solid var(--line)' }}>
-          {/* Label renders a styled span, not a <label>, so the input carries
-              its own aria-label -- the pattern the rest of the wizard uses. */}
-          <Label className="block">Attribution tag (optional)</Label>
-          <input
-            className="num field w-full mt-2 p-3"
-            aria-label="Attribution tag"
-            placeholder={ATTRIBUTION_TAG_PLACEHOLDER}
-            value={tag}
-            onChange={(event) => setTag(event.target.value)}
-          />
-          {tagStatus === 'ok' && (
-            <p className="text-sm mt-2" style={{ color: 'var(--ok)' }}>
-              ✓ That is the shape the server accepts. It is in the block above.
-            </p>
-          )}
-          {tagStatus === 'invalid' && (
-            <p className="text-sm mt-2" style={{ color: 'var(--bad)' }}>
-              That is not the shape of an attribution tag, so the block above
-              still carries the placeholder rather than your value. It must be{' '}
-              <code>celo_</code> and exactly twelve lowercase hex characters. The
-              MCP server checks the same rule at startup and exits before your
-              agent&apos;s first tool call, which surfaces only as
-              &ldquo;server failed to connect&rdquo;.
-            </p>
-          )}
-          {tagStatus === 'missing' && (
-            <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
-              Leave it blank and the block carries{' '}
-              <code>{ATTRIBUTION_TAG_PLACEHOLDER}</code>, which the server
-              refuses on purpose — a placeholder it would accept looks configured
-              and then misattributes every transaction. Registering with Celo
-              Builders issues one; outside a hackathon,{' '}
-              <code>printf &apos;celo_%s\n&apos; &quot;$(openssl rand -hex 6)&quot;</code>{' '}
-              is enough.{' '}
-              <a href={TAG_GUIDE} target="_blank" rel="noreferrer"
-                style={{ color: 'var(--text)', textDecoration: 'underline' }}>
-                Where tags come from
-              </a>
-            </p>
-          )}
-        </div>
-
         <p className="text-sm mt-5" style={{ color: 'var(--bad)' }}>
           Replace <code>OPERATOR_PK</code> with the private key of{' '}
           {operator
@@ -184,6 +130,16 @@ export default function McpHandoff({
             style={{ color: 'var(--text)', textDecoration: 'underline' }}>
             Next steps: connect it to Claude Code
           </a>
+        </p>
+        <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+          Every transaction carries Leash&apos;s ERC-8021 attribution code, so
+          there is nothing here to fill in. Shipping your own registered
+          product on top of this server?{' '}
+          <a href={TAG_GUIDE} target="_blank" rel="noreferrer"
+            style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+            Add your code beside it
+          </a>
+          .
         </p>
       </details>
     </Panel>

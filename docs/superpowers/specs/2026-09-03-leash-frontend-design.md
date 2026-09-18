@@ -329,14 +329,27 @@ This is the moment a viewer becomes a user, and it is the reason Onboard exists.
 | Value | Where it comes from |
 |---|---|
 | `LEASH_ACCOUNT` | The account just deployed |
-| `ATTRIBUTION_TAG` | Asked for, with a link explaining how to obtain one |
 | `OPERATOR_PK` | **Left as a placeholder, with a warning** |
 
-**Three values, amended 2026-09-18.** This table named five, and the two it no
-longer names are the reason for the amendment. `SPEND_TOKEN` and `FEE_ADAPTER`
-are now defaults inside `leash-agentpay` (0.4.0), read from `@leash/sdk`'s
-`CELO_USDC` and `CELO_USDC_FEE_ADAPTER`; the block does not carry them and the
-user is not asked to paste them.
+**Two values, amended 2026-09-18.** This table named five, and the three it no
+longer names are the reason for the amendment.
+
+`SPEND_TOKEN` and `FEE_ADAPTER` are defaults inside `leash-agentpay` (0.4.0),
+read from `@leash/sdk`'s `CELO_USDC` and `CELO_USDC_FEE_ADAPTER`; the block does
+not carry them and the user is not asked to paste them.
+
+`ATTRIBUTION_TAG` went the same way in 0.5.0, for a different and stronger
+reason. `@celo/attribution-tags` states the layering rule: *each code should
+only be added by the entity it represents; your app emits its own code.* The
+entity that builds and signs these transactions is `leash-agentpay`, whoever
+started it — so the code was never the user's to supply, and the field asked
+every reader for a value standing for something they are not. Worse, the
+guidance beside it (invent twelve random hex characters) produced a code
+representing nobody at all. The server emits `LEASH_ATTRIBUTION_CODE` itself.
+A builder shipping their own registered product sets the variable by hand and
+gets both codes in one suffix, which is the layering the rule describes rather
+than an exception to it. The wizard's tag field, its three status sentences and
+`displayTag`/`isAttributionTag` are gone with it.
 
 The `FEE_ADAPTER` row said **never hardcoded**, citing `2026-09-01` §2.5, and
 the app had hardcoded it since `lib/mcpJson.ts` was written. The rule was right

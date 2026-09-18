@@ -14,7 +14,7 @@ const account = privateKeyToAccount(config.operatorPk)
 const leash = new LeashClient({
   account,
   accountAddress: config.accountAddress,
-  attributionTag: config.attributionTag,
+  attributionTag: config.attributionCodes,
   rpcUrl: config.rpcUrl,
 })
 

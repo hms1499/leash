@@ -114,7 +114,7 @@ export function classifySimulationError(err: unknown): PreCheckResult {
  * honest way to check that.
  */
 export function buildSpendCalldata(
-  token: `0x${string}`, to: `0x${string}`, amount: bigint, tag: string,
+  token: `0x${string}`, to: `0x${string}`, amount: bigint, tag: string | readonly string[],
 ): `0x${string}` {
   return withAttribution(
     encodeFunctionData({ abi: spendPolicyAccountAbi, functionName: 'execute', args: [token, to, amount] }),
@@ -124,7 +124,7 @@ export function buildSpendCalldata(
 
 /** Builds tagged `topUpOperator` calldata. */
 export function buildTopUpCalldata(
-  token: `0x${string}`, amount: bigint, tag: string,
+  token: `0x${string}`, amount: bigint, tag: string | readonly string[],
 ): `0x${string}` {
   return withAttribution(
     encodeFunctionData({ abi: spendPolicyAccountAbi, functionName: 'topUpOperator', args: [token, amount] }),
@@ -212,12 +212,12 @@ export class LeashClient {
   readonly #wallet: LeashWalletClient
   readonly #account: Account
   readonly #address: `0x${string}`
-  readonly #tag: string
+  readonly #tag: string | readonly string[]
 
   constructor(opts: {
     account: Account
     accountAddress: `0x${string}`
-    attributionTag: string
+    attributionTag: string | readonly string[]
     rpcUrl?: string
   }) {
     this.#account = opts.account

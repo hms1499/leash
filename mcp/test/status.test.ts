@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { generatePrivateKey } from 'viem/accounts'
-import { CELO_USDC, CELO_USDC_FEE_ADAPTER } from '@leash/sdk'
+import { CELO_USDC, CELO_USDC_FEE_ADAPTER, LEASH_ATTRIBUTION_CODE } from '@leash/sdk'
 import { loadConfig } from '../src/config.js'
 import { statusTool } from '../src/tools/status.js'
 
@@ -76,6 +76,56 @@ describe('loadConfig', () => {
     it('records where the token came from, which is what the note depends on', () => {
       expect(loadConfig(minimal).tokenFromDefault).toBe(true)
     })
+  })
+
+  /**
+   * ATTRIBUTION_TAG was required until 0.5.0. It asked every user for a value
+   * standing for something they were not -- the code represents the app that
+   * built the transaction, and that app is this server whoever started it --
+   * and the advice shipped alongside it, twelve random hex characters,
+   * produced a code representing nobody at all.
+   */
+  describe('the attribution codes', () => {
+    const minimal = {
+      LEASH_ACCOUNT: ENV.LEASH_ACCOUNT,
+      OPERATOR_PK: ENV.OPERATOR_PK,
+    } as NodeJS.ProcessEnv
+
+    it('starts on two variables, which is the whole of what a user supplies', () => {
+      expect(() => loadConfig(minimal)).not.toThrow()
+    })
+
+    it('carries this app\'s own code when the caller has none', () => {
+      expect(loadConfig(minimal).attributionCodes).toEqual([LEASH_ATTRIBUTION_CODE])
+    })
+
+    // The layering rule: our code because we built the transaction, theirs
+    // because they built the product. Ours first, which is suffix order.
+    it('carries both codes when the caller has one of their own', () => {
+      const theirs = 'celo_0123456789ab'
+      expect(loadConfig({ ...minimal, ATTRIBUTION_TAG: theirs }).attributionCodes)
+        .toEqual([LEASH_ATTRIBUTION_CODE, theirs])
+    })
+
+    // Every earlier .mcp.json in the wild carries our tag, copied from the
+    // docs. Emitting it twice would put one code in the suffix twice.
+    it('does not double our own code when that is what was supplied', () => {
+      expect(loadConfig({ ...minimal, ATTRIBUTION_TAG: LEASH_ATTRIBUTION_CODE }).attributionCodes)
+        .toEqual([LEASH_ATTRIBUTION_CODE])
+    })
+
+    /**
+     * Attribution is not retroactive: a transaction mined without a builder's
+     * code can never gain it. Someone who has a code and mistyped it has to
+     * hear about it at startup, not off a leaderboard reading zero.
+     */
+    it.each(['celo_mytag', 'celo_3DEC652CD977', 'not-a-tag'])(
+      'refuses %o rather than silently dropping it',
+      (bad) => {
+        expect(() => loadConfig({ ...minimal, ATTRIBUTION_TAG: bad }))
+          .toThrow(/ATTRIBUTION_TAG/)
+      },
+    )
   })
 })
 

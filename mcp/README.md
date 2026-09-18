@@ -31,8 +31,7 @@ Deploy your own account first — see the setup guide. **Do not point
       "args": ["-y", "leash-agentpay"],
       "env": {
         "LEASH_ACCOUNT": "0xYourSpendPolicyAccount",
-        "OPERATOR_PK": "0xYourAgentOperatorPrivateKey",
-        "ATTRIBUTION_TAG": "celo_yourtag"
+        "OPERATOR_PK": "0xYourAgentOperatorPrivateKey"
       }
     }
   }
@@ -43,25 +42,41 @@ Deploy your own account first — see the setup guide. **Do not point
 |---|---|
 | `LEASH_ACCOUNT` | Your `SpendPolicyAccount`. Where the money lives and where the limits are enforced. |
 | `OPERATOR_PK` | Private key of the wallet you passed to `setOperator`. **A hot key — see below.** |
-| `ATTRIBUTION_TAG` | Your ERC-8021 tag, `celo_` plus 12 hex characters. Every transaction carries it; there is no untagged path. |
 | `CELO_RPC_URL` | Optional. Defaults to `https://forno.celo.org`. |
+| `ATTRIBUTION_TAG` | Optional, and only for a builder shipping their own registered product on top of this server. Your ERC-8021 code, `celo_` plus 12 hex characters; it rides in the same suffix as Leash's own. |
 | `SPEND_TOKEN` | Optional. The token the agent spends. Defaults to USDC on Celo mainnet, `0xcebA…118C`. Set it only if your account's policy is on some other token — `setPolicy` is per-token, and a policy set on one token reads as a cap of zero on every other. |
 | `FEE_ADAPTER` | Optional. Which stablecoin pays gas. Defaults to the USDC fee adapter, `0x2F25…2B33`, which is what makes the agent need **no CELO at all**. |
 
-Three variables, not five. `SPEND_TOKEN` and `FEE_ADAPTER` were required until
-0.4.0: two 42-character addresses with one correct value each, which a reader
-had no way to check and which failed differently when mistyped — a wrong
-adapter is rejected at the node when the first transaction is sent, and a wrong
-token is never rejected at all, it simply reports a daily cap of zero forever.
-Setting either still overrides the default; setting one to a malformed address
-is still refused at startup rather than quietly replaced.
+**Two variables, not five.** All three of the others are still accepted and
+none of them is a value you can usefully decide:
+
+- `SPEND_TOKEN` and `FEE_ADAPTER` were required until 0.4.0. They are two
+  42-character addresses with one correct value between all users, which a
+  reader had no way to check and which failed differently when mistyped — a
+  wrong adapter is rejected at the node when the first transaction is sent, and
+  a wrong token is never rejected at all, it simply reports a daily cap of zero
+  forever.
+- `ATTRIBUTION_TAG` was required until 0.5.0, and asked for something worse: a
+  code standing for an entity you are not. See below.
+
+Setting any of them still overrides the default; setting one to a malformed
+value is still refused at startup rather than quietly replaced.
 
 `npx` caches by package spec, so a bare `leash-agentpay` can keep starting a copy
 you already have long after a newer one is published. Pin the version you mean —
-`leash-agentpay@0.4.0` — when it matters which build is running.
+`leash-agentpay@0.5.0` — when it matters which build is running.
 
 The server holds no keys of its own and adds no logic. It reads the chain and
 signs with the operator key you give it.
+
+Every transaction carries Leash's ERC-8021 attribution code, `celo_3dec652cd977`
+— there is no untagged path, and nothing for you to supply. `@celo/attribution-tags`
+says a code is added by the entity it represents and an app emits its own, and the
+app that built and signed these transactions is this server. Shipping your own
+registered product on top of it? Set `ATTRIBUTION_TAG` and the suffix carries both
+codes: Leash's because Leash built the transaction, yours because you built the
+product. Full detail in
+[`docs/mcp-setup.md`](https://github.com/hms1499/leash/blob/main/docs/mcp-setup.md#attribution_tag-and-why-you-almost-certainly-do-not-need-it).
 
 ## ⚠️ `OPERATOR_PK` is a hot key
 

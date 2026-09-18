@@ -89,7 +89,9 @@ const RAW_TYPE_DEBT: Record<string, number> = {
   'components/DashboardOverview.tsx': 2,
   'components/Feed.tsx': 1,
   'components/LimitsDrawer.tsx': 7,
-  'components/McpHandoff.tsx': 7,
+  // 7 until the attribution-tag field left with ATTRIBUTION_TAG: the input,
+  // its three status sentences and the label went as one.
+  'components/McpHandoff.tsx': 5,
   'components/landing/LiveProof.tsx': 5,
 }
 
@@ -109,7 +111,8 @@ const OFF_SCALE_GAP_DEBT: Record<string, number> = {
   'components/Feed.tsx': 1,
   // 5 until the two limit fields moved onto PANEL_GRID and lost their gap-4.
   'components/LimitsDrawer.tsx': 4,
-  'components/McpHandoff.tsx': 4,
+  // 4 until the same field went; its wrapper took an `mt-5 pt-6` with it.
+  'components/McpHandoff.tsx': 3,
   'components/Meter.tsx': 2,
   'components/landing/Hero.tsx': 2,
   'components/landing/LiveProof.tsx': 1,

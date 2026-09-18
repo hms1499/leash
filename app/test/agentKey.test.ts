@@ -53,10 +53,7 @@ describe('generateAgentWallet', () => {
 describe('the generated key stays out of the artifacts', () => {
   it('never reaches the .mcp.json block', () => {
     const wallet = generateAgentWallet()
-    const block = buildMcpJson({
-      account: '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d',
-      attributionTag: 'celo_3dec652cd977',
-    })
+    const block = buildMcpJson({ account: '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d' })
     expect(block).not.toContain(wallet.privateKey)
     expect(JSON.parse(block).mcpServers.leash.env.OPERATOR_PK).toBe(OPERATOR_PK_PLACEHOLDER)
   })

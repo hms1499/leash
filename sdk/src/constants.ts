@@ -55,3 +55,29 @@ export const CELO_USDC = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
  * 0xefB84935…7b33, intrinsicGas 128,000.
  */
 export const CELO_USDC_FEE_ADAPTER = '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B' as const
+
+/**
+ * The ERC-8021 code that represents this project, issued by Celo Builders on
+ * registration (docs/registration.md).
+ *
+ * It is a constant and not configuration because of the layering rule in
+ * `@celo/attribution-tags`: *each code is added only by the entity it
+ * represents, and your app emits its own code.* A transaction built and signed
+ * by `leash-agentpay` was emitted by this app whoever is running it, so this
+ * code belongs on it — the same way a MiniPay transaction carries MiniPay's
+ * code regardless of which app is inside the wallet.
+ *
+ * It was an environment variable until 0.5.0, which asked every user to supply
+ * a value representing something they were not. The advice in its place was to
+ * invent twelve random hex characters, and a code invented that way represents
+ * nobody at all — strictly less true than this one, and one more field between
+ * a reader and a working agent.
+ *
+ * A builder shipping their own product on top of this server sets
+ * `ATTRIBUTION_TAG` and gets both codes in one suffix. That is the layering the
+ * rule describes, not an exception to it.
+ */
+export const LEASH_ATTRIBUTION_CODE = 'celo_3dec652cd977' as const
+
+/** The shape Celo Builders issues, and the only one `ATTRIBUTION_TAG` accepts. */
+export const ATTRIBUTION_CODE_SHAPE = /^celo_[0-9a-f]{12}$/

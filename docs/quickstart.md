@@ -195,18 +195,21 @@ limits your contract enforces.
 
 ## If the tools do not appear
 
-Two of these three look identical from inside the agent. Work down the table.
+Both of these look identical from inside the agent. Work down the table.
 
 | what you see | what happened | fix |
 |---|---|---|
 | No `leash_*` tools, no error at all | You declined the approval prompt, or never got it. Nothing reports this. | `/mcp` shows `⏸ Pending approval` if you never answered. If you declined, `claude mcp reset-project-choices` clears the choice; restart `claude` and answer yes. |
-| "server failed to connect" | `ATTRIBUTION_TAG` is still `celo_yourtag`. The server checks its shape at startup and exits before the first tool call. | Put a real tag in the wizard's field and copy the block again, or generate one: `printf 'celo_%s\n' "$(openssl rand -hex 6)"` |
 | "server failed to connect" | `OPERATOR_PK` is not a 32-byte hex key. | Paste the key: `0x` plus 64 hex characters. |
 
-The real messages are `ATTRIBUTION_TAG must look like celo_ plus 12 hex
-characters, got "…"` and `OPERATOR_PK is not a 32-byte hex private key`. Your
-agent buries both behind "server failed to connect", which is why the table
-matches on the config instead of on the message.
+The real message is `OPERATOR_PK is not a 32-byte hex private key`. Your agent
+buries it behind "server failed to connect", which is why the table matches on
+the config instead of on the message.
+
+This table had a third row until leash-agentpay 0.5.0, for an `ATTRIBUTION_TAG`
+left at `celo_yourtag`. That row is gone because the variable is: the server
+emits its own ERC-8021 code and the block no longer carries the field. It was
+the most-hit row here, which is the point.
 
 Started `claude` in the wrong folder? `.mcp.json` is read from the directory you
 launch it in. `cd ~/my-agent` and run `claude` again.

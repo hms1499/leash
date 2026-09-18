@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { isAddress, getAddress } from 'viem'
 import {
-  CELO_USDC, CELO_USDC_FEE_ADAPTER, KNOWN_FEE_ADAPTERS,
+  ATTRIBUTION_CODE_SHAPE, CELO_USDC, CELO_USDC_FEE_ADAPTER, KNOWN_FEE_ADAPTERS,
+  LEASH_ATTRIBUTION_CODE,
 } from '../src/constants.js'
 
 /**
@@ -51,4 +52,29 @@ describe('the Celo mainnet defaults', () => {
     expect(isAddress(address)).toBe(true)
     expect(getAddress(address)).toBe(address)
   })
+})
+
+/**
+ * The code Celo Builders issued to this project on 2026-09-02
+ * (docs/registration.md). It is what credits on-chain volume, it is not
+ * retroactive, and `leash-agentpay` now emits it on every transaction rather
+ * than asking each user to supply a code standing for something they are not.
+ */
+describe('the project attribution code', () => {
+  it('is the registered code, not a placeholder', () => {
+    expect(LEASH_ATTRIBUTION_CODE).toBe('celo_3dec652cd977')
+  })
+
+  // The server checks ATTRIBUTION_TAG against this shape, so a code of our own
+  // that failed it would be a rule we ship and do not keep.
+  it('satisfies the shape the server demands of anyone else', () => {
+    expect(ATTRIBUTION_CODE_SHAPE.test(LEASH_ATTRIBUTION_CODE)).toBe(true)
+  })
+
+  it.each(['celo_mytag', 'celo_3DEC652CD977', 'celo_3dec652cd97', '3dec652cd977', ''])(
+    'rejects %o, which is what people actually type',
+    (bad) => {
+      expect(ATTRIBUTION_CODE_SHAPE.test(bad)).toBe(false)
+    },
+  )
 })

@@ -1,59 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import {
-  buildMcpJson, isAttributionTag, OPERATOR_PK_PLACEHOLDER,
-  ATTRIBUTION_TAG_PLACEHOLDER, displayTag,
-} from '../lib/mcpJson.js'
+import { buildMcpJson, OPERATOR_PK_PLACEHOLDER } from '../lib/mcpJson.js'
 
 const handoff = {
   account: '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d',
-  attributionTag: 'celo_3dec652cd977',
 } as const
-
-/**
- * The landing page shipped `"ATTRIBUTION_TAG": ""` while the note under the
- * block told the reader to replace `celo_yourtag` — a string the block did
- * not contain. Copying it produced an MCP server that threw
- * "ATTRIBUTION_TAG is not set" before its first tool call, which is the
- * funnel failing at its mouth.
- *
- * The substitution used to live in the caller: /setup did it, the landing did
- * not, and the component's own doc claimed the component did. These assert it
- * from the shape of the tag instead, so no caller can reintroduce it.
- */
-describe('displayTag', () => {
-  it('keeps a tag that the server would accept', () => {
-    expect(displayTag('celo_3dec652cd977')).toBe('celo_3dec652cd977')
-  })
-
-  it.each(['', '   ', 'celo_mytag', 'celo_3DEC652CD977', 'not-a-tag'])(
-    'substitutes the placeholder for %o',
-    (bad) => {
-      expect(displayTag(bad)).toBe(ATTRIBUTION_TAG_PLACEHOLDER)
-    },
-  )
-
-  // Whatever it returns has to be the thing the note tells people to look for.
-  it('returns a placeholder the reader is actually told to replace', () => {
-    expect(ATTRIBUTION_TAG_PLACEHOLDER).toBe('celo_yourtag')
-  })
-
-  // And the placeholder must itself be refused, or it would look configured.
-  it('the placeholder is not a tag the server would accept', () => {
-    expect(isAttributionTag(ATTRIBUTION_TAG_PLACEHOLDER)).toBe(false)
-  })
-})
-
-describe('the emitted block never carries an unusable tag', () => {
-  it.each(['', 'celo_mytag', 'not-a-tag'])('given %o', (bad) => {
-    const env = JSON.parse(buildMcpJson({ ...handoff, attributionTag: bad })).mcpServers.leash.env
-    expect(env.ATTRIBUTION_TAG).toBe(ATTRIBUTION_TAG_PLACEHOLDER)
-  })
-
-  it('passes a real tag through untouched', () => {
-    const env = JSON.parse(buildMcpJson(handoff)).mcpServers.leash.env
-    expect(env.ATTRIBUTION_TAG).toBe('celo_3dec652cd977')
-  })
-})
 
 describe('buildMcpJson', () => {
   it('produces valid JSON', () => {
@@ -63,7 +13,6 @@ describe('buildMcpJson', () => {
   it('fills in every value the app knows', () => {
     const env = JSON.parse(buildMcpJson(handoff)).mcpServers.leash.env
     expect(env.LEASH_ACCOUNT).toBe(handoff.account)
-    expect(env.ATTRIBUTION_TAG).toBe(handoff.attributionTag)
   })
 
   // The single most important assertion in this file. The app must never
@@ -82,8 +31,7 @@ describe('buildMcpJson', () => {
   /**
    * The block used to carry `/absolute/path/to/leash/mcp/src/index.ts`, which
    * the reader had to edit by hand. Getting it wrong surfaces in the agent as
-   * "server failed to connect" with the real cause buried -- the same shape of
-   * failure as the empty ATTRIBUTION_TAG this file's other tests guard.
+   * "server failed to connect" with the real cause buried.
    */
   it('installs the published package rather than a path only the author has', () => {
     const server = JSON.parse(buildMcpJson(handoff)).mcpServers.leash
@@ -105,63 +53,36 @@ describe('buildMcpJson', () => {
   })
 })
 
-describe('isAttributionTag', () => {
-  // Must agree with mcp/src/config.ts:36 exactly. A tag this accepts and that
-  // rejects produces a .mcp.json that looks finished and an MCP server that
-  // exits at startup, surfacing to the user as "server failed to connect".
-  it('accepts the shape the MCP server demands', () => {
-    expect(isAttributionTag('celo_3dec652cd977')).toBe(true)
-  })
-
-  it('rejects a plausible-looking name, which is what people actually type', () => {
-    expect(isAttributionTag('celo_mytag')).toBe(false)
-  })
-
-  it('rejects uppercase hex, which the server also rejects', () => {
-    expect(isAttributionTag('celo_3DEC652CD977')).toBe(false)
-  })
-
-  it('rejects the wrong number of hex characters', () => {
-    expect(isAttributionTag('celo_3dec652cd97')).toBe(false)
-    expect(isAttributionTag('celo_3dec652cd9770')).toBe(false)
-  })
-
-  it('rejects a missing prefix and surrounding whitespace', () => {
-    expect(isAttributionTag('3dec652cd977')).toBe(false)
-    expect(isAttributionTag(' celo_3dec652cd977 ')).toBe(false)
-  })
-
-  it('rejects the placeholder the block ships when the field is left blank', () => {
-    expect(isAttributionTag('celo_yourtag')).toBe(false)
-  })
-})
-
+/**
+ * The block asked for five variables and now asks for two. Three of them were
+ * values this app could not usefully fill in and the reader could not check:
+ * two addresses with one correct value between all users, and an attribution
+ * code that represents the app rather than the person running it.
+ *
+ * The failure each removal prevents is a different shape of silence -- a node
+ * rejection the agent reports as a connection problem, a daily cap that reads
+ * zero forever, and a server that exits before its first tool call -- so what
+ * is asserted here is the count, not any one of them.
+ */
 describe('the block asks for as little as the server will accept', () => {
-  /**
-   * SPEND_TOKEN and FEE_ADAPTER were in this block until leash-agentpay 0.4.0
-   * defaulted them. They were two 42-character addresses with one correct
-   * value each, which the reader had no way to check and which failed
-   * differently when mistyped: a wrong adapter is rejected at the node on the
-   * first send, and a wrong token is never rejected at all -- `limits()`
-   * simply answers zero for a token no policy was set on.
-   *
-   * Asserted as an exact key set rather than as two absences, so a later edit
-   * that adds a fourth variable has to come through this test and say why.
-   */
-  it('carries exactly the three variables a user must supply', () => {
+  // An exact key set, so a later edit that adds a third variable has to come
+  // through this test and say why.
+  it('carries exactly the two variables only this user can supply', () => {
     const env = JSON.parse(buildMcpJson(handoff)).mcpServers.leash.env
-    expect(Object.keys(env)).toEqual(['LEASH_ACCOUNT', 'OPERATOR_PK', 'ATTRIBUTION_TAG'])
+    expect(Object.keys(env)).toEqual(['LEASH_ACCOUNT', 'OPERATOR_PK'])
   })
 
   /**
    * The defaults live in `@leash/sdk` and are pinned there
-   * (sdk/test/constants.test.ts). What this file has to guarantee is only that
-   * the app stopped emitting its own copy -- two sources for one address is
-   * how they come to disagree.
+   * (sdk/test/constants.test.ts). What this file guarantees is only that the
+   * app stopped emitting its own copies -- two sources for one value is how
+   * they come to disagree, which is the bug that put `"ATTRIBUTION_TAG": ""`
+   * on the landing page under a note naming a string the block did not carry.
    */
-  it('emits neither address, so it cannot disagree with the server', () => {
+  it('emits none of the three values the server now supplies itself', () => {
     const out = buildMcpJson(handoff)
     expect(out).not.toContain('0xcebA9300f2b948710d2653dD7B07f33A8B32118C')
     expect(out).not.toContain('0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B')
+    expect(out).not.toMatch(/celo_[0-9a-f]{12}/)
   })
 })

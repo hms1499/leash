@@ -125,8 +125,7 @@ typing an address; the two are otherwise identical.
       "args": ["-y", "leash-agentpay"],
       "env": {
         "LEASH_ACCOUNT": "0xYourSpendPolicyAccount",
-        "OPERATOR_PK": "0xYourAgentOperatorPrivateKey",
-        "ATTRIBUTION_TAG": "celo_yourtag"
+        "OPERATOR_PK": "0xYourAgentOperatorPrivateKey"
       }
     }
   }
@@ -137,44 +136,69 @@ typing an address; the two are otherwise identical.
 |---|---|
 | `LEASH_ACCOUNT` | Your `SpendPolicyAccount` from step 1. This is where the money lives and where the limits are enforced. |
 | `OPERATOR_PK` | The private key of the wallet you passed to `setOperator`. **A hot key — see the warning below.** |
-| `ATTRIBUTION_TAG` | Your ERC-8021 tag, `celo_` plus 12 hex characters. Every transaction the server sends carries it. There is no untagged path. **Required — the server refuses to start without one.** See below for where to get it. |
 | `CELO_RPC_URL` | Optional. Defaults to `https://forno.celo.org`. |
+| `ATTRIBUTION_TAG` | Optional, and only for a builder shipping their own registered product on top of this server. Your ERC-8021 code, `celo_` plus 12 hex characters; it rides in the same suffix as Leash's own. See below. |
 | `SPEND_TOKEN` | Optional. The token the agent spends. Defaults to USDC on Celo mainnet, `0xcebA…118C`. Set it only if your account's policy is on some other token — `setPolicy` is per-token, and a policy set on one token reads as a cap of zero on every other. |
 | `FEE_ADAPTER` | Optional. Which stablecoin pays gas. Defaults to the USDC fee adapter, `0x2F25…2B33`, which is what makes the agent need **no CELO at all**. |
 
-Three variables, not five. `SPEND_TOKEN` and `FEE_ADAPTER` were required until
-0.4.0: two 42-character addresses with one correct value each, which a reader
-had no way to check and which failed differently when mistyped — a wrong
-adapter is rejected at the node when the first transaction is sent, and a wrong
-token is never rejected at all, it simply reports a daily cap of zero forever.
-Setting either still overrides the default; setting one to a malformed address
-is still refused at startup rather than quietly replaced.
+**Two variables, not five.** All three of the others are still accepted and
+none of them is a value you can usefully decide:
+
+- `SPEND_TOKEN` and `FEE_ADAPTER` were required until 0.4.0. They are two
+  42-character addresses with one correct value between all users, which a
+  reader had no way to check and which failed differently when mistyped — a
+  wrong adapter is rejected at the node when the first transaction is sent, and
+  a wrong token is never rejected at all, it simply reports a daily cap of zero
+  forever.
+- `ATTRIBUTION_TAG` was required until 0.5.0, and asked for something worse: a
+  code standing for an entity you are not. See the section below.
+
+Setting any of them still overrides the default; setting one to a malformed
+value is still refused at startup rather than quietly replaced.
 
 The server holds no keys of its own and adds no logic. It reads the chain and
 signs with the operator key you gave it.
 
-### Where `ATTRIBUTION_TAG` comes from
+### `ATTRIBUTION_TAG`, and why you almost certainly do not need it
 
-`mcp/src/config.ts` requires it and checks its shape against
-`/^celo_[0-9a-f]{12}$/`, so the server exits before its first tool call if it is
-missing or malformed — and an agent reports that as "server failed to connect",
-with the real message buried.
+Every transaction this server sends carries an ERC-8021 attribution code in its
+data suffix. There is no untagged path. Until 0.5.0 that code came from
+`ATTRIBUTION_TAG` and the server refused to start without one — which asked
+every user for a value they did not have and could not reason about.
 
-Two ways to have one:
+The rule that settles it is `@celo/attribution-tags`':
 
-- **Registered.** Celo Builders issues a tag when you register a project. That
-  is the only kind that *counts* for anything: it is what attributes on-chain
-  volume to you.
-- **Your own.** Outside a hackathon nothing issues tags, and the suffix is only
-  data. Generate twelve hex characters and use them:
+> each code should only be added by the entity it represents. **Your app emits
+> its own code**; platform codes like `minipay` are added by the platform's
+> wallet, not by your app.
 
-  ```bash
-  printf 'celo_%s\n' "$(openssl rand -hex 6)"
-  ```
+The entity that built and signed these transactions is `leash-agentpay`, whoever
+started it. So the server emits Leash's own registered code, `celo_3dec652cd977`,
+and there is nothing for you to fill in.
 
-**Do not paste a tag you found in someone else's repository** — this one's
-included. A tag is an attribution target, so borrowing a registered tag credits
-your transactions to whoever registered it, not to you.
+That also retires the advice this page used to give — generate twelve random hex
+characters. A code invented that way represents nobody at all, which is strictly
+less true than the one the server now emits.
+
+**Set `ATTRIBUTION_TAG` only if you have a registered code of your own**, from
+Celo Builders or elsewhere, because you are shipping your own product on top of
+this server. Then the suffix carries both: Leash's code because Leash built the
+transaction, yours because you built the product. That is the layering the rule
+describes, not an exception to it.
+
+Two things worth knowing if you do:
+
+- **The shape is checked at startup**, against `/^celo_[0-9a-f]{12}$/`. A
+  malformed code exits before the first tool call, which an agent reports only
+  as "server failed to connect".
+- **Attribution is not retroactive.** A transaction already mined without your
+  code can never gain it, so set it before you start rather than after you
+  notice a leaderboard reading zero.
+
+**Do not paste a code you found in someone else's repository.** A code is an
+attribution target: borrowing a registered one credits your product's volume to
+whoever registered it. Leash's own is emitted by the server for you, so there is
+never a reason to copy it into your config.
 
 ### Then approve it, and know what a refusal looks like
 
