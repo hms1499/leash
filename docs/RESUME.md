@@ -129,10 +129,27 @@ as of 2026-09-07: cold cache, empty directory, bin started by name,
 `leash_status` and two `leash_fetch` quotes against the live gateway. Repeat it
 with `pnpm -F leash-agentpay verify:published <version>` (costs nothing).
 
-**The registry's `latest` is `0.3.1`**, read 2026-09-12 with `npm view
-leash-agentpay version`. Every version number in the proofs below names the
-build that was actually walked or spent through — do not renumber them to
-match the registry, or the proof stops being about anything that happened.
+**The registry's `latest` is `0.5.0`**, read 2026-09-18 with `npm view
+leash-agentpay version --prefer-online`. Every version number in the proofs
+below names the build that was actually walked or spent through — do not
+renumber them to match the registry, or the proof stops being about anything
+that happened.
+
+**0.5.0 was walked from the registry on 2026-09-18** with only `LEASH_ACCOUNT`
+and `OPERATOR_PK` in the environment: cold cache, empty directory, bin started
+by name, `@leash/sdk on disk: false`, three tools listed, and `leash_status`
+answering with real USDC figures off the live account rather than the `0/0/0` a
+wrong token default would have produced. The published tarball was then grepped
+directly — `celo_3dec652cd977` ×1, the USDC token ×2, its fee adapter ×2,
+`@leash/sdk` ×0 — so the constants are observed in the bin and not inferred
+from behaviour. Full record in `docs/deployments.md`.
+
+**The block is down to two variables.** `SPEND_TOKEN` and `FEE_ADAPTER`
+defaulted in 0.4.0 and `ATTRIBUTION_TAG` in 0.5.0; all three are still honoured
+when set, and a malformed value is still refused at startup. **0.4.0 was never
+published** — the attribution work landed before anything was cut, so the
+registry goes 0.3.1 → 0.5.0. The comments that cite 0.4.0 name when a behaviour
+changed, not a tarball.
 
 **`leash_pay` was proven on mainnet the same day**, through the published
 package: a real 0.01 USDC payment, `ok: true` returned only after 7.4s of

@@ -420,6 +420,94 @@ Read back off the chain rather than taken from the test's own output:
    *and* leave a float — an operator below the reserve cannot send even the draw
    that would refill it, and strands until the owner rescues it.
 
+## npm — `leash-agentpay@0.5.0`, published 2026-09-18
+
+| | |
+|---|---|
+| Package | `leash-agentpay@0.5.0`, public, tag `latest` |
+| Contents | 4 files |
+| Unpacked | 59,006 bytes |
+| shasum | `80fa17f89bdbc10c9dac98fa743a78c6d243dd02` |
+| Publisher | npm account `vanhuy1999` |
+
+**This is what `npx -y leash-agentpay` serves today**, and what every reader of
+`docs/quickstart.md` runs. The sections below it are the record of earlier
+releases, not the current version.
+
+What changed is the size of the configuration a stranger has to write. The
+`.mcp.json` block carried five environment variables and now carries **two**,
+`LEASH_ACCOUNT` and `OPERATOR_PK`:
+
+- `SPEND_TOKEN` and `FEE_ADAPTER` (0.4.0) are two 42-character addresses with
+  one correct value between all users. A wrong adapter is rejected at the node
+  on the first send; a wrong token is not rejected at all, `limits()` answers
+  `0/0/0` for a token no policy was set on and the daily cap reads zero
+  forever. They default from `@leash/sdk`'s `CELO_USDC` and
+  `CELO_USDC_FEE_ADAPTER`.
+- `ATTRIBUTION_TAG` (0.5.0) asked for something the caller did not have.
+  `@celo/attribution-tags` states the rule — *each code should only be added by
+  the entity it represents; your app emits its own code* — and the entity that
+  builds and signs these transactions is this server, whoever started it. It
+  emits `LEASH_ATTRIBUTION_CODE` itself. A builder with a registered code of
+  their own still sets the variable, and the ERC-8021 suffix then carries both.
+
+All three are still honoured when set, and a malformed value is still refused
+at startup rather than quietly replaced.
+
+### Walked from the registry, 2026-09-18
+
+`pnpm -F leash-agentpay verify:published 0.5.0`, with **only** `LEASH_ACCOUNT`
+and `OPERATOR_PK` in the environment — the script no longer forwards the
+optional three even when `.env` has them, because supplying one would hide a
+default that failed to reach the bundle.
+
+```
+[5.9s] npm install leash-agentpay@0.5.0 from the registry finished
+[6.0s] bin linked as a command: true
+[6.0s] installed version: 0.5.0
+[6.0s] @leash/sdk on disk: false
+[7.2s] server connected over stdio
+[7.2s] tools: leash_status, leash_pay, leash_fetch
+[7.8s] leash_status (real mainnet read):
+        account          0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d
+        remaining_today  1.000000
+        per_tx_cap       0.500000   daily_cap 1.000000
+        account_balance  0.835509   operator 0.040781
+        can_spend        true      resets_in 20h44m
+```
+
+Cold npm cache, empty directory, bin started **by name**. That `leash_status`
+answered with real USDC figures rather than zeros is the check on the token
+default: a wrong `SPEND_TOKEN` would have read `0/0/0` from the same account
+and looked like an exhausted allowance.
+
+Read out of the published tarball rather than inferred from that behaviour —
+`npm pack leash-agentpay@0.5.0`, then grep `package/dist/index.js`:
+
+| string | occurrences |
+|---|---|
+| `celo_3dec652cd977` | 1 |
+| `0xcebA9300f2b948710d2653dD7B07f33A8B32118C` | 2 |
+| `0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B` | 2 |
+| `@leash/sdk` | 0 |
+
+The last row is the one that earns its keep: `@leash/sdk` is a workspace
+package that does not exist on the registry under that name, and an unrelated
+project does. A runtime import left in the bin would make `npm install` fetch a
+stranger's code.
+
+Verified before cutting: contracts 66/66, sdk 101/101, mcp 51/51,
+`test:bundle` 3/3 on two env vars, app 481/481, e2e 41/41, `tsc --noEmit`
+clean across all five packages, and CI green on `main` at 8878697.
+
+## npm — `leash-agentpay@0.4.0` — never published
+
+0.4.0 is the version number the `SPEND_TOKEN`/`FEE_ADAPTER` defaults were
+written against and the one the comments in `mcp/src/config.ts` and
+`app/lib/mcpJson.ts` cite. `ATTRIBUTION_TAG` followed before anything was cut,
+so the registry goes 0.3.1 → 0.5.0 and 0.4.0 never existed as a release. The
+references are to when a behaviour changed, not to a tarball.
+
 ## npm — `leash-agentpay@0.3.1`, published 2026-09-10
 
 | | |
@@ -430,9 +518,8 @@ Read back off the chain rather than taken from the test's own output:
 | shasum | `b3393c9b9f5263d0a18645d7128140f18b439f87` |
 | Publisher | npm account `vanhuy1999` |
 
-**This is what `npx -y leash-agentpay` serves today**, and what every reader of
-`docs/quickstart.md` runs. The sections below it document 0.2.1 and 0.1.0 and
-are kept as the record of those releases, not as the current version.
+Superseded by 0.5.0 on 2026-09-18; kept as the record of that release. It was
+what `npx -y leash-agentpay` served from 2026-09-10 until then.
 
 A patch over 0.3.0, cut 36 minutes later, for a reason worth stating plainly:
 `leash_fetch`'s description ships *inside* the published bin. 65c36a3 corrected
