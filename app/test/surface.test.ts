@@ -272,7 +272,10 @@ describe('the bright band', () => {
    */
   it('has no new control drawing its own border', () => {
     const debt: Record<string, number> = {
-      'app/setup/page.tsx': 1,
+      // Was `app/setup/page.tsx` until the stepper became its own file. The
+      // count did not move, only the path -- which is the first time this
+      // entry has named the component the comment above describes.
+      'components/setup/StageStepper.tsx': 1,
       // A status pill, not a control -- §10: a pill in this UI means status.
       // It borrows the control border only for its visibility, and it sits on
       // a panel, never on a bright band.

@@ -82,7 +82,9 @@ const HAND_ROLLED_RING = /(focus-visible:outline-2)/g
 /** The debt on 2026-09-10. These numbers may fall. They may not rise. */
 const RAW_TYPE_DEBT: Record<string, number> = {
   'app/a/[address]/page.tsx': 2,
-  'app/setup/page.tsx': 27,
+  // 27 until the stepper moved to components/setup/StageStepper.tsx. Nothing
+  // was cleaned up: the single `text-sm` went with it, one line below.
+  'app/setup/page.tsx': 26,
   'components/AccountsPage.tsx': 3,
   'components/AgentAccessPanel.tsx': 3,
   'components/AgentPanel.tsx': 6,
@@ -93,6 +95,7 @@ const RAW_TYPE_DEBT: Record<string, number> = {
   // its three status sentences and the label went as one.
   'components/McpHandoff.tsx': 5,
   'components/landing/LiveProof.tsx': 5,
+  'components/setup/StageStepper.tsx': 1,
 }
 
 const OFF_SCALE_GAP_DEBT: Record<string, number> = {
@@ -102,7 +105,8 @@ const OFF_SCALE_GAP_DEBT: Record<string, number> = {
   // `gap-x-5 gap-y-4` went with them. 30 when the stage 4 review list's eight
   // `mt-1` rows went to `mt-2` -- v2's row would have been a ninth, and a step
   // that exists was the cheaper answer than another exception.
-  'app/setup/page.tsx': 30,
+  // 30 until the stepper moved out, taking its `gap-2` and `mt-1` with it.
+  'app/setup/page.tsx': 28,
   'components/AccountsPage.tsx': 3,
   'components/AgentAccessPanel.tsx': 3,
   // 3 until the two balance boxes moved onto PANEL_GRID and lost their gap-4.
@@ -119,6 +123,7 @@ const OFF_SCALE_GAP_DEBT: Record<string, number> = {
   'components/landing/ProtectionModel.tsx': 4,
   'components/landing/SecurityBoundary.tsx': 2,
   'components/landing/UseCaseGrid.tsx': 1,
+  'components/setup/StageStepper.tsx': 2,
   'components/ui/Section.tsx': 1,
 }
 

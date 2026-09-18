@@ -40,152 +40,16 @@ import {
 } from '../../lib/accountRegistry.js'
 import { accountLookupNote, findOwnedAccounts, newestAccount } from '../../lib/ownedAccounts.js'
 import { fetchOperatorCandidates, recoverAgent } from '../../lib/agentDiscovery.js'
-import { CELO_USDC } from '@leash/sdk'
+import GeneratedKeyPanel from '../../components/setup/GeneratedKeyPanel'
+import StageStepper from '../../components/setup/StageStepper'
+import {
+  HEADING, noteColor, STAGE_HEADING_ID, STATUS_BOX, STEPS,
+  type ConfirmedLimits, type FundingTarget, type RecipientMode,
+} from '../../components/setup/chrome.js'
+import { DECIMALS, ERC20_ABI, SETUP_ABI, TOKEN } from '../../components/setup/contracts.js'
 
-/**
- * USDC on Celo mainnet. One literal, in `@leash/sdk`, because this line was
- * four separate copies of the same 42 characters and the MCP server asked
- * every user to paste a fifth by hand.
- */
-const TOKEN = CELO_USDC
-const DECIMALS = 6
 
-const ERC20_ABI = [
-  { type: 'function', name: 'balanceOf', stateMutability: 'view',
-    inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'transfer', stateMutability: 'nonpayable',
-    inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }],
-    outputs: [{ type: 'bool' }] },
-] as const
 
-const SETUP_ABI = [
-  { type: 'function', name: 'setOperator', stateMutability: 'nonpayable',
-    inputs: [{ name: 'operator', type: 'address' }, { name: 'enabled', type: 'bool' }], outputs: [] },
-  { type: 'function', name: 'operators', stateMutability: 'view',
-    inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'bool' }] },
-  { type: 'function', name: 'setPolicy', stateMutability: 'nonpayable',
-    inputs: [{ name: 'token', type: 'address' }, { name: 'perTx', type: 'uint256' },
-             { name: 'daily', type: 'uint256' }], outputs: [] },
-  { type: 'function', name: 'limits', stateMutability: 'view', inputs: [{ name: '', type: 'address' }],
-    outputs: [{ name: 'perTx', type: 'uint256' }, { name: 'daily', type: 'uint256' },
-              { name: 'spentToday', type: 'uint256' }, { name: 'day', type: 'uint64' }] },
-  { type: 'function', name: 'setAllowlist', stateMutability: 'nonpayable',
-    inputs: [{ name: 'payee', type: 'address' }, { name: 'allowed', type: 'bool' }], outputs: [] },
-  { type: 'function', name: 'payeeAllowlist', stateMutability: 'view',
-    inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'bool' }] },
-  { type: 'function', name: 'setAllowlistEnabled', stateMutability: 'nonpayable',
-    inputs: [{ name: 'enabled', type: 'bool' }], outputs: [] },
-  { type: 'function', name: 'allowlistEnabled', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
-  { type: 'function', name: 'setTopUpEnabled', stateMutability: 'nonpayable',
-    inputs: [{ name: 'enabled', type: 'bool' }], outputs: [] },
-  { type: 'function', name: 'topUpEnabled', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
-  { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
-] as const
-
-/**
- * Where focus lands when the wizard changes step. Every stage carries it on
- * the one element that says what this step is -- its heading, or on the
- * recovery branch that has no heading, the sentence explaining why.
- */
-const STAGE_HEADING_ID = 'stage-heading'
-
-const STEPS: ReadonlyArray<{ id: SetupStage; title: string; short: string }> = [
-  { id: 1, title: 'Create account', short: 'Create' },
-  { id: 2, title: 'Set protection', short: 'Protect' },
-  { id: 3, title: 'Add & fund agent', short: 'Fund' },
-  { id: 4, title: 'Review & finish', short: 'Review' },
-]
-
-const HEADING: React.CSSProperties = {
-  fontFamily: 'var(--mono)', fontSize: 'var(--t-heading)', lineHeight: 'var(--t-heading-line)',
-  fontWeight: 500, color: 'var(--text)',
-}
-/** A --well box holding a choice is a control, not a surface: --r-box, not
- *  --r-surface. The 6px here was the only radius in the app on no scale at
- *  all. design-system.md §10. */
-const STATUS_BOX: React.CSSProperties = {
-  background: 'var(--well)', border: '1px solid var(--line)',
-  borderRadius: 'var(--r-box)',
-}
-
-type RecipientMode = 'any' | 'protected'
-type ConfirmedLimits = { perTx: bigint; daily: bigint }
-type FundingTarget = 'protected' | 'agent'
-
-/**
- * Variadic because a single operation has more than one non-failure outcome:
- * "already authorised, nothing was sent" is not an error, and matching one
- * exact string painted it in --bad. AgentAccessPanel marks its own successes
- * with a leading tick instead; both spellings are load-bearing strings, and
- * either way a reworded message must not silently turn red.
- */
-function noteColor(note: string | null, ...successes: string[]): string {
-  return note !== null && successes.includes(note) ? 'var(--ok)' : 'var(--bad)'
-}
-
-/**
- * The private key of a wallet this tab generated, shown for as long as the tab
- * is open.
- *
- * Rendered in step 3, where it is made, and again in step 4, where the reader
- * copies the .mcp.json it belongs in. Sending them back a step to fetch a
- * secret they were shown once is how a secret gets written somewhere worse.
- *
- * It is NOT passed to McpHandoff: the dashboard renders that same component
- * for accounts whose keys this app has never held, and a prop would invite a
- * caller to fill it.
- */
-function GeneratedKeyPanel({ privateKey }: { privateKey: `0x${string}` }) {
-  const [copied, setCopied] = useState(false)
-  const [copyFailed, setCopyFailed] = useState(false)
-  return (
-    <div className="p-6 mt-6" style={{ ...STATUS_BOX, borderColor: 'var(--bad)' }}>
-      <Label className="block">Agent private key — shown once</Label>
-      {/* .num for the same reason every other key-shaped value on this page
-          carries it: tabular-nums, and a 66-character token that must not
-          reflow. break-all because it has nowhere legal to break. */}
-      <p className="num mt-3 break-all" style={{ ...DATA, color: 'var(--text)' }}>{privateKey}</p>
-      <Button
-        variant="ghost"
-        className="mt-3"
-        onClick={() => {
-          void (async () => {
-            try {
-              // Awaited for the same reason McpHandoff awaits its copy: a
-              // denied permission or an insecure context rejects silently, and
-              // "Copied" would be a lie about a value the reader cannot get back.
-              await navigator.clipboard.writeText(privateKey)
-              setCopyFailed(false)
-              setCopied(true)
-              setTimeout(() => setCopied(false), 2000)
-            } catch {
-              setCopied(false)
-              setCopyFailed(true)
-            }
-          })()
-        }}
-      >
-        {copied ? 'Copied' : 'Copy key'}
-      </Button>
-      {copyFailed && (
-        <p className="mt-2" style={{ ...PROSE, color: 'var(--bad)' }}>
-          Copy failed — select the key above and copy it manually.
-        </p>
-      )}
-      <p className="mt-6" style={{ ...PROSE, color: 'var(--dim)' }}>
-        Generated in this browser and sent nowhere. It is not saved — close or
-        reload this tab and it is gone, and no one can recover it for you. Save
-        it now, then paste it into <code>OPERATOR_PK</code> when you set up your
-        agent runtime.
-      </p>
-      <p className="mt-2" style={{ ...PROSE, color: 'var(--bad)' }}>
-        This is a hot key: whoever holds it can spend up to your limits. It
-        cannot change those limits, pause the account, or take the protected
-        balance.
-      </p>
-    </div>
-  )
-}
 
 export default function Onboard() {
   const { address: connected, isConnected, chainId } = useAccount()
@@ -1042,35 +906,12 @@ export default function Onboard() {
           </p>
         </header>
 
-      <nav aria-label="Setup progress" className="mt-8">
-        <ol className="grid grid-cols-12 gap-2">
-          {STEPS.map((step) => {
-            const done = stageDone(step.id)
-            const unlocked = stageUnlocked(step.id)
-            const current = activeStage === step.id
-            return (
-              <li key={step.id} className="col-span-6 md:col-span-3">
-                <button
-                  type="button" disabled={!unlocked} aria-current={current ? 'step' : undefined}
-                  onClick={() => setActiveStage(step.id)}
-                  className="motion-press w-full p-3 text-left focus-ring disabled:cursor-not-allowed disabled:opacity-45"
-                  style={{ minHeight: 72, borderRadius: 'var(--r-box)',
-                    background: current ? 'var(--panel)' : 'transparent',
-                    border: `1px solid ${current ? 'var(--line-control)' : 'var(--line)'}`, outlineColor: 'var(--text)' }}
-                >
-                  <span className="num" style={{ fontSize: 'var(--t-data)', lineHeight: 'var(--t-data-line)', color: done ? 'var(--ok)' : 'var(--dim)' }}>
-                    {done ? '✓' : `0${step.id}`}
-                  </span>
-                  <span className="block text-sm mt-1" style={{ color: current ? 'var(--text)' : 'var(--dim)' }}>
-                    <span className="sm:hidden">{step.short}</span>
-                    <span className="hidden sm:inline">{step.title}</span>
-                  </span>
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-      </nav>
+      <StageStepper
+        activeStage={activeStage}
+        onSelect={setActiveStage}
+        stageDone={stageDone}
+        stageUnlocked={stageUnlocked}
+      />
 
       {/* One region, not two. Both were assertive and adjacent, so a failed
           read and a failed write landing together interrupted each other and
