@@ -5,8 +5,14 @@ import {
 } from 'viem'
 import { publicClient } from './chain.js'
 import type { DiscoveredAccountCandidate } from './accountDiscovery.js'
+import { CELO_USDC } from '@leash/sdk'
 
-const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
+/**
+ * USDC on Celo mainnet. One literal, in `@leash/sdk`, because this line was
+ * four separate copies of the same 42 characters and the MCP server asked
+ * every user to paste a fifth by hand.
+ */
+const TOKEN = CELO_USDC
 const VERIFY_ABI = [
   { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
   { type: 'function', name: 'paused', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },

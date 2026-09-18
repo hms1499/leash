@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { getAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { generateAgentWallet, keyToShow } from '../lib/agentKey.js'
-import { buildMcpJson, OPERATOR_PK_PLACEHOLDER, FEE_ADAPTER } from '../lib/mcpJson.js'
+import { buildMcpJson, OPERATOR_PK_PLACEHOLDER } from '../lib/mcpJson.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
@@ -55,8 +55,6 @@ describe('the generated key stays out of the artifacts', () => {
     const wallet = generateAgentWallet()
     const block = buildMcpJson({
       account: '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d',
-      token: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
-      feeAdapter: FEE_ADAPTER,
       attributionTag: 'celo_3dec652cd977',
     })
     expect(block).not.toContain(wallet.privateKey)

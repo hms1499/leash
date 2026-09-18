@@ -11,10 +11,16 @@ import { useAccountState } from '../../lib/useAccountState.js'
 import { useFeed } from '../../lib/useFeed.js'
 import { explorerUrl } from '../../lib/proofs.js'
 import { arrivedKeys, rowKey, WINDOW_LABEL } from '../../lib/feed.js'
+import { CELO_USDC } from '@leash/sdk'
 
 const ACCOUNT = '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d' as const
 const OPERATOR = '0xd44daF6Db6c8057c206E6aCC27e6384B8ec850D6' as const
-const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
+/**
+ * USDC on Celo mainnet. One literal, in `@leash/sdk`, because this line was
+ * four separate copies of the same 42 characters and the MCP server asked
+ * every user to paste a fifth by hand.
+ */
+const TOKEN = CELO_USDC
 const DECIMALS = 6
 const ROWS = 3
 

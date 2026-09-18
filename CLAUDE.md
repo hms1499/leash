@@ -20,10 +20,10 @@ pnpm workspace (`sdk`, `mcp`, `app`, `examples`, `spikes`), pnpm 9.12.0, Node 20
 Contracts are Foundry and are not part of the workspace.
 
 ```bash
-pnpm -F @leash/sdk test          # 83 tests
-pnpm -F leash-agentpay test      # 35
+pnpm -F @leash/sdk test          # 90 tests
+pnpm -F leash-agentpay test      # 44
 pnpm -F leash-agentpay test:bundle  # 3 (packs the tarball and starts the bin; minutes, not seconds)
-pnpm -F @leash/app test          # 388 (vitest)
+pnpm -F @leash/app test          # 499 (vitest)
 pnpm -F @leash/app test:e2e      # 41 (playwright; builds and serves unless LEASH_E2E_URL is set)
 cd contracts && forge test       # 66
 ```

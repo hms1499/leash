@@ -1,7 +1,5 @@
 export type McpHandoff = {
   account: `0x${string}`
-  token: `0x${string}`
-  feeAdapter: `0x${string}`
   attributionTag: string
 }
 
@@ -65,7 +63,19 @@ export function displayTag(tag: string): string {
   return isAttributionTag(tag) ? tag : ATTRIBUTION_TAG_PLACEHOLDER
 }
 
-/** Mirrors the block documented in docs/mcp-setup.md. */
+/**
+ * Mirrors the block documented in docs/mcp-setup.md.
+ *
+ * It carried `SPEND_TOKEN` and `FEE_ADAPTER` until leash-agentpay 0.4.0 made
+ * them optional. Both were 42-character addresses a reader had no way to check
+ * and every reader got the same two values, because the product has only ever
+ * supported USDC on Celo mainnet -- and the two ways they failed when mistyped
+ * were an unreadable node rejection and a silent cap of zero. They now live in
+ * `@leash/sdk` as `CELO_USDC` and `CELO_USDC_FEE_ADAPTER`, which is also where
+ * the server reads its defaults from, so the block and the server cannot
+ * disagree about them any more. A user who needs a different token still sets
+ * the variable by hand; this block is the common case.
+ */
 export function buildMcpJson(h: McpHandoff): string {
   return JSON.stringify(
     {
@@ -79,8 +89,6 @@ export function buildMcpJson(h: McpHandoff): string {
             LEASH_ACCOUNT: h.account,
             OPERATOR_PK: OPERATOR_PK_PLACEHOLDER,
             ATTRIBUTION_TAG: displayTag(h.attributionTag),
-            SPEND_TOKEN: h.token,
-            FEE_ADAPTER: h.feeAdapter,
           },
         },
       },
@@ -89,22 +97,3 @@ export function buildMcpJson(h: McpHandoff): string {
     2,
   )
 }
-
-/**
- * The USDC fee-currency adapter on Celo mainnet, whitelisted in the
- * FeeCurrencyDirectory at 0x15F344b9E6c3Cb6F0376A36A64928b13F62C6276.
- *
- * NOT the USDC token — that is `SPEND_TOKEN`, 0xcebA…118C. This is a
- * FeeCurrencyWrapper: it holds nothing, and symbol(), name(), decimals() and
- * getAdaptedToken() all revert on it. It exists because USDC has 6 decimals
- * where Celo's fee-currency mechanism wants 18, and it is what makes the
- * agent wallet's "no CELO at all" true — the operator signs CIP-64 (type
- * 0x7b) envelopes naming it as feeCurrency. Verified against the directory
- * on 2026-09-02 (spikes/README.md T0.1, 20 adapters) and again on 2026-09-09;
- * getCurrencyConfig reports oracle 0xefB84935…7b33, intrinsicGas 128,000.
- *
- * Declared here rather than in the wizard because this file is the one place
- * that mirrors the block in docs/mcp-setup.md, and the value vanished from
- * app/ entirely when this module was deleted.
- */
-export const FEE_ADAPTER = '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B' as const

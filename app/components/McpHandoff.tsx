@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import {
-  ATTRIBUTION_TAG_PLACEHOLDER, buildMcpJson, FEE_ADAPTER, isAttributionTag,
+  ATTRIBUTION_TAG_PLACEHOLDER, buildMcpJson, isAttributionTag,
 } from '../lib/mcpJson.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
@@ -25,10 +25,9 @@ const TAG_GUIDE =
   'https://github.com/hms1499/leash/blob/main/docs/mcp-setup.md#where-attribution_tag-comes-from'
 
 export default function McpHandoff({
-  account, token, operator = null, defaultOpen = false,
+  account, operator = null, defaultOpen = false,
 }: {
   account: `0x${string}`
-  token: `0x${string}`
   /**
    * Which wallet's key OPERATOR_PK must be, when the caller can name one.
    *
@@ -68,9 +67,9 @@ export default function McpHandoff({
   const tagStatus = trimmed === '' ? 'missing'
     : isAttributionTag(trimmed) ? 'ok' : 'invalid'
 
-  const block = buildMcpJson({
-    account, token, feeAdapter: FEE_ADAPTER, attributionTag: trimmed,
-  })
+  // No token and no fee adapter: leash-agentpay 0.4.0 defaults both to USDC on
+  // Celo mainnet, which is the only pair this app has ever emitted.
+  const block = buildMcpJson({ account, attributionTag: trimmed })
 
   return (
     <Panel as="section" className="p-6">

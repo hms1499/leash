@@ -28,12 +28,21 @@ let binPath: string
  */
 const FAKE_PK = ('0x' + '11'.repeat(32)) as `0x${string}`
 
+/**
+ * The three variables the documented block carries, and deliberately not the
+ * two optional ones.
+ *
+ * `SPEND_TOKEN` and `FEE_ADAPTER` default to `CELO_USDC` and
+ * `CELO_USDC_FEE_ADAPTER`, which `config.ts` imports from `@leash/sdk` -- so
+ * running the bundle without them is also the check that those constants were
+ * inlined rather than left as an external import. The stub below prices its
+ * resource in the same USDC the default names, so `leash_fetch` would not
+ * quote at all if the default arrived wrong.
+ */
 const ENV = {
   LEASH_ACCOUNT: '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d',
   OPERATOR_PK: FAKE_PK,
   ATTRIBUTION_TAG: 'celo_3dec652cd977',
-  SPEND_TOKEN: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
-  FEE_ADAPTER: '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B',
 }
 
 let stub: Server

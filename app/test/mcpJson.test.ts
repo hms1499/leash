@@ -1,13 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildMcpJson, isAttributionTag, OPERATOR_PK_PLACEHOLDER,
-  ATTRIBUTION_TAG_PLACEHOLDER, displayTag, FEE_ADAPTER,
+  ATTRIBUTION_TAG_PLACEHOLDER, displayTag,
 } from '../lib/mcpJson.js'
 
 const handoff = {
   account: '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d',
-  token: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
-  feeAdapter: '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B',
   attributionTag: 'celo_3dec652cd977',
 } as const
 
@@ -65,8 +63,6 @@ describe('buildMcpJson', () => {
   it('fills in every value the app knows', () => {
     const env = JSON.parse(buildMcpJson(handoff)).mcpServers.leash.env
     expect(env.LEASH_ACCOUNT).toBe(handoff.account)
-    expect(env.SPEND_TOKEN).toBe(handoff.token)
-    expect(env.FEE_ADAPTER).toBe(handoff.feeAdapter)
     expect(env.ATTRIBUTION_TAG).toBe(handoff.attributionTag)
   })
 
@@ -140,24 +136,32 @@ describe('isAttributionTag', () => {
   })
 })
 
-describe('FEE_ADAPTER', () => {
+describe('the block asks for as little as the server will accept', () => {
   /**
-   * The block is only useful if this is the value the MCP server would accept,
-   * and the whole "your agent needs no CELO" promise rests on it. Pinned
-   * because it is a bare hex string in five other places -- docs/mcp-setup.md,
-   * mcp/README.md and three mcp test fixtures -- and nothing would notice a
-   * transposed character until a user's agent could not pay for gas.
+   * SPEND_TOKEN and FEE_ADAPTER were in this block until leash-agentpay 0.4.0
+   * defaulted them. They were two 42-character addresses with one correct
+   * value each, which the reader had no way to check and which failed
+   * differently when mistyped: a wrong adapter is rejected at the node on the
+   * first send, and a wrong token is never rejected at all -- `limits()`
+   * simply answers zero for a token no policy was set on.
+   *
+   * Asserted as an exact key set rather than as two absences, so a later edit
+   * that adds a fourth variable has to come through this test and say why.
    */
-  it('is the USDC fee adapter the documented block names', () => {
-    expect(FEE_ADAPTER).toBe('0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B')
+  it('carries exactly the three variables a user must supply', () => {
+    const env = JSON.parse(buildMcpJson(handoff)).mcpServers.leash.env
+    expect(Object.keys(env)).toEqual(['LEASH_ACCOUNT', 'OPERATOR_PK', 'ATTRIBUTION_TAG'])
   })
 
-  it('is not the USDC token, which is a different contract entirely', () => {
-    expect(FEE_ADAPTER).not.toBe('0xcebA9300f2b948710d2653dD7B07f33A8B32118C')
-  })
-
-  it('reaches the emitted block', () => {
-    const block = JSON.parse(buildMcpJson({ ...handoff, feeAdapter: FEE_ADAPTER }))
-    expect(block.mcpServers.leash.env.FEE_ADAPTER).toBe(FEE_ADAPTER)
+  /**
+   * The defaults live in `@leash/sdk` and are pinned there
+   * (sdk/test/constants.test.ts). What this file has to guarantee is only that
+   * the app stopped emitting its own copy -- two sources for one address is
+   * how they come to disagree.
+   */
+  it('emits neither address, so it cannot disagree with the server', () => {
+    const out = buildMcpJson(handoff)
+    expect(out).not.toContain('0xcebA9300f2b948710d2653dD7B07f33A8B32118C')
+    expect(out).not.toContain('0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B')
   })
 })

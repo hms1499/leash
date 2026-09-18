@@ -56,7 +56,11 @@ const installed = JSON.parse(
 console.log(`${at()} installed version: ${installed.version}`)
 console.log(`${at()} @leash/sdk on disk: ${existsSync(join(dir, 'node_modules', '@leash', 'sdk'))}`)
 
-const need = ['LEASH_ACCOUNT', 'OPERATOR_PK', 'ATTRIBUTION_TAG', 'SPEND_TOKEN', 'FEE_ADAPTER']
+// Exactly the three the documented .mcp.json carries, and no more. SPEND_TOKEN
+// and FEE_ADAPTER are deliberately NOT forwarded even when .env has them: this
+// script exists to walk what a stranger actually pastes, and supplying the two
+// optional addresses would hide a default that failed to reach the bundle.
+const need = ['LEASH_ACCOUNT', 'OPERATOR_PK', 'ATTRIBUTION_TAG']
 for (const k of need) if (!process.env[k]) throw new Error(`${k} is not set; source .env first`)
 const env = Object.fromEntries(need.map((k) => [k, process.env[k]]))
 if (process.env.CELO_RPC_URL) env.CELO_RPC_URL = process.env.CELO_RPC_URL

@@ -40,8 +40,14 @@ import {
 } from '../../lib/accountRegistry.js'
 import { accountLookupNote, findOwnedAccounts, newestAccount } from '../../lib/ownedAccounts.js'
 import { fetchOperatorCandidates, recoverAgent } from '../../lib/agentDiscovery.js'
+import { CELO_USDC } from '@leash/sdk'
 
-const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
+/**
+ * USDC on Celo mainnet. One literal, in `@leash/sdk`, because this line was
+ * four separate copies of the same 42 characters and the MCP server asked
+ * every user to paste a fifth by hand.
+ */
+const TOKEN = CELO_USDC
 const DECIMALS = 6
 
 const ERC20_ABI = [
@@ -1576,7 +1582,7 @@ export default function Onboard() {
             {/* agent is a verified operator by this point: readiness.ready
                 gates this whole stage on addAgent's operators() check. */}
             <McpHandoff
-              account={account} token={TOKEN}
+              account={account}
               operator={isValidAddress(agent) ? agent as `0x${string}` : null}
               defaultOpen
             />

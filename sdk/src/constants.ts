@@ -23,3 +23,35 @@ export const KNOWN_FEE_ADAPTERS = [
   '0x0357EE22278c922e1D36cFe6b899269b161880C4', // USA₮ (Tether America USD)
   '0x857BF24e29da0773687E804a743c2E421a394C16', // XAUt0
 ] as const satisfies readonly `0x${string}`[]
+
+/**
+ * USDC on Celo mainnet — the token this project is built and proven against.
+ *
+ * It lives here because it was a bare hex literal in five places that had no
+ * way to disagree loudly: four in `app/` (`lib/ownedAccounts.ts`,
+ * `components/landing/LiveProof.tsx`, `app/setup/page.tsx`,
+ * `app/a/[address]/page.tsx`) and once more in every `.mcp.json` a user was
+ * asked to paste by hand. A transposed character in the last of those is the
+ * expensive one: `limits()` answers `0/0/0` for a token no policy was ever set
+ * on, so `leash_status` reports a cap of zero and nothing anywhere says why.
+ *
+ * `SpendPolicyAccount.setPolicy` is per-token, so this is a default and not an
+ * assumption — `SPEND_TOKEN` still overrides it.
+ */
+export const CELO_USDC = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
+
+/**
+ * The fee-currency adapter for {@link CELO_USDC}, and the one entry of
+ * {@link KNOWN_FEE_ADAPTERS} the product actually defaults to.
+ *
+ * NOT the token above. It is a FeeCurrencyWrapper: it holds nothing, and
+ * symbol(), name(), decimals() and getAdaptedToken() all revert on it. It
+ * exists because USDC has 6 decimals where Celo's fee-currency mechanism wants
+ * 18, and it is what makes "the agent needs no CELO at all" true — the
+ * operator signs CIP-64 (type 0x7b) envelopes naming it as `feeCurrency`.
+ *
+ * Verified against the FeeCurrencyDirectory on 2026-09-02 (spikes/README.md
+ * T0.1, 20 adapters) and again on 2026-09-09; getCurrencyConfig reports oracle
+ * 0xefB84935…7b33, intrinsicGas 128,000.
+ */
+export const CELO_USDC_FEE_ADAPTER = '0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B' as const

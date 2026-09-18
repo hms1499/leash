@@ -329,10 +329,30 @@ This is the moment a viewer becomes a user, and it is the reason Onboard exists.
 | Value | Where it comes from |
 |---|---|
 | `LEASH_ACCOUNT` | The account just deployed |
-| `SPEND_TOKEN` | The token whose policy was set in step 4 |
-| `FEE_ADAPTER` | Read from the on-chain `FeeCurrencyDirectory` via the SDK's `pickFeeAdapter`. **Never hardcoded** (`2026-09-01` §2.5) |
 | `ATTRIBUTION_TAG` | Asked for, with a link explaining how to obtain one |
 | `OPERATOR_PK` | **Left as a placeholder, with a warning** |
+
+**Three values, amended 2026-09-18.** This table named five, and the two it no
+longer names are the reason for the amendment. `SPEND_TOKEN` and `FEE_ADAPTER`
+are now defaults inside `leash-agentpay` (0.4.0), read from `@leash/sdk`'s
+`CELO_USDC` and `CELO_USDC_FEE_ADAPTER`; the block does not carry them and the
+user is not asked to paste them.
+
+The `FEE_ADAPTER` row said **never hardcoded**, citing `2026-09-01` §2.5, and
+the app had hardcoded it since `lib/mcpJson.ts` was written. The rule was right
+about the SDK, where `pickFeeAdapter` still reads the live
+`FeeCurrencyDirectory` and picks by balance at spend time, and wrong about this
+block, which is a static artifact a user pastes into a file — there is no
+request in flight to read a directory during, and resolving one at server
+startup would buy a value that has not changed since 2026-09-02 at the cost of
+an RPC round trip on the boot path and a new way to fail before the first tool
+call. What the block emits and what the spend path resolves are different
+questions; this row used to answer only the second.
+
+`SPEND_TOKEN`'s row was accurate and is still reachable: `setPolicy` is
+per-token, so an account whose policy is on another token must set the variable
+by hand. `leash_status` says so when the default token has no policy, because
+`limits()` answers `0/0/0` for that case and for an exhausted day alike.
 
 **The app never asks for a private key, at any step.** The operator key is the
 one value the user must paste themselves, locally.

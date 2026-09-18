@@ -28,11 +28,17 @@ import { canEdit } from '../../../lib/policy.js'
 import { publicClient } from '../../../lib/chain.js'
 import { accountDeployBlock, migrateLegacyAccount } from '../../../lib/accountRegistry.js'
 import { readLocal } from '../../../lib/browserStorage.js'
+import { CELO_USDC } from '@leash/sdk'
 
 // USDC on Celo mainnet. The token the policy is denominated in; the UI treats
 // stablecoins as 1:1 with the dollar, and that assumption lives here in the UI
 // and never in the contract.
-const TOKEN = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' as const
+/**
+ * USDC on Celo mainnet. One literal, in `@leash/sdk`, because this line was
+ * four separate copies of the same 42 characters and the MCP server asked
+ * every user to paste a fifth by hand.
+ */
+const TOKEN = CELO_USDC
 const DECIMALS = 6
 const SYMBOL = 'USDC'
 const DEMO_ACCOUNT = '0xBE380aa73c036da30D3b2fd5E75B0d1d89E11C3d'
@@ -390,7 +396,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                   been through operators(), so it is safe to name. */}
               {isOwner && (
                 <McpHandoff
-                  account={address} token={TOKEN}
+                  account={address}
                   operator={gasOperator}
                 />
               )}

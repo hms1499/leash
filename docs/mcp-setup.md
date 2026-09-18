@@ -126,9 +126,7 @@ typing an address; the two are otherwise identical.
       "env": {
         "LEASH_ACCOUNT": "0xYourSpendPolicyAccount",
         "OPERATOR_PK": "0xYourAgentOperatorPrivateKey",
-        "ATTRIBUTION_TAG": "celo_yourtag",
-        "SPEND_TOKEN": "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
-        "FEE_ADAPTER": "0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B"
+        "ATTRIBUTION_TAG": "celo_yourtag"
       }
     }
   }
@@ -140,9 +138,17 @@ typing an address; the two are otherwise identical.
 | `LEASH_ACCOUNT` | Your `SpendPolicyAccount` from step 1. This is where the money lives and where the limits are enforced. |
 | `OPERATOR_PK` | The private key of the wallet you passed to `setOperator`. **A hot key — see the warning below.** |
 | `ATTRIBUTION_TAG` | Your ERC-8021 tag, `celo_` plus 12 hex characters. Every transaction the server sends carries it. There is no untagged path. **Required — the server refuses to start without one.** See below for where to get it. |
-| `SPEND_TOKEN` | The token the agent spends. The value above is USDC on Celo mainnet. |
-| `FEE_ADAPTER` | Which stablecoin pays gas. The value above is the USDC fee adapter, so the agent needs **no CELO at all**. |
 | `CELO_RPC_URL` | Optional. Defaults to `https://forno.celo.org`. |
+| `SPEND_TOKEN` | Optional. The token the agent spends. Defaults to USDC on Celo mainnet, `0xcebA…118C`. Set it only if your account's policy is on some other token — `setPolicy` is per-token, and a policy set on one token reads as a cap of zero on every other. |
+| `FEE_ADAPTER` | Optional. Which stablecoin pays gas. Defaults to the USDC fee adapter, `0x2F25…2B33`, which is what makes the agent need **no CELO at all**. |
+
+Three variables, not five. `SPEND_TOKEN` and `FEE_ADAPTER` were required until
+0.4.0: two 42-character addresses with one correct value each, which a reader
+had no way to check and which failed differently when mistyped — a wrong
+adapter is rejected at the node when the first transaction is sent, and a wrong
+token is never rejected at all, it simply reports a daily cap of zero forever.
+Setting either still overrides the default; setting one to a malformed address
+is still refused at startup rather than quietly replaced.
 
 The server holds no keys of its own and adds no logic. It reads the chain and
 signs with the operator key you gave it.
