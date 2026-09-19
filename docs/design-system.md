@@ -946,6 +946,8 @@ since the meter was built. This gives it numbers.
 | `--ease-settle` | `cubic-bezier(0.34, 1.06, 0.64, 1)` | the one curve — a 6% overshoot, which reads as weight where `ease-out` read as a stop | every rule below, and `test/surface.test.ts` fails on a second curve |
 | `--m-fast` | 90ms | a state the reader just caused | `.motion-press` — every control, on `:active`; `.motion-reveal` — `LimitsDrawer` opening in flow, `Address`'s copy outcome landing; `.motion-control` — `Button` crossing between enabled and disabled |
 | `--m-slow` | 400ms | the meter's geometry moving to a new value | `.meter-fill`, and nothing else, ever |
+| `--m-enter` | 520ms | the landing's entrance, and nothing else | `.landing-stagger`, `.landing-tick` — see *Amended 2026-09-19* below |
+| `--m-blink` | 1060ms | the landing's terminal cursor, and its live dot | `.landing-cursor`, `.landing-live` |
 
 ### Rules
 
@@ -1048,6 +1050,45 @@ than ceremonial.
 is still the one taken here: spend what the rule already permits (that session
 found three unspent disclosures and a feed reveal missing from the landing),
 and measure before amending.
+
+### Amended 2026-09-19: the landing's exception
+
+Challenged a second time, two days before judging, and this time the owner
+chose motion for `/`: first impressions, for a reader who has never seen the
+product. The recommendation on the table was the one above -- an interaction
+that lets a visitor ask the live contract to overspend and watch it refuse --
+and it was declined in favour of entrance motion. This records the decision,
+and the fence that keeps it to one screen.
+
+**Three effects, on the landing only:**
+
+- **The hero enters.** Each line of both columns fades in and rises 8px, one
+  `--m-fast` beat apart, over `--m-enter` on `--ease-settle`. Pure CSS, with
+  `both` fill, so a page whose JavaScript never runs still ends fully drawn.
+- **A terminal cursor** blinks after the headline, at `--m-blink`, in the
+  headline's own colour. Not `--celo`: that token is spoken for twice.
+- **The live panel breathes with the chain.** A dot beside "Live on Celo
+  mainnet" pulses at twice `--m-blink`, and the block height flashes from
+  `--text` to `--dim` over `--m-enter` each time the chain produces one.
+
+**What did not change, anywhere:**
+
+- The dashboard and the wizard keep every rule above. That is the screen
+  someone watches while an agent spends, and the meter stays the only thing
+  that moves on it. `e2e/motion.spec.ts` asserts no `landing-` animation runs
+  there.
+- Money never animates its digits. The block height is not money, and it
+  still snaps: only its colour eases.
+- No scroll reveals, no parallax, no hover flourish, no shadow (§13). A scroll
+  reveal was offered and declined.
+- Every rule that animates lives inside one
+  `@media (prefers-reduced-motion: no-preference)` block, so a reader who has
+  asked the OS for less motion gets the page at rest -- not the 1ms version of
+  it the global guard below would otherwise produce, which for a delayed
+  entrance is a line held invisible for its delay.
+
+`test/surface.test.ts` holds both tokens inside that block and the classes
+that spend them inside `components/landing/`.
 
 ---
 

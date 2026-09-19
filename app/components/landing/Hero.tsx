@@ -24,7 +24,11 @@ export default function Hero() {
   return (
     <section className={`${PAGE} pb-12 pt-12 sm:pb-12 sm:pt-12`} aria-labelledby="hero-title">
       <div className={GRID}>
-        <div className="col-span-12 md:col-span-6">
+        {/* `landing-stagger`: §12's landing exception, amended 2026-09-19 --
+            each line enters one beat after the last. Pure CSS, and inside
+            prefers-reduced-motion: no-preference, so it costs a reader who
+            asked for less motion nothing and a page without script nothing. */}
+        <div className="landing-stagger col-span-12 md:col-span-6">
           <Label>On-chain spending controls for AI agents</Label>
           <h1
             id="hero-title"
@@ -54,6 +58,19 @@ export default function Hero() {
             }}
           >
             Give an AI agent a wallet without trusting it.
+            {/* A terminal's cursor, drawn rather than typed: a block glyph
+                depends on the face carrying it, and this is a box in the
+                headline's own colour -- not --celo, which §4 has spoken for
+                twice. Hidden from assistive tech; it is punctuation for the
+                eye. At rest for a reader who asked for less motion. */}
+            <span
+              aria-hidden="true"
+              className="landing-cursor"
+              style={{
+                display: 'inline-block', width: '0.55ch', height: '0.9em',
+                marginLeft: '0.15em', verticalAlign: '-0.1em', background: 'currentColor',
+              }}
+            />
           </h1>
           {/* The prose exception from design-system §1: sans, not mono, because
               this is read rather than looked at. 68ch is the measure rule from
@@ -107,7 +124,8 @@ export default function Hero() {
             foot of the page, and because that anchor is the one a reader may
             already have bookmarked. `scroll-mt-20` matches Section's, so the
             sticky header does not cover the panel on arrival. */}
-        <div id="live-proof" className="col-span-12 md:col-span-6 scroll-mt-20">
+        {/* Two beats behind the claim, so the evidence follows it in. */}
+        <div id="live-proof" className="landing-stagger landing-stagger-late col-span-12 md:col-span-6 scroll-mt-20">
           <h2
             style={{
               fontFamily: 'var(--mono)',

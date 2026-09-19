@@ -69,7 +69,16 @@ export default function LiveProof() {
   return (
     <Panel>
       <div className="px-4 pt-6 flex flex-wrap items-center justify-between gap-2">
-        <Label>Live on Celo mainnet</Label>
+        {/* The dot breathes while the page is reading the chain: §12's landing
+            exception. --r-dot is the one radius a state dot takes (§10). */}
+        <span className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="landing-live"
+            style={{ width: 6, height: 6, borderRadius: 'var(--r-dot)', background: 'var(--ok)' }}
+          />
+          <Label>Live on Celo mainnet</Label>
+        </span>
         {/* The Address primitive rather than the identical markup by hand.
             Spec §6 lists it, and an unused primitive is dead code. */}
         <Address
@@ -103,7 +112,13 @@ export default function LiveProof() {
           className="num px-4 mt-2"
           style={{ ...DATA, color: 'var(--dim)' }}
         >
-          Read at block {feed.head.block.toLocaleString('en-US')}
+          {/* Keyed by the block, so each new one remounts the span and its
+              colour eases back to --dim: the chain moved, and nothing moves
+              when it has not. The figure itself snaps. */}
+          Read at block{' '}
+          <span key={feed.head.block.toString()} className="landing-tick">
+            {feed.head.block.toLocaleString('en-US')}
+          </span>
         </p>
       )}
 

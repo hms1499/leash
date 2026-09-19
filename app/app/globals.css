@@ -75,6 +75,11 @@
      the meter's geometry, and nothing else moves. §12. */
   --m-fast: 90ms;
   --m-slow: 400ms;
+  /* The landing's exception, and only the landing's: its entrance and its
+     cursor. Spent inside the no-preference block below and nowhere else --
+     test/surface.test.ts holds them there. §12, amended 2026-09-19. */
+  --m-enter: 520ms;
+  --m-blink: 1060ms;
   /* The curve. A press and a disclosure both end by settling rather than by
      stopping dead, which is the whole of what "smooth" turns out to mean in
      the interfaces this was compared against -- the overshoot is 6%, small
@@ -400,6 +405,59 @@ body {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* The landing's exception, §12 amended 2026-09-19: the owner chose entrance
+ * motion for `/`, for a first impression. Three effects and no more, and the
+ * dashboard and wizard spend none of them.
+ *
+ * Inside no-preference rather than trusting the guard above: that guard
+ * shortens a duration but not a delay, so a reader who asked for less motion
+ * would have seen each delayed line held invisible for its delay. Here they
+ * get no animation at all, and the page at rest.
+ *
+ * `both` fill, so a page whose script never runs still ends fully drawn --
+ * nothing here waits on JavaScript to become visible. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes landing-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  /* One --m-fast beat between lines. The later column starts two beats in, so
+     the claim leads and the evidence follows it. */
+  .landing-stagger > * {
+    animation: landing-enter var(--m-enter) var(--ease-settle) both;
+    animation-delay: calc(var(--stagger-from, 0) * var(--m-fast));
+  }
+  .landing-stagger > :nth-child(2) { animation-delay: calc((var(--stagger-from, 0) + 1) * var(--m-fast)); }
+  .landing-stagger > :nth-child(3) { animation-delay: calc((var(--stagger-from, 0) + 2) * var(--m-fast)); }
+  .landing-stagger > :nth-child(4) { animation-delay: calc((var(--stagger-from, 0) + 3) * var(--m-fast)); }
+  .landing-stagger > :nth-child(n+5) { animation-delay: calc((var(--stagger-from, 0) + 4) * var(--m-fast)); }
+  .landing-stagger-late { --stagger-from: 2; }
+
+  /* A terminal's cursor: on for half the cycle, off for the other half, with
+   * no fade between -- a cursor that eases reads as a loading spinner. */
+  @keyframes landing-blink {
+    0%, 49.9% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+  .landing-cursor { animation: landing-blink var(--m-blink) linear infinite; }
+
+  /* The live dot breathes rather than blinks: it says "connected", not
+   * "waiting for input". */
+  @keyframes landing-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .landing-live { animation: landing-pulse calc(2 * var(--m-blink)) var(--ease-settle) infinite; }
+
+  /* A new block. The figure snaps -- only its colour eases back to --dim, and
+   * only because the chain produced one; a quiet chain leaves it still. */
+  @keyframes landing-tick {
+    from { color: var(--text); }
+    to { color: var(--dim); }
+  }
+  .landing-tick { animation: landing-tick var(--m-enter) var(--ease-settle); }
 }
 
 /* Inline code is looked at, not read, so it is mono -- and at the data step

@@ -111,7 +111,7 @@ describe('motion', () => {
     })
   }
 
-  it('declares exactly two durations', () => {
+  it('declares exactly the durations lib/surface.ts names', () => {
     const declared = [...css.matchAll(/--m-([a-z]+):/g)].map((m) => m[1]).sort()
     expect(declared).toEqual(Object.keys(MOTION).sort())
   })
@@ -221,6 +221,42 @@ describe('motion', () => {
       .filter(({ hits }) => hits > 0)
       .map(({ f, hits }) => `${f}: ${hits}`)
     expect(offenders).toEqual([])
+  })
+
+  /**
+   * §12's landing exception, and the fence around it.
+   *
+   * The owner chose entrance motion for the landing on 2026-09-19 -- three
+   * effects, first impressions. What keeps that from becoming the whole app is
+   * here: the two tokens it spends have no other user, the classes that spend
+   * them live only in components/landing/, and every rule that animates sits
+   * inside `prefers-reduced-motion: no-preference`, so a reader who asked the
+   * OS to stop gets a page at rest rather than a 1ms version of it.
+   */
+  describe('the landing exception', () => {
+    const at = css.indexOf('@media (prefers-reduced-motion: no-preference)')
+    const block = at === -1 ? '' : css.slice(at, css.indexOf('\n}\n', at) + 2)
+
+    it('is one block, and only a reader who has not asked for less motion gets it', () => {
+      expect(at, 'globals.css has no no-preference block').toBeGreaterThan(-1)
+      for (const name of ['landing-enter', 'landing-blink', 'landing-pulse', 'landing-tick']) {
+        expect(block, `@keyframes ${name} belongs inside it`).toContain(`@keyframes ${name}`)
+      }
+    })
+
+    it('spends --m-enter and --m-blink there and nowhere else', () => {
+      const outside = css.slice(0, at) + css.slice(at + block.length)
+      expect(outside).not.toMatch(/var\(--m-(?:enter|blink)\)/)
+      expect(block).toMatch(/var\(--m-enter\)/)
+      expect(block).toMatch(/var\(--m-blink\)/)
+    })
+
+    it('is used by the landing and by nothing else', () => {
+      const offenders = FILES
+        .filter((f) => !f.startsWith('components/landing/'))
+        .filter((f) => /\blanding-(?:stagger|cursor|live|tick)\b/.test(readFileSync(join(ROOT, f), 'utf8')))
+      expect(offenders).toEqual([])
+    })
   })
 
   /**

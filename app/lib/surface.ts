@@ -87,6 +87,14 @@ export const MOTION = {
   fast: '90ms',
   /** The meter's geometry moving to a new value. The only slow thing. */
   slow: '400ms',
+  /**
+   * The landing's entrance, and nothing else. §12's one exception, chosen for
+   * a first impression on 2026-09-19; the dashboard and the wizard never
+   * spend it, and test/surface.test.ts holds it to components/landing/.
+   */
+  enter: '520ms',
+  /** A terminal cursor's blink on the landing, and the live dot's breath. */
+  blink: '1060ms',
 } as const
 
 export type RadiusName = keyof typeof RADIUS
