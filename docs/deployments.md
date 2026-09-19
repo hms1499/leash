@@ -252,7 +252,13 @@ No token policy is configured yet. Every operator path reverts
 `TokenNotConfigured` until the owner calls `setPolicy`. The payee allowlist is
 off, so `execute()` currently accepts any payee once a policy exists.
 
-## Accounts owned by somebody else, on mainnet
+## Accounts owned by the maintainer's second wallet, on mainnet
+
+**Corrected 2026-09-19.** This section was written believing the two accounts
+below belonged to somebody else. They do not: `0x94f7…` is the maintainer's,
+confirmed that day, and the chain had tied it to the project throughout. Both
+are declared in `ownContracts`, and `docs/registration.md` has the full list of
+the maintainer's wallets and accounts. The text below is kept as written.
 
 Two `SpendPolicyAccount` instances exist that this project did not deploy and
 does not own. Both were deployed **directly from the owner's own EOA** through

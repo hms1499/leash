@@ -66,8 +66,9 @@ What changed, and why:
 - `ownContracts` declared three addresses, all superseded, and neither v2 nor
   `0x7757035d…`. This is the gap `docs/deployments.md` flagged as open. It now
   declares all six: v2, v1, `0x895B773E…`, the `0x7156af4f…` deploy that shipped
-  v1 bytecode, and the two accounts strangers deployed through the wizard. Those
-  last two are owned by somebody else but share this project's operator EOA, so
+  v1 bytecode, and the two accounts `0x94f7…` deployed through the wizard. Those
+  last two were believed to be somebody else's (wrong -- see "Declared
+  2026-09-19" below) and share this project's operator EOA, so
   they look project-controlled at audit; both are paused and hold 0 USDC, so
   declaring them excludes no volume.
 - The description's five proofs were all v1 transactions. They are now the v2
@@ -179,24 +180,64 @@ touches, so each was traced to its earliest incoming transfer on Blockscout:
 |---|---|---|
 | operator `0xd44daF6D…850D6` | owner, 2026-09-02 | project, registered |
 | owner `0x2B33cb68…7f57` | `0x64Ad6121…ae78`, 4 CELO, 2026-09-02 | project, registered |
-| `0x64Ad61211C1b0B7f20B3e04B49661f30f152ae78` | `0xcfab15c9…bcbc`, 2026-05-16 | not the maintainer's, per the maintainer |
-| `0x94f7268c…6459` | — | not the maintainer's, per the maintainer |
-| `0xc5edb509…414f` | `0x94f7268c…6459`, 2026-04-09 | not the maintainer's, per the maintainer |
+| `0x64Ad61211C1b0B7f20B3e04B49661f30f152ae78` | `0xcfab15c9…bcbc`, 2026-05-16 | **the maintainer's** — declared 2026-09-19 |
+| `0x94f7268ca8b29d536f8c5cd0753753d55Fb06459` | `0xb92fe925…`, 2026-04-07 | **the maintainer's** — declared 2026-09-19 |
+| `0xc5Edb509eB965E410E62C751306Cd63F4b31414f` | `0x94f7…`, 4.917 CELO, 2026-04-09 | **the maintainer's** — declared 2026-09-19 |
 
-`0x64Ad…` funded the owner and on 2026-09-12 received 0.1 USDC from the v2
-account. It was briefly added to `otherWallets` (03:12:48Z) on a mistaken
-answer that it was the maintainer's, then removed (03:15:07Z) when that was
-corrected; a GET diffed against the copy from before both edits shows only
-`updatedAt` changed. It stays undeclared, so whoever controls it is the
-project's first funder at audit and should be nameable if the organisers ask.
-That 0.1 USDC is never evidence of value moved.
+The "not the maintainer's" answers recorded here on 2026-09-15 were wrong, and
+the chain said so the whole time. Settled on 2026-09-19, when the maintainer
+confirmed all of these are theirs.
 
-`0x94f7…` owns both "stranger" accounts (`0xA73D…`, `0x7757…`) and funded the
-wallet that paid the 2026-09-07 agent402 purchase. The maintainer says it is
-not theirs. This file's own history says otherwise: `docs/deployments.md`
-records those accounts as this project's test account and wizard walk, both
-use the project's operator, and the local `leash` MCP server is configured
-against `0x7757…`. Unresolved; the contradiction is recorded, not settled.
+## Declared 2026-09-19: the rest of the maintainer's wallets and accounts
+
+What the chain showed, read from Blockscout and forno rather than from this
+file:
+
+- `0x64Ad…` signed `acceptOwnership` on v2 at block 77322898 and handed it back
+  with `transferOwnership` at 77323222, five minutes later. It is the owner's
+  first funder (4 CELO, 2026-09-02), sent the owner 1 USDC on 2026-09-12, and
+  was the payee of the MCP-agent spend the submission cites.
+  tx: 0x3cb307a4fde990a3f9282348999127daf022f4caea264af16426595158148704
+- `0x94f7…` deployed `0xA73D…`, `0x7757…` and `0x92121ceB…` and funded them;
+  v1 swept 2.436567 USDC back to it and the owner sent it 0.070001 USDC on
+  2026-09-07. It and `0x64Ad…` moved USDC and CELO both ways on 2026-09-09.
+- `0x64Ad…` deployed six more SpendPolicyAccounts between 2026-09-09 and
+  2026-09-14, and funded `0x5dade63a…` (0.02 USDC, 2026-09-14).
+- **Two of Leash's Track 2 signers were in this tree.** `0xc5Edb509…` signed 5
+  tagged transactions on 2026-09-09 and 2026-09-10, and `0x5dade63a…` 2 on
+  2026-09-14, each as the operator of an account `0x64Ad…` owns. Under query
+  8565204 each one is a non-project signer, and its fee-currency legs make it a
+  counterparty -- that is, a "user" of Leash. None of the owner, `0x64Ad…` or
+  `0x94f7…` ever signed a tagged transaction.
+
+So the board's Track 2 figures for Leash were largely the maintainer's own
+wallets plus the fee-gas recipients noted below. Declaring them removes those
+signers; the figures are expected to fall, and should.
+
+`PUT /submissions/me` returned 200 and a separate `GET`, diffed against the
+copy taken before it, changed exactly `otherWallets`, `ownContracts` and
+`updatedAt` (2026-09-19T03:58:11Z); `status` is still `published`.
+
+- **`otherWallets`, 1 → 10 (438 of 500 chars):** the owner; `0x64Ad…`,
+  `0x94f7…`, `0xc5Edb509…`, `0x5DaDE63a1758bFF54B6F609D7E29F623ed87bd24`; and
+  the operators set on those accounts, agent keys the maintainer held —
+  `0x66f744Af7B1D1218031C83Cb2c62EBa7e6138eD8` (on `0xC0c4…`, first funded by
+  `0x94f7…`), `0x01814520C5636f5eE7CF687e968e2eFE568D309e` (`0x4118…`),
+  `0x2239cE58eaf1875ad097BEeBd5DDc433229BAfca` (`0xA18e…`),
+  `0x1696550581a484c71997C4e50FBC99fD350736Da` (`0x2CfE…`) and
+  `0xC4165fDa7aedC388886cEF9540448D32c0f4f8d8` (second operator on `0x7757…`).
+- **`ownContracts`, 6 → 11 (482 of 500 chars):** the six already there, plus
+  `0x75BBE555b2f05eC0D8F0e1a5796dd57A3cc11946`,
+  `0x4118377675958ae824a1f86aC4739EF3C8Fb6924`,
+  `0x09679aBFa0eFde6e5D4B1E9DB3ED83D6AF7911C6`,
+  `0x57EA8BdAaA29a38ad614C38fd062524aE032C724` and
+  `0xA18e63B6297CC0772bc724106e6E567be3e7a7eF`.
+- **Three more are the maintainer's and did not fit the 500-character field:**
+  `0xC0c4EaeBd851f752380105e16b1d7BbCAf020738` and `0x92121ceB3A21c3383B7526a0CCc91729238B7f7f`
+  (owned by `0x64Ad…` and `0x94f7…`) and `0x2CfEc6dca9530Bc5D04fb17792c2b0137B99CF3B`
+  (deployed by the owner on 2026-09-14). Chosen because none of the three had a
+  single token transfer between 28 Aug and the day of this check, so the
+  "own contracts" exclusion has no leg to apply to. Name them if asked.
 
 Rebuilding the 20 successful tagged transactions (all signed by the operator)
 with query 8565204's leg filter yields only two counterparties:

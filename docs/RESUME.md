@@ -372,7 +372,8 @@ has checked today.
 below was earned before v2 existed, and several landed on deployments that are
 now superseded — the policy-gated spend on `0x895B773E…`, the `leash_pay`
 proof on v1 `0x7aDa926B…`, the MCP-agent spend on `0xA73DB76f…`, which is
-somebody else's account. They are true records of what happened on the day
+owned by the maintainer's second wallet `0x94f7…` (believed until 2026-09-19 to
+be somebody else's; see `docs/registration.md`). They are true records of what happened on the day
 they say, and they are not what the product should cite.
 
 What the product cites lives in `app/lib/proofs.ts`, refreshed 2026-09-16 to
