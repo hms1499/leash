@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeTopUpState, topUpNeedsArming } from '../lib/topUp.js'
+import { describeTopUpForOwner, describeTopUpState, topUpNeedsArming } from '../lib/topUp.js'
 
 describe('describeTopUpState', () => {
   // The row a non-owner reads. It has to say what the switch MEANS, not just
@@ -14,6 +14,28 @@ describe('describeTopUpState', () => {
 
   it('never reports a state as known before it has been read', () => {
     expect(describeTopUpState(null)).toBe('—')
+  })
+})
+
+/**
+ * The owner's paragraph is the state plus what it costs them. It was built in
+ * the component by appending the second sentence to the first, and the first
+ * has no full stop -- it is also a table row -- so the owner read "…into its
+ * own wallet Recipient restrictions do not apply…", and "— x402 APIs…" while
+ * the setting was still being read. Seen on the live dashboard 2026-09-19.
+ */
+describe('describeTopUpForOwner', () => {
+  it('ends the state before the consequence begins', () => {
+    expect(describeTopUpForOwner(true)).toBe(
+      'On — the agent may draw funds into its own wallet. Recipient restrictions do not apply once funds reach that wallet — only the daily cap does.',
+    )
+    expect(describeTopUpForOwner(false)).toBe(
+      'Off — the agent cannot draw funds into its own wallet. x402 APIs the agent pays for itself need this on.',
+    )
+  })
+
+  it('says nothing about a consequence before the state has been read', () => {
+    expect(describeTopUpForOwner(null)).toBe('—')
   })
 })
 

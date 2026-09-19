@@ -7,7 +7,7 @@ import { LEASH_DATA_SUFFIX } from '@leash/sdk'
 import { pollUntil } from '../lib/confirm.js'
 import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import { useArming } from '../lib/arming.js'
-import { describeTopUpState, topUpNeedsArming } from '../lib/topUp.js'
+import { describeTopUpForOwner, describeTopUpState, topUpNeedsArming } from '../lib/topUp.js'
 import { noteForWallet, type WalletNote } from '../lib/walletNote.js'
 import Panel from './ui/Panel'
 import Label from './ui/Label'
@@ -130,10 +130,7 @@ export default function TopUpDrawer({
         {loading ? 'Reading the current setting…' : enabled ? 'On' : 'Off'}
       </h2>
       <p className="mt-2" style={{ ...PROSE, color: 'var(--dim)' }}>
-        {describeTopUpState(loading ? null : enabled)}
-        {enabled
-          ? ' Recipient restrictions do not apply once funds reach that wallet — only the daily cap does.'
-          : ' x402 APIs the agent pays for itself need this on.'}
+        {describeTopUpForOwner(loading ? null : enabled)}
       </p>
 
       {/* Above the button, not below it: this warning is what the first press

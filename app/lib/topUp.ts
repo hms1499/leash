@@ -27,6 +27,22 @@ export function describeTopUpState(enabled: boolean | null): string {
 }
 
 /**
+ * The owner's paragraph: the state, then what it costs them.
+ *
+ * Built here rather than by appending in the component, which is how the
+ * owner came to read "…into its own wallet Recipient restrictions…": the
+ * state has no full stop because it is also a table row, and the join did not
+ * add one. Before the read, the consequence is not stated either -- "Off" is a
+ * claim nobody has checked yet, and so is what follows from it.
+ */
+export function describeTopUpForOwner(enabled: boolean | null): string {
+  if (enabled === null) return describeTopUpState(null)
+  return `${describeTopUpState(enabled)}. ${enabled
+    ? 'Recipient restrictions do not apply once funds reach that wallet — only the daily cap does.'
+    : 'x402 APIs the agent pays for itself need this on.'}`
+}
+
+/**
  * Whether flipping the switch this way needs the app's two-beat confirm.
  *
  * Only the ON direction does. It opens `topUpOperator`, the one path out of
