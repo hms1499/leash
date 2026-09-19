@@ -331,6 +331,7 @@ function Dashboard({ address }: { address: `0x${string}` }) {
                 paused={state.paused}
                 loading={state.isLoading}
                 dominant
+                inset="panel"
               />
             </div>
           </div>

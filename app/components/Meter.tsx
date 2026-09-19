@@ -34,6 +34,15 @@ type Props = {
    * supposed to support.
    */
   dominant?: boolean
+  /**
+   * The inset its contents take. `gutter` is PAGE's 16px, which is what the
+   * landing's LiveProof card uses beside it. `panel` is a Panel's 24px, which
+   * is what every panel on the dashboard uses: there the meter kept PAGE from
+   * when it was a full-bleed band, and its first line sat 8px left of the
+   * panels above and below it, with 12px over it where they have 24
+   * (e2e/dashboard.spec.ts).
+   */
+  inset?: 'gutter' | 'panel'
 }
 
 const TRACK = 600
@@ -64,7 +73,7 @@ function bindingRule(isBinding: boolean): React.CSSProperties {
 
 export default function Meter({
   daily, remaining, perTx, decimals, symbol, balance, allowlistEnabled, paused, loading,
-  dominant = false,
+  dominant = false, inset = 'gutter',
 }: Props) {
   // False on the server and on first paint so hydration matches; the effect
   // corrects it before the first frame anyone sees.
@@ -145,7 +154,7 @@ export default function Meter({
           at any level. Changing it means rewriting e2e/dashboard.spec.ts's
           reduced-motion guard, which asserts the SMIL <animate> element -- one
           of the two guards spec §3 calls non-negotiable. */}
-      <div className={`${PAGE} py-3`}>
+      <div className={inset === 'panel' ? 'p-6' : `${PAGE} py-3`}>
       {/* One --t-display per screen, and on the dashboard this is it.
           The allowance alone says what is permitted and the balance alone
           says what is there; 50778cd was opened because the meter showed the

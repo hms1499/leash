@@ -101,3 +101,23 @@ test('the dashboard does not scroll sideways on a phone', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(375)
 })
+
+/**
+ * The meter's content starts where every panel's content starts.
+ *
+ * It carried PAGE's px-4 from when it was a full-bleed band, and kept it when
+ * the band became a bordered card inside the column -- so its first line sat
+ * 8px left of every panel beside it (measured on the live app 2026-09-19: 33
+ * against 41 at 375px, 241 against 249 at 1440), with 12px above it where the
+ * panels have 24.
+ */
+for (const viewport of [{ width: 375, height: 760 }, { width: 1440, height: 900 }]) {
+  test(`the meter lines up with the panels beside it at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await page.goto(`/a/${ACCOUNT}`)
+    await expect(page.getByText('Remaining today')).toBeVisible()
+    const left = async (text: string) => (await page.getByText(text, { exact: true }).first().boundingBox())!.x
+    expect(await left('Maximum next direct payment')).toBeCloseTo(await left('Account status'), 0)
+    expect(await left('Maximum next direct payment')).toBeCloseTo(await left('Contract rules'), 0)
+  })
+}
