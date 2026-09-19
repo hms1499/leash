@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
-import { isValidAddress } from '../lib/address.js'
+import { refuseGrant } from '../lib/policy.js'
 import { publicClient, REQUIRED_CHAIN_ID, SET_OPERATOR_GAS, WRONG_NETWORK } from '../lib/chain.js'
 import { LEASH_DATA_SUFFIX } from '@leash/sdk'
 import { pollUntil } from '../lib/confirm.js'
@@ -63,36 +63,36 @@ export default function AgentAccessPanel({
 
   async function grantAccess() {
     setNote(null)
-    if (!isValidAddress(agentInput)) { setNote('Enter a valid Celo address.'); return }
-    if (connected && agentInput.toLowerCase() === connected.toLowerCase()) {
-      setNote('Use a separate agent wallet. The owner wallet must not also be the agent.')
-      return
-    }
-    if (operators.some((o) => o.toLowerCase() === agentInput.toLowerCase())) {
-      setNote('That wallet is already an authorised agent on this account.')
-      return
-    }
     if (chainId !== REQUIRED_CHAIN_ID) { setNote(WRONG_NETWORK); return }
 
     setPhase('sending')
     try {
+      // The contract is asked, not the list above -- see refuseGrant. Inside
+      // the busy phase, so the button cannot be pressed twice while it reads.
+      const refusal = await refuseGrant(agentInput, connected, async (a) => (
+        await publicClient.readContract({
+          address: account, abi: OPERATOR_ABI, functionName: 'operators', args: [a],
+        }) as boolean
+      ))
+      if (refusal) { setNote(refusal); return }
+      // refuseGrant has just checked it is an address.
+      const agent = agentInput as `0x${string}`
       await writeContractAsync({
         address: account, abi: OPERATOR_ABI, functionName: 'setOperator',
-        args: [agentInput, true], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
+        args: [agent, true], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
         dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Past the wallet, into the chain's wait. lib/writePhase.ts.
       setPhase('confirming')
       const confirmed = await pollUntil(async () => Boolean(
         await publicClient.readContract({
-          address: account, abi: OPERATOR_ABI, functionName: 'operators', args: [agentInput],
+          address: account, abi: OPERATOR_ABI, functionName: 'operators', args: [agent],
         }),
       ))
       if (confirmed) {
-        const next = agentInput as `0x${string}`
-        writeLocal(`leash.agent.${account.toLowerCase()}`, next)
+        writeLocal(`leash.agent.${account.toLowerCase()}`, agent)
         setNote('✓ Agent access granted.')
-        onAgentGranted(next)
+        onAgentGranted(agent)
       } else {
         setNote('Sent, but the chain has not confirmed it yet. Reload in a moment.')
       }

@@ -1,4 +1,5 @@
 import { formatUnits, parseUnits } from 'viem'
+import { isValidAddress } from './address.js'
 
 /**
  * What the agent has spent today.
@@ -125,6 +126,63 @@ export function ownershipRole(
   if (canEdit(owner, connected)) return 'owner'
   if (canEdit(pendingOwner, connected)) return 'incoming'
   return 'none'
+}
+
+/** `operators(address)` on the account, read by the caller. */
+export type OperatorCheck = (address: `0x${string}`) => Promise<boolean>
+
+const UNCHECKED = 'Could not check that address on chain. Nothing was sent.'
+
+/**
+ * Why a nomination must not reach the wallet, or null when it may.
+ *
+ * Every refusal here ends in a paid transaction otherwise. Re-nominating the
+ * pending wallet "confirmed" on pollUntil's first read of pendingOwner(),
+ * which already held it -- a success reported for a transaction nobody had
+ * seen land, the shape TopUpDrawer's guard exists for. Nominating an agent
+ * hands a hot key every control, sweep included: the one thing this account
+ * exists to prevent, and AgentAccessPanel already refuses its mirror image.
+ * A read that fails refuses too, because not knowing is not a no.
+ */
+export async function refuseNomination(
+  to: string, pendingOwner: string | null | undefined, isOperator: OperatorCheck,
+): Promise<string | null> {
+  if (!isValidAddress(to)) return 'That is not a valid address.'
+  if (canEdit(pendingOwner, to)) return 'That wallet is already nominated — nothing to change.'
+  try {
+    if (await isOperator(to)) {
+      return 'That wallet is an authorised agent on this account. Revoke its access first: as owner it could sweep everything the limits protect.'
+    }
+  } catch {
+    return UNCHECKED
+  }
+  return null
+}
+
+/**
+ * Why granting agent access must not reach the wallet, or null when it may.
+ *
+ * The dashboard's operator list is what 24 hours of history could verify, so
+ * an agent authorised earlier and never used is missing from it. Granting it
+ * again "confirmed" on pollUntil's first read of operators() and cost the
+ * owner gas for a write that changed nothing -- so the contract is asked, not
+ * the list.
+ */
+export async function refuseGrant(
+  agent: string, owner: string | null | undefined, isOperator: OperatorCheck,
+): Promise<string | null> {
+  if (!isValidAddress(agent)) return 'Enter a valid Celo address.'
+  if (canEdit(owner, agent)) {
+    return 'Use a separate agent wallet. The owner wallet must not also be the agent.'
+  }
+  try {
+    if (await isOperator(agent)) {
+      return 'That wallet is already an authorised agent on this account.'
+    }
+  } catch {
+    return UNCHECKED
+  }
+  return null
 }
 
 export type LimitsValidation =

@@ -6,8 +6,7 @@ import {
   ACCEPT_OWNERSHIP_GAS, publicClient, REQUIRED_CHAIN_ID, TRANSFER_OWNERSHIP_GAS, WRONG_NETWORK,
 } from '../lib/chain.js'
 import { LEASH_DATA_SUFFIX } from '@leash/sdk'
-import { isValidAddress } from '../lib/address.js'
-import { ownershipRole } from '../lib/policy.js'
+import { ownershipRole, refuseNomination } from '../lib/policy.js'
 import { pollUntil } from '../lib/confirm.js'
 import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import { noteForWallet, type WalletNote } from '../lib/walletNote.js'
@@ -24,6 +23,8 @@ const OWNERSHIP_ABI = [
     inputs: [], outputs: [] },
   { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
   { type: 'function', name: 'pendingOwner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+  { type: 'function', name: 'operators', stateMutability: 'view',
+    inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'bool' }] },
 ] as const
 
 const ZERO = '0x0000000000000000000000000000000000000000' as const
@@ -104,12 +105,20 @@ export default function OwnershipDrawer(
     // Before the wallet, never after: a guard that opens a wallet prompt and
     // then refuses leaves a person cancelling a dialogue they did not ask for.
     if (chainId !== REQUIRED_CHAIN_ID) { say(WRONG_NETWORK); return }
-    if (arg !== null && arg !== ZERO && !isValidAddress(arg)) {
-      say('That is not a valid address.'); return
-    }
     setPending(fn === 'acceptOwnership' ? 'accept' : arg === ZERO ? 'cancel' : 'nominate')
     setPhase('sending')
     try {
+      // A nomination is checked against the chain before the wallet opens --
+      // see refuseNomination. Inside the busy phase, so the button cannot be
+      // pressed twice while the read is out.
+      if (fn === 'transferOwnership' && arg !== ZERO) {
+        const refusal = await refuseNomination(arg ?? '', pendingOwner, async (a) => (
+          await publicClient.readContract({
+            address: account, abi: OWNERSHIP_ABI, functionName: 'operators', args: [a],
+          }) as boolean
+        ))
+        if (refusal) { say(refusal); return }
+      }
       try {
         await writeContractAsync({
           address: account, abi: OWNERSHIP_ABI, functionName: fn,
