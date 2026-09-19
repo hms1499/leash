@@ -15,6 +15,7 @@ import {
   publicClient, REQUIRED_CHAIN_ID, WRONG_NETWORK, DEPLOY_GAS, ERC20_TRANSFER_GAS,
   SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS, SET_OPERATOR_GAS, SET_POLICY_GAS, SET_TOP_UP_ENABLED_GAS,
 } from '../../lib/chain.js'
+import { LEASH_DATA_SUFFIX } from '@leash/sdk'
 import { isValidAddress } from '../../lib/address.js'
 import { generateAgentWallet, keyToShow, type HeldAgentKey } from '../../lib/agentKey.js'
 import { canEdit, formatDisplayAmount, parseAmount, validateLimits } from '../../lib/policy.js'
@@ -511,6 +512,7 @@ export default function Onboard() {
       try {
         hash = await deployContractAsync({
           abi, bytecode, args: [owner], chainId: REQUIRED_CHAIN_ID, gas: DEPLOY_GAS,
+          dataSuffix: LEASH_DATA_SUFFIX,
         })
       } catch {
         setError('The deployment was not sent.')
@@ -564,6 +566,7 @@ export default function Onboard() {
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setPolicy',
         args: [TOKEN, parsed.perTx, parsed.daily], chainId: REQUIRED_CHAIN_ID, gas: SET_POLICY_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Signed and sent. What follows is the chain. lib/writePhase.ts.
       setLimitsPhase('confirming')
@@ -599,6 +602,7 @@ export default function Onboard() {
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setAllowlistEnabled',
         args: [false], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_ENABLED_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Signed and sent. What follows is the chain. lib/writePhase.ts.
       setRecipientPhase('confirming')
@@ -640,6 +644,7 @@ export default function Onboard() {
         await writeContractAsync({
           address: account!, abi: SETUP_ABI, functionName: 'setAllowlist',
           args: [recipient, true], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_GAS,
+          dataSuffix: LEASH_DATA_SUFFIX,
         })
         // First of the two writes is signed. lib/writePhase.ts.
         setRecipientPhase('confirming')
@@ -661,6 +666,7 @@ export default function Onboard() {
         await writeContractAsync({
           address: account!, abi: SETUP_ABI, functionName: 'setAllowlistEnabled',
           args: [true], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_ENABLED_GAS,
+          dataSuffix: LEASH_DATA_SUFFIX,
         })
       }
       setRecipientPhase('confirming')
@@ -698,6 +704,7 @@ export default function Onboard() {
         await writeContractAsync({
           address: account!, abi: SETUP_ABI, functionName: 'setTopUpEnabled',
           args: [next], chainId: REQUIRED_CHAIN_ID, gas: SET_TOP_UP_ENABLED_GAS,
+          dataSuffix: LEASH_DATA_SUFFIX,
         })
       } catch {
         setTopUpNote('The change was not sent.')
@@ -776,6 +783,7 @@ export default function Onboard() {
       await writeContractAsync({
         address: account!, abi: SETUP_ABI, functionName: 'setOperator',
         args: [agent, true], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Signed and sent. What follows is the chain. lib/writePhase.ts.
       setAgentPhase('confirming')
@@ -860,6 +868,7 @@ export default function Onboard() {
       await writeContractAsync({
         address: TOKEN, abi: ERC20_ABI, functionName: 'transfer',
         args: [destination, amount], chainId: REQUIRED_CHAIN_ID, gas: ERC20_TRANSFER_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Signed and sent. What follows is the chain. lib/writePhase.ts.
       setFundPhase('confirming')

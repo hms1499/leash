@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, SWEEP_GAS, WRONG_NETWORK } from '../lib/chain.js'
+import { LEASH_DATA_SUFFIX } from '@leash/sdk'
 import { formatDisplayAmount, parseAmount } from '../lib/policy.js'
 import { planRefuel, transactionsLeft } from '../lib/gasFloat.js'
 import { pollUntil } from '../lib/confirm.js'
@@ -140,6 +141,7 @@ export default function AgentPanel({
       await writeContractAsync({
         address: account, abi: SWEEP_ABI, functionName: 'sweep',
         args: [token, operator, amount], chainId: REQUIRED_CHAIN_ID, gas: SWEEP_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // The wallet is done; everything past here is the chain. See
       // lib/writePhase.ts -- this refuel waits on the operator's balance

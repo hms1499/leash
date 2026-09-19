@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { isValidAddress } from '../lib/address.js'
 import { publicClient, REQUIRED_CHAIN_ID, SET_OPERATOR_GAS, WRONG_NETWORK } from '../lib/chain.js'
+import { LEASH_DATA_SUFFIX } from '@leash/sdk'
 import { pollUntil } from '../lib/confirm.js'
 import { isBusy, writeLabel, type WritePhase } from '../lib/writePhase.js'
 import { useArming } from '../lib/arming.js'
@@ -78,6 +79,7 @@ export default function AgentAccessPanel({
       await writeContractAsync({
         address: account, abi: OPERATOR_ABI, functionName: 'setOperator',
         args: [agentInput, true], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Past the wallet, into the chain's wait. lib/writePhase.ts.
       setPhase('confirming')
@@ -110,6 +112,7 @@ export default function AgentAccessPanel({
       await writeContractAsync({
         address: account, abi: OPERATOR_ABI, functionName: 'setOperator',
         args: [operator, false], chainId: REQUIRED_CHAIN_ID, gas: SET_OPERATOR_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Past the wallet, into the chain's wait. lib/writePhase.ts.
       setPhase('confirming')

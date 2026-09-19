@@ -67,12 +67,12 @@ times.
 
 | Suite | Status |
 |---|---|
-| `cd contracts && forge test` | 66/66 |
-| `cd sdk && pnpm run test` | 101/101, re-run 2026-09-18 (was 83; `constants.test.ts` pins the Celo mainnet defaults and the project's attribution code, and `attribution.test.ts` covers a multi-code suffix) |
+| `cd contracts && forge test` | 68/68, re-run 2026-09-19 (was 66; `AttributionSuffix.t.sol` proves the ERC-8021 suffix the dashboard now appends changes nothing, on a deployment or an owner write) |
+| `cd sdk && pnpm run test` | 102/102, re-run 2026-09-19 (was 101; `LEASH_DATA_SUFFIX` decodes to the registered code. Before that 83; `constants.test.ts` pins the Celo mainnet defaults and the project's attribution code, and `attribution.test.ts` covers a multi-code suffix) |
 | `cd mcp && pnpm run test` | 51/51, re-run 2026-09-18 (was 35; the `SPEND_TOKEN`/`FEE_ADAPTER`/`ATTRIBUTION_TAG` defaults, the two-code suffix, and the note `leash_status` prints when the default token has no policy) |
-| `cd mcp && pnpm run test:bundle` | 3/3, re-run 2026-09-18 (packs the tarball, installs it, starts the bin — now on **two** env vars, which also proves the defaults were inlined) |
-| `cd app && pnpm run test` | 481/481, re-run 2026-09-18 (was 500 on 2026-09-17; the emitted block went from five variables to two, taking `displayTag`/`isAttributionTag` and their 19 tests with it — the bug they guarded cannot occur in a block that carries no tag) |
-| `cd app && pnpm run test:e2e` | 41/41 local, re-run 2026-09-18 **and** 41/41 against <https://leash-app-phi.vercel.app> with `LEASH_E2E_URL`. The deployed run was 40/41 until the redeploy: `landing.spec.ts` asserts the landing links to the v2 account and the build then serving that URL still carried v1's. That failure was the deploy signal, and it cleared the moment the deploy landed. |
+| `cd mcp && pnpm run test:bundle` | 3/3, re-run 2026-09-19 (packs the tarball, installs it, starts the bin — now on **two** env vars, which also proves the defaults were inlined) |
+| `cd app && pnpm run test` | 485/485, re-run 2026-09-19 (was 480, not the 481 written here: `attribution.test.ts` adds 5, holding every owner write to the suffix and watching it reach a fake wallet. Before that 500 on 2026-09-17; the emitted block went from five variables to two, taking `displayTag`/`isAttributionTag` and their 19 tests with it — the bug they guarded cannot occur in a block that carries no tag) |
+| `cd app && pnpm run test:e2e` | 41/41 local, re-run 2026-09-19 on the build Playwright starts itself; 41/41 against <https://leash-app-phi.vercel.app> with `LEASH_E2E_URL`. The deployed run was 40/41 until the redeploy: `landing.spec.ts` asserts the landing links to the v2 account and the build then serving that URL still carried v1's. That failure was the deploy signal, and it cleared the moment the deploy landed. |
 | `tsc --noEmit` in `sdk`, `mcp`, `spikes`, `app`, `examples` | exit 0 |
 
 Every row above except `test:bundle` was re-run on **2026-09-13** and is that

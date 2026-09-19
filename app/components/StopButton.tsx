@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
 import { publicClient, REQUIRED_CHAIN_ID, SET_PAUSED_GAS, WRONG_NETWORK } from '../lib/chain.js'
+import { LEASH_DATA_SUFFIX } from '@leash/sdk'
 import { pollUntil } from '../lib/confirm.js'
 import { useArming } from '../lib/arming.js'
 import { isBusy, outcomeForOtherWallet, ownerControlView, writeLabel, type WritePhase } from '../lib/writePhase.js'
@@ -72,6 +73,7 @@ export default function StopButton({
       await writeContractAsync({
         address: account, abi: PAUSE_ABI, functionName: 'setPaused', args: [next],
         chainId: REQUIRED_CHAIN_ID, gas: SET_PAUSED_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // The owner's part is over the moment the wallet returns a hash, and the
       // button has to stop claiming otherwise -- everything below this line is

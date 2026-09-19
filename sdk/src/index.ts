@@ -1,4 +1,4 @@
-export { withAttribution } from './attribution.js'
+export { withAttribution, LEASH_DATA_SUFFIX } from './attribution.js'
 export { pollUntil, confirmTransaction } from './confirm.js'
 export type { TxOutcome } from './confirm.js'
 export {

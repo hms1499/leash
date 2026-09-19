@@ -5,6 +5,7 @@ import { useAccount, useWriteContract } from 'wagmi'
 import {
   ACCEPT_OWNERSHIP_GAS, publicClient, REQUIRED_CHAIN_ID, TRANSFER_OWNERSHIP_GAS, WRONG_NETWORK,
 } from '../lib/chain.js'
+import { LEASH_DATA_SUFFIX } from '@leash/sdk'
 import { isValidAddress } from '../lib/address.js'
 import { ownershipRole } from '../lib/policy.js'
 import { pollUntil } from '../lib/confirm.js'
@@ -114,6 +115,7 @@ export default function OwnershipDrawer(
           address: account, abi: OWNERSHIP_ABI, functionName: fn,
           ...(arg === null ? {} : { args: [arg] }),
           chainId: REQUIRED_CHAIN_ID, gas,
+          dataSuffix: LEASH_DATA_SUFFIX,
         } as never)
       } catch {
         say('The transaction was not sent.'); return

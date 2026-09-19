@@ -1,4 +1,12 @@
 import { toDataSuffix } from '@celo/attribution-tags'
+import { LEASH_ATTRIBUTION_CODE } from './constants.js'
+
+/**
+ * This project's code alone, as the bytes to append. For a signer that takes a
+ * suffix rather than calldata to wrap -- wagmi's `dataSuffix`, which is how the
+ * dashboard tags the transactions an owner signs in a browser wallet.
+ */
+export const LEASH_DATA_SUFFIX = toDataSuffix(LEASH_ATTRIBUTION_CODE)
 
 /**
  * Appends an ERC-8021 attribution suffix to calldata.

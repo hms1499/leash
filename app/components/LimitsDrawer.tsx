@@ -7,6 +7,7 @@ import {
   publicClient, REQUIRED_CHAIN_ID, SET_ALLOWLIST_ENABLED_GAS, SET_ALLOWLIST_GAS,
   SET_POLICY_GAS, WRONG_NETWORK,
 } from '../lib/chain.js'
+import { LEASH_DATA_SUFFIX } from '@leash/sdk'
 import { formatDisplayAmount, validateLimits } from '../lib/policy.js'
 import { isValidAddress } from '../lib/address.js'
 import { pollUntil } from '../lib/confirm.js'
@@ -119,6 +120,7 @@ export default function LimitsDrawer({
       await writeContractAsync({
         address: account, abi: POLICY_ABI, functionName: 'setPolicy',
         args: [token, parsed.perTx, parsed.daily], chainId: REQUIRED_CHAIN_ID, gas: SET_POLICY_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Signed and sent. What follows is the chain. lib/writePhase.ts.
       setPhase('confirming')
@@ -152,6 +154,7 @@ export default function LimitsDrawer({
       await writeContractAsync({
         address: account, abi: POLICY_ABI, functionName: 'setAllowlistEnabled',
         args: [next], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_ENABLED_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Signed and sent. What follows is the chain. lib/writePhase.ts.
       setRecipientPhase('confirming')
@@ -203,6 +206,7 @@ export default function LimitsDrawer({
       await writeContractAsync({
         address: account, abi: POLICY_ABI, functionName: 'setAllowlist',
         args: [payee, next], chainId: REQUIRED_CHAIN_ID, gas: SET_ALLOWLIST_GAS,
+        dataSuffix: LEASH_DATA_SUFFIX,
       })
       // Signed and sent. What follows is the chain. lib/writePhase.ts.
       setRecipientPhase('confirming')

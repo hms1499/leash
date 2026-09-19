@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { fromDataSuffix } from '@celo/attribution-tags'
 import { withAttribution } from '../src/attribution.js'
+import { LEASH_ATTRIBUTION_CODE, LEASH_DATA_SUFFIX } from '../src/index.js'
 
 const TAG = 'celo_0123456789ab'
 
@@ -56,5 +57,20 @@ describe('withAttribution, given several codes', () => {
   // passes an array of one whenever the caller supplied no code of their own.
   it('agrees with the single-code form for one code', () => {
     expect(withAttribution('0xdeadbeef', [TAG])).toBe(withAttribution('0xdeadbeef', TAG))
+  })
+})
+
+/**
+ * The dashboard's owner writes are signed by a browser wallet through wagmi,
+ * which takes a suffix to append rather than calldata to wrap -- so the app
+ * needs the bytes, not `withAttribution`. Exported from here so the app does
+ * not take its own copy of `@celo/attribution-tags`: adding it to the app
+ * re-resolved the lockfile's peer graph under wagmi and viem.
+ */
+describe('LEASH_DATA_SUFFIX', () => {
+  it('decodes to exactly the code Celo Builders issued this project', () => {
+    expect(fromDataSuffix(LEASH_DATA_SUFFIX)).toEqual({
+      codes: [LEASH_ATTRIBUTION_CODE], schemaId: 0,
+    })
   })
 })
