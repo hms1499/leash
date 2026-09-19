@@ -313,6 +313,15 @@ body {
 .control-stop { border: 1px solid var(--bad); color: var(--bad); font-weight: 700; outline-color: var(--bad); }
 .control-stop:hover:not(:disabled) { background: var(--bad); color: var(--bg); }
 
+/*
+ * A header control is one line. Squeezed, "■ Stop" and the wallet broke onto
+ * two lines at 58px against Button's 44px floor; the band wraps whole controls
+ * onto a second row instead (AppHeader). Scoped to the header because a
+ * button inside a 272px panel -- "Confirm — allow agent-funded payments" --
+ * has to stay free to wrap.
+ */
+.header-actions :is(button, a, select) { white-space: nowrap; }
+
 /* The paused header's ground is --bad, and §4 lets only --bg sit on it.
  *
  * `.on-bright` is declared once by whatever paints the bright ground, and

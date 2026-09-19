@@ -51,15 +51,28 @@ export default function AppHeader({
   // §4's rule from CSS rather than from a prop each of them has to be handed:
   // measured 2026-09-11, two of them had never been handed it and drew --text
   // on --bad at 2.44 against a 4.5 bar.
+  // Wraps rather than overflows. The owner's band on the dashboard holds the
+  // switcher, the network badge, Stop and the wallet, and on one line that was
+  // 405px wide at 375 -- the page scrolled sideways and the wallet was cut off.
+  // A refused Stop then put its note beside the button and pushed Stop itself
+  // off the screen (e2e/owner.spec.ts). Without a nav, the actions take the
+  // rest of the brand's row and wrap inside it: left to wrap as one block,
+  // they dropped below the brand and left it alone on a 64px row of its own.
+  // With a nav, `ml-auto` keeps the landing's three links where they were.
+  // `py-2` only shows once rows stack: one row of 44px controls fits min-h-16.
   return (
     <header className={danger ? 'on-bright' : undefined} style={ground}>
       <nav
         aria-label="Primary"
-        className={`${PAGE} flex min-h-16 items-center justify-between gap-3`}
+        className={`${PAGE} flex min-h-16 flex-wrap items-center justify-between gap-3 py-2`}
       >
         <BrandLink onBright={danger} />
         {nav && <div className="hidden items-center gap-6 md:flex">{nav}</div>}
-        {actions && <div className="flex items-center gap-3">{actions}</div>}
+        {actions && (
+          <div className={`header-actions ${nav ? 'ml-auto' : 'flex-1'} flex min-w-0 flex-wrap items-center justify-end gap-3`}>
+            {actions}
+          </div>
+        )}
       </nav>
     </header>
   )

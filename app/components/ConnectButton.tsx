@@ -64,7 +64,10 @@ export default function ConnectButton({ onDangerBand = false }: { onDangerBand?:
 
   const note = describeConnectError(error)
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
+    // justify-end and a line of its own on a phone for the note, as StopButton:
+    // the two sit in the same band, and a note beside a header button is what
+    // pushed Stop off a 375px screen.
+    <span className="inline-flex flex-wrap items-center justify-end gap-2">
       <Button
         variant="primary"
         disabled={isPending}
@@ -75,7 +78,7 @@ export default function ConnectButton({ onDangerBand = false }: { onDangerBand?:
       {/* Without this, a missing extension or a cancelled prompt looked like a
           button that does nothing. */}
       {note && (
-        <Label role="status" style={{ color: onDangerBand ? 'var(--bg)' : 'var(--bad)' }}>
+        <Label role="status" className="basis-full text-right sm:basis-auto" style={{ color: onDangerBand ? 'var(--bg)' : 'var(--bad)' }}>
           {note}
         </Label>
       )}

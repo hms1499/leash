@@ -104,7 +104,10 @@ export default function StopButton({
   }
 
   return (
-    <span className="flex items-center gap-2">
+    // Wraps, and on a phone the note takes a line of its own above the button.
+    // Beside it, a refused Stop's note was what pushed Stop off a 375px screen
+    // -- the kill switch gone at the moment the owner needed to press it again.
+    <span className="flex flex-wrap items-center justify-end gap-2">
       {/* The note lives in the header, whose ground turns --bad the moment the
           account is paused — and the note was --bad too, so the one message an
           owner most needs to read (why Resume did nothing) was invisible at
@@ -116,7 +119,7 @@ export default function StopButton({
           Every sibling note in the app -- AgentAccessPanel, OwnershipDrawer,
           TopUpDrawer -- already announces the same sentences. */}
       {note && (
-        <Label role="status" style={{ color: paused ? 'var(--bg)' : 'var(--bad)' }}>{note}</Label>
+        <Label role="status" className="basis-full text-right sm:basis-auto" style={{ color: paused ? 'var(--bg)' : 'var(--bad)' }}>{note}</Label>
       )}
       {paused ? (
         <Button variant="ghost" onDangerBand={paused} disabled={busy} onClick={() => void send(false)}>
